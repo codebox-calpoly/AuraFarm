@@ -1,19 +1,13 @@
-# Project Name
+# Aura Farm
 
-Short project description
-
-## Overview
-
-### Purpose
-
-Short paragraph description
+A lighthearted mobile game that rewards students for doing good things or exploring campus such as attending events, hiking, volunteering. You complete challenges, submit proof, and climb leaderboards.
 
 ### Team
 
-- [First Last](https://www.linkedin.com/) - Project Manager
-- [First Last](https://www.linkedin.com/) - Tech Lead
-- [First Last](https://www.linkedin.com/) - Tech Lead
-- [First Last](https://www.linkedin.com/) - Designer
+- [Rohit Kota](https://www.linkedin.com/in/rohit-kota4/) - Tech Lead
+- [Rishi Thakkar](https://www.linkedin.com/in/rishi-thakkar1/) - Tech Lead
+- [Shishir Bonthala](https://www.linkedin.com/in/shishir-bonthala-912256363/) - Project Manager
+- [Hannah Moshtaghi](https://www.linkedin.com/in/hannah-moshtaghi/) - Designer
 - [First Last](https://www.linkedin.com/) - Developer
 
 ## Contributing
