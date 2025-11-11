@@ -8,7 +8,13 @@ A lighthearted mobile game that rewards students for doing good things or explor
 - [Rishi Thakkar](https://www.linkedin.com/in/rishi-thakkar1/) - Tech Lead
 - [Shishir Bonthala](https://www.linkedin.com/in/shishir-bonthala-912256363/) - Project Manager
 - [Hannah Moshtaghi](https://www.linkedin.com/in/hannah-moshtaghi/) - Designer
-- [First Last](https://www.linkedin.com/) - Developer
+- [Vishal Murali Kannan](https://www.linkedin.com/in/vishal-mk/) - Developer
+- [Trace Macias](https://www.linkedin.com/in/trace-macias/) - Developer
+- [Atharv Allepally](https://www.linkedin.com/in/atharv-allepally-613204301/) - Developer
+- [Drew Tompkins] - Developer
+- [Jake Orchanian](https://www.linkedin.com/in/jakeo-dev/) - Developer
+- [Srinithi Doddapaneni] - Developer
+- [Jacky Liu] - Developer
 
 ## Contributing
 
