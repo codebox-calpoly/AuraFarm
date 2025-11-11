@@ -11,10 +11,10 @@ A lighthearted mobile game that rewards students for doing good things or explor
 - [Vishal Murali Kannan](https://www.linkedin.com/in/vishal-mk/) - Developer
 - [Trace Macias](https://www.linkedin.com/in/trace-macias/) - Developer
 - [Atharv Allepally](https://www.linkedin.com/in/atharv-allepally-613204301/) - Developer
-- [Drew Tompkins] - Developer
+- Drew Tompkins - Developer
 - [Jake Orchanian](https://www.linkedin.com/in/jakeo-dev/) - Developer
-- [Srinithi Doddapaneni] - Developer
-- [Jacky Liu] - Developer
+- Srinithi Doddapaneni - Developer
+- Jacky Liu - Developer
 
 ## Contributing
 
