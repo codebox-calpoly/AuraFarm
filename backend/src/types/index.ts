@@ -120,8 +120,8 @@ export const updateUserSchema = z.object({
 });
 
 export const queryParamsSchema = z.object({
-  page: z.string().regex(/^\d+$/).default('1').transform(Number),
-  limit: z.string().regex(/^\d+$/).default('20').transform(Number),
+  page: z.string().regex(/^\d+$/).transform(Number),
+  limit: z.string().regex(/^\d+$/).transform(Number),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
 });
 

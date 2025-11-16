@@ -24,8 +24,8 @@ exports.updateUserSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(100).optional(),
 });
 exports.queryParamsSchema = zod_1.z.object({
-    page: zod_1.z.string().regex(/^\d+$/).default('1').transform(Number),
-    limit: zod_1.z.string().regex(/^\d+$/).default('20').transform(Number),
+    page: zod_1.z.string().regex(/^\d+$/).transform(Number),
+    limit: zod_1.z.string().regex(/^\d+$/).transform(Number),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']).optional(),
 });
 // Param validation schemas
