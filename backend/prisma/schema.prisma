@@ -8,30 +8,51 @@ generator client {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  email      String   @unique
-  name       String
-  auraPoints Int      @default(0)
-  streak     Int      @default(0)
-  createdAt  DateTime @default(now())
+  id              Int                   @id @default(autoincrement())
+  email           String                @unique
+  name            String
+  auraPoints      Int                   @default(0)
+  streak          Int                   @default(0)
+  lastCompletedAt DateTime? // For streak tracking
+  createdAt       DateTime              @default(now())
+  completions     ChallengeCompletion[] // Reverse relation
+  flags           Flag[] // Flags they've submitted
 }
 
 model Challenge {
-  id           Int      @id @default(autoincrement())
+  id           Int                   @id @default(autoincrement())
   title        String
   description  String
   latitude     Float
   longitude    Float
   difficulty   String
   pointsReward Int
-  createdAt    DateTime @default(now())
+  createdAt    DateTime              @default(now())
+  completions  ChallengeCompletion[] // Reverse relation
 }
 
 model ChallengeCompletion {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   userId      Int
   challengeId Int
   latitude    Float
   longitude   Float
-  completedAt DateTime @default(now())
+  completedAt DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  flags       Flag[] // Flags on this completion
+
+  @@unique([userId, challengeId]) // Prevent duplicate completions
+}
+
+model Flag {
+  id           Int                 @id @default(autoincrement())
+  completionId Int
+  flaggedById  Int
+  reason       String?
+  createdAt    DateTime            @default(now())
+  completion   ChallengeCompletion @relation(fields: [completionId], references: [id])
+  flaggedBy    User                @relation(fields: [flaggedById], references: [id])
+
+  @@unique([completionId, flaggedById]) // Prevent duplicate flags from same user
 }
