@@ -6,7 +6,7 @@ A lighthearted mobile game that rewards students for doing good things or explor
 
 - [Rohit Kota](https://www.linkedin.com/in/rohit-kota4/) - Tech Lead
 - [Rishi Thakkar](https://www.linkedin.com/in/rishi-thakkar1/) - Tech Lead
-- [Shishir Bonthala](https://www.linkedin.com/in/shishir-bonthala-912256363/) - Project Manager
+- [Shishir Bonthala](https://www.linkedin.com/in/shishir-bonthala-912256363/) - Product Manager
 - [Hannah Moshtaghi](https://www.linkedin.com/in/hannah-moshtaghi/) - Designer
 - [Vishal Murali Kannan](https://www.linkedin.com/in/vishal-mk/) - Developer
 - [Trace Macias](https://www.linkedin.com/in/trace-macias/) - Developer
