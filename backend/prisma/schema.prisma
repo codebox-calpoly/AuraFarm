@@ -43,6 +43,8 @@ model ChallengeCompletion {
   flags       Flag[] // Flags on this completion
 
   @@unique([userId, challengeId]) // Prevent duplicate completions
+  @@index([userId]) // Index for faster user completion queries
+  @@index([challengeId]) // Index for faster challenge completion queries
 }
 
 model Flag {
@@ -55,4 +57,6 @@ model Flag {
   flaggedBy    User                @relation(fields: [flaggedById], references: [id])
 
   @@unique([completionId, flaggedById]) // Prevent duplicate flags from same user
+  @@index([completionId]) // Index for faster completion flag queries
+  @@index([flaggedById]) // Index for faster user flag queries
 }
