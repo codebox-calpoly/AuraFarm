@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Challenge, ChallengeWithCompletions, ApiResponse, PaginatedResponse } from '../types';
+import { prisma } from '../prisma';
+
 
 // Mock data - will be replaced with Prisma queries once database is connected
 const mockChallenges: Challenge[] = [
@@ -74,7 +76,9 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
     throw new AppError('Invalid challenge ID', 400);
   }
   
-  const challenge = mockChallenges.find(c => c.id === challengeId);
+  const challenge = await prisma.challenge.findUnique({
+    where: {id: challengeId}
+  })
   
   if (!challenge) {
     throw new AppError('Challenge not found', 404);
