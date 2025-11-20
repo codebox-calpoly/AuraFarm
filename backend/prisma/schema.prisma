@@ -1,6 +1,6 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL") // Required for Prisma 6 - Prisma 7 warning can be ignored
 }
 
 generator client {

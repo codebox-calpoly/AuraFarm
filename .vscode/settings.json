@@ -1,0 +1,8 @@
+{
+  "prisma.validate": true,
+  "prisma.fileWatcher": true,
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
+}
+
