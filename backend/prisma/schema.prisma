@@ -7,10 +7,16 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 model User {
   id              Int                   @id @default(autoincrement())
   email           String                @unique
   name            String
+  role            UserRole              @default(user)
   auraPoints      Int                   @default(0)
   streak          Int                   @default(0)
   lastCompletedAt DateTime? // For streak tracking

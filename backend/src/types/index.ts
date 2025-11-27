@@ -9,6 +9,7 @@ export interface User {
   streak: number;
   lastCompletedAt: Date | null;
   createdAt: Date;
+  role: 'user' | 'admin';
 }
 
 export interface UserProfile extends User {
