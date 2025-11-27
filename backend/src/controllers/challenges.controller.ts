@@ -92,12 +92,8 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
   res.json(response);
 });
 
-/**
- * POST /api/challenges
- * Create a new challenge (admin only - placeholder)
- */
+
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
-  // TODO: Add authentication middleware to check admin role
   const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
   
   try {
