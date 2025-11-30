@@ -4,6 +4,7 @@ import cors from 'cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 
+
 // Import routes
 import challengesRoutes from './routes/challenges.routes';
 import completionsRoutes from './routes/completions.routes';
@@ -18,10 +19,12 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
 
 // API Routes
 app.use('/api/challenges', challengesRoutes);
