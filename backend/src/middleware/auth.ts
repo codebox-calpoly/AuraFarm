@@ -21,7 +21,8 @@ export const requireAuth = async (
   const token = parts[1];
 
   try {
-    const result = await supabase.auth.getUser({ accessToken: token } as any);
+    const result = await supabase.auth.getUser(token);
+
 
     // data in the form of: result: { data: { user: User | null }, error: AuthError | null }
     if (result.error || !result.data?.user) { 
