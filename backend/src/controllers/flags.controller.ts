@@ -2,9 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Flag, CreateFlagRequest, ApiResponse } from '../types';
-
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockFlags: Flag[] = [];
+import { prisma } from '../prisma';
 
 /**
  * POST /api/flags
@@ -20,19 +18,39 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
   // TODO: Get userId from authentication middleware
   const flaggedById = 1; // Placeholder
   
-  // TODO: Verify completion exists
-  // TODO: Check if user already flagged this completion
-  // TODO: Prevent users from flagging their own completions
+  // Verify completion exists
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
   
-  const newFlag: Flag = {
-    id: mockFlags.length + 1,
-    completionId,
-    flaggedById,
-    reason: reason || null,
-    createdAt: new Date(),
-  };
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
   
-  mockFlags.push(newFlag);
+  // Prevent users from flagging their own completions
+  if (completion.userId === flaggedById) {
+    throw new AppError('You cannot flag your own completion', 400);
+  }
+  
+  // Check if user already flagged this completion
+  const existingFlag = await prisma.flag.findFirst({
+    where: {
+      completionId,
+      flaggedById,
+    },
+  });
+  
+  if (existingFlag) {
+    throw new AppError('You have already flagged this completion', 409);
+  }
+  
+  const newFlag = await prisma.flag.create({
+    data: {
+      completionId,
+      flaggedById,
+      reason: reason || null,
+    },
+  });
   
   const response: ApiResponse<Flag> = {
     success: true,
@@ -50,11 +68,113 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
 export const getFlags = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Add authentication middleware to check admin role
   
+  const flags = await prisma.flag.findMany();
+  
   const response: ApiResponse<Flag[]> = {
     success: true,
-    data: mockFlags,
+    data: flags,
   };
   
   res.json(response);
 });
 
+
+
+
+
+
+
+
+
+
+/*
+
+
+import { Request, Response } from 'express';
+import { asyncHandler } from '../middleware/asyncHandler';
+import { AppError } from '../middleware/errorHandler';
+import { Flag, CreateFlagRequest, ApiResponse } from '../types';
+import { prisma } from '../prisma';
+
+/**
+ * POST /api/flags
+ * Flag a challenge completion
+ */
+/*
+export const flagCompletion = asyncHandler(async (req: Request, res: Response) => {
+  const { completionId, reason } = req.body;
+  
+  if (!completionId || isNaN(Number(completionId))) {
+    throw new AppError('Invalid completion ID', 400);
+  }
+  
+  // TODO: Get userId from authentication middleware
+  const flaggedById = 1; // Placeholder
+  
+  // Verify completion exists
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
+  
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+  
+  // Prevent users from flagging their own completions
+  if (completion.userId === flaggedById) {
+    throw new AppError('You cannot flag your own completion', 400);
+  }
+  
+  // Check if user already flagged this completion
+  const existingFlag = await prisma.flag.findFirst({
+    where: {
+      completionId,
+      flaggedById,
+    },
+  });
+  
+  if (existingFlag) {
+    throw new AppError('You have already flagged this completion', 409);
+  }
+  
+  const newFlag = await prisma.flag.create({
+    data: {
+      completionId,
+      flaggedById,
+      reason: reason || null,
+    },
+  });
+  
+  const response: ApiResponse<Flag> = {
+    success: true,
+    data: newFlag,
+    message: 'Completion flagged successfully',
+  };
+  
+  res.status(201).json(response);
+});
+
+/**
+ * GET /api/flags
+ * Get all flags (admin only - placeholder)
+ */
+/*
+export const getFlags = asyncHandler(async (req: Request, res: Response) => {
+  // TODO: Add authentication middleware to check admin role
+  
+  const flags = await prisma.flag.findMany();
+  
+  const response: ApiResponse<Flag[]> = {
+    success: true,
+    data: flags,
+  };
+  
+  res.json(response);
+});
+
+
+
+
+
+
+*/
