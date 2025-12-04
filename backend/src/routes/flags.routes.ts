@@ -5,13 +5,14 @@ import {
 } from '../controllers/flags.controller';
 import { validateBody } from '../middleware/validate';
 import { createFlagSchema } from '../types';
+import { authenticate, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
 /**
  * @route   POST /api/flags
  * @desc    Flag a challenge completion
- * @access  Private (TODO: Add auth middleware)
+ * @access  Private
  */
 router.post(
   '/',
@@ -22,9 +23,9 @@ router.post(
 /**
  * @route   GET /api/flags
  * @desc    Get all flags
- * @access  Admin (TODO: Add auth middleware)
+ * @access  Admin
  */
-router.get('/', getFlags);
+router.get('/', authenticate, requireAdmin, getFlags);
 
 export default router;
 

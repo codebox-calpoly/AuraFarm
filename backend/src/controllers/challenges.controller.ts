@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Challenge, ChallengeWithCompletions, ApiResponse, PaginatedResponse } from '../types';
+import { prisma } from '../prisma';
 
 // Mock data - will be replaced with Prisma queries once database is connected
 const mockChallenges: Challenge[] = [
@@ -96,24 +97,32 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
 
 /**
  * POST /api/challenges
- * Create a new challenge (admin only - placeholder)
+ * Create a new challenge (admin only)
+ * 
+ * Requires admin authentication via authenticate and requireAdmin middleware.
+ * Validates input using createChallengeSchema.
+ * Creates challenge in database using Prisma.
+ * 
+ * @returns {ApiResponse<Challenge>} 201 Created with new challenge
+ * @throws {AppError} 400 if validation fails
+ * @throws {AppError} 401 if not authenticated
+ * @throws {AppError} 403 if not admin
  */
+
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
-  // TODO: Add authentication middleware to check admin role
   const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
   
-  const newChallenge: Challenge = {
-    id: mockChallenges.length + 1,
-    title,
-    description,
-    latitude,
-    longitude,
-    difficulty,
-    pointsReward,
-    createdAt: new Date(),
-  };
-  
-  mockChallenges.push(newChallenge);
+  // Create new challenge in database
+  const newChallenge = await prisma.challenge.create({
+    data: {
+      title,
+      description,
+      latitude,
+      longitude,
+      difficulty,
+      pointsReward,
+    },
+  });
   
   const response: ApiResponse<Challenge> = {
     success: true,
