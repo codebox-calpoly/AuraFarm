@@ -11,4 +11,3 @@ export const asyncHandler = (fn: AsyncFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);
   };
 };
-
