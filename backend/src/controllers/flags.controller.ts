@@ -11,10 +11,6 @@ import { prisma } from '../prisma';
 export const flagCompletion = asyncHandler(async (req: Request, res: Response) => {
   const { completionId, reason } = req.body;
   
-  if (!completionId || isNaN(Number(completionId))) {
-    throw new AppError('Invalid completion ID', 400);
-  }
-  
   // TODO: Get userId from authentication middleware
   const flaggedById = 1; // Placeholder
   
@@ -44,6 +40,7 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('You have already flagged this completion', 409);
   }
   
+  // Create the flag
   const newFlag = await prisma.flag.create({
     data: {
       completionId,
