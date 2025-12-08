@@ -3,54 +3,39 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createChallenge = exports.getChallengeById = exports.getChallenges = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockChallenges = [
-    {
-        id: 1,
-        title: 'Visit the Library',
-        description: 'Explore the main campus library and find a quiet study spot',
-        latitude: 37.7749,
-        longitude: -122.4194,
-        difficulty: 'easy',
-        pointsReward: 10,
-        createdAt: new Date('2024-01-15'),
-    },
-    {
-        id: 2,
-        title: 'Hike to the Viewpoint',
-        description: 'Complete the trail hike to the scenic viewpoint',
-        latitude: 37.7849,
-        longitude: -122.4094,
-        difficulty: 'medium',
-        pointsReward: 25,
-        createdAt: new Date('2024-01-16'),
-    },
-];
+const prisma_1 = require("../prisma");
+const library_1 = require("@prisma/client/runtime/library");
 /**
  * GET /api/challenges
  * Get all challenges with optional filtering
  */
 exports.getChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { difficulty, page = 1, limit = 20 } = req.query;
-    let filtered = [...mockChallenges];
-    // Filter by difficulty if provided
-    if (difficulty && typeof difficulty === 'string') {
-        filtered = filtered.filter(c => c.difficulty === difficulty);
-    }
+    const { difficulty, page = '1', limit = '20' } = req.query;
     // Pagination
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
-    const startIndex = (pageNum - 1) * limitNum;
-    const endIndex = startIndex + limitNum;
-    const paginated = filtered.slice(startIndex, endIndex);
+    const pageNum = Number(page) || 1;
+    const limitNum = Math.min(Number(limit) || 20, 100);
+    const skip = (pageNum - 1) * limitNum;
+    const where = {};
+    if (difficulty) {
+        where.difficulty = difficulty;
+    }
+    const [total, challenges] = await Promise.all([
+        prisma_1.prisma.challenge.count({ where }),
+        prisma_1.prisma.challenge.findMany({
+            where,
+            skip,
+            take: limitNum,
+            orderBy: { createdAt: 'desc' },
+        }),
+    ]);
     const response = {
         success: true,
-        data: paginated,
+        data: challenges,
         pagination: {
             page: pageNum,
             limit: limitNum,
-            total: filtered.length,
-            totalPages: Math.ceil(filtered.length / limitNum),
+            total,
+            totalPages: Math.ceil(total / limitNum),
         },
     };
     res.json(response);
@@ -65,14 +50,19 @@ exports.getChallengeById = (0, asyncHandler_1.asyncHandler)(async (req, res) => 
     if (isNaN(challengeId)) {
         throw new errorHandler_1.AppError('Invalid challenge ID', 400);
     }
-    const challenge = mockChallenges.find(c => c.id === challengeId);
+    const challenge = await prisma_1.prisma.challenge.findUnique({
+        where: { id: challengeId },
+    });
     if (!challenge) {
         throw new errorHandler_1.AppError('Challenge not found', 404);
     }
-    // Mock completions count
+    // Get real completions count from database
+    const completionsCount = await prisma_1.prisma.challengeCompletion.count({
+        where: { challengeId },
+    });
     const challengeWithCompletions = {
         ...challenge,
-        completionsCount: Math.floor(Math.random() * 50),
+        completionsCount,
     };
     const response = {
         success: true,
@@ -80,28 +70,31 @@ exports.getChallengeById = (0, asyncHandler_1.asyncHandler)(async (req, res) => 
     };
     res.json(response);
 });
-/**
- * POST /api/challenges
- * Create a new challenge (admin only - placeholder)
- */
 exports.createChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    // TODO: Add authentication middleware to check admin role
     const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
-    const newChallenge = {
-        id: mockChallenges.length + 1,
-        title,
-        description,
-        latitude,
-        longitude,
-        difficulty,
-        pointsReward,
-        createdAt: new Date(),
-    };
-    mockChallenges.push(newChallenge);
-    const response = {
-        success: true,
-        data: newChallenge,
-        message: 'Challenge created successfully',
-    };
-    res.status(201).json(response);
+    try {
+        const newChallenge = await prisma_1.prisma.challenge.create({
+            data: {
+                title,
+                description,
+                latitude,
+                longitude,
+                difficulty,
+                pointsReward,
+            },
+        });
+        const response = {
+            success: true,
+            data: newChallenge,
+            message: 'Challenge created successfully',
+        };
+        res.status(201).json(response);
+    }
+    catch (error) {
+        if (error instanceof library_1.PrismaClientKnownRequestError && error.code === 'P2002') {
+            // unique constraint violation
+            throw new errorHandler_1.AppError('A challenge with this title already exists', 409);
+        }
+        throw error;
+    }
 });

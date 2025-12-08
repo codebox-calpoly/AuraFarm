@@ -4,9 +4,6 @@ import { AppError } from '../middleware/errorHandler';
 import { Flag, CreateFlagRequest, ApiResponse } from '../types';
 import { prisma } from '../prisma';
 
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockFlags: Flag[] = [];
-
 /**
  * POST /api/flags
  * Flag a challenge completion
@@ -14,26 +11,43 @@ const mockFlags: Flag[] = [];
 export const flagCompletion = asyncHandler(async (req: Request, res: Response) => {
   const { completionId, reason } = req.body;
   
-  if (!completionId || isNaN(Number(completionId))) {
-    throw new AppError('Invalid completion ID', 400);
-  }
-  
   // TODO: Get userId from authentication middleware
   const flaggedById = 1; // Placeholder
   
-  // TODO: Verify completion exists
-  // TODO: Check if user already flagged this completion
-  // TODO: Prevent users from flagging their own completions
+  // Verify completion exists
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
   
-  const newFlag: Flag = {
-    id: mockFlags.length + 1,
-    completionId,
-    flaggedById,
-    reason: reason || null,
-    createdAt: new Date(),
-  };
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
   
-  mockFlags.push(newFlag);
+  // Prevent users from flagging their own completions
+  if (completion.userId === flaggedById) {
+    throw new AppError('You cannot flag your own completion', 400);
+  }
+  
+  // Check if user already flagged this completion
+  const existingFlag = await prisma.flag.findFirst({
+    where: {
+      completionId,
+      flaggedById,
+    },
+  });
+  
+  if (existingFlag) {
+    throw new AppError('You have already flagged this completion', 409);
+  }
+  
+  // Create the flag
+  const newFlag = await prisma.flag.create({
+    data: {
+      completionId,
+      flaggedById,
+      reason: reason || null,
+    },
+  });
   
   const response: ApiResponse<Flag> = {
     success: true,
@@ -92,13 +106,12 @@ export const getFlags = asyncHandler(async (req: Request, res: Response) => {
     orderBy: {
       createdAt: 'desc', // Most recent goes first
     },
-});
+  });
 
   const response: ApiResponse<typeof flags> = {
     success: true,
     data: flags,
   };
 
-    res.json(response);
+  res.json(response);
 });
-

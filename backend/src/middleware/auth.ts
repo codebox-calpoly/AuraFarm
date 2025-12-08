@@ -88,7 +88,7 @@ export const authenticate = asyncHandler(async (
     }
   });
 
-  /**
+/**
  * Authorization middleware - verifies user has admin role
  * 
  * Must be used after authenticate middleware. Checks if req.user exists
@@ -99,21 +99,21 @@ export const authenticate = asyncHandler(async (
  * @throws {AppError} 403 if user is not admin
  */
 
-  export const requireAdmin = (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): void => {
-    // Check if user is authenticated
-    if (!req.user) {
-      throw new AppError('Authentication required', 401);
-    }
-  
-    // Check if user has admin role
-    if (req.user.role !== 'admin') {
-      throw new AppError('Admin access required', 403);
-    }
-  
-    // User is admin, continue
-    next();
-  };
+export const requireAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  // Check if user is authenticated
+  if (!req.user) {
+    return next(new AppError('Authentication required', 401));
+  }
+
+  // Check if user has admin role
+  if (req.user.role !== 'admin') {
+    return next(new AppError('Admin access required', 403));
+  }
+
+  // User is admin, continue
+  next();
+};
