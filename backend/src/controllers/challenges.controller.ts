@@ -6,7 +6,6 @@ import { prisma } from '../prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 
-
 /**
  * GET /api/challenges
  * Get all challenges with optional filtering
@@ -92,7 +91,19 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
   res.json(response);
 });
 
-
+/**
+ * POST /api/challenges
+ * Create a new challenge (admin only)
+ * 
+ * Requires admin authentication via authenticate and requireAdmin middleware.
+ * Validates input using createChallengeSchema.
+ * Creates challenge in database using Prisma.
+ * 
+ * @returns {ApiResponse<Challenge>} 201 Created with new challenge
+ * @throws {AppError} 400 if validation fails
+ * @throws {AppError} 401 if not authenticated
+ * @throws {AppError} 403 if not admin
+ */
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
   const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
   

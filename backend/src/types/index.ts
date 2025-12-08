@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserRole } from '@prisma/client';
 
 // User Types
 export interface User {
@@ -9,6 +10,7 @@ export interface User {
   streak: number;
   lastCompletedAt: Date | null;
   createdAt: Date;
+  role: UserRole;
 }
 
 export interface UserProfile extends User {

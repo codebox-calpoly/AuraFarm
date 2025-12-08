@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { authenticate, requireAdmin } from '../middleware/auth';
 import {
   getChallenges,
   getChallengeById,
@@ -39,11 +40,13 @@ router.get(
 /**
  * @route   POST /api/challenges
  * @desc    Create a new challenge
- * @access  Admin (TODO: Add auth middleware)
+ * @access  Admin
  */
 router.post(
   '/',
   validateBody(createChallengeSchema),
+  authenticate,
+  requireAdmin,
   createChallenge
 );
 
