@@ -3,12 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserCompletions = exports.updateCurrentUser = exports.getCurrentUser = exports.getUserById = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
+const types_1 = require("../types");
 // Mock data - will be replaced with Prisma queries once database is connected
 const mockUsers = [
     {
         id: 1,
         email: 'user@example.com',
         name: 'John Doe',
+        role: types_1.UserRole.user,
         auraPoints: 150,
         streak: 5,
         lastCompletedAt: new Date('2024-01-20'),
@@ -18,6 +20,7 @@ const mockUsers = [
         id: 2,
         email: 'user2@example.com',
         name: 'Jane Smith',
+        role: types_1.UserRole.user,
         auraPoints: 200,
         streak: 10,
         lastCompletedAt: new Date('2024-01-21'),

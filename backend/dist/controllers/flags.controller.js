@@ -10,9 +10,6 @@ const prisma_1 = require("../prisma");
  */
 exports.flagCompletion = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { completionId, reason } = req.body;
-    if (!completionId || isNaN(Number(completionId))) {
-        throw new errorHandler_1.AppError('Invalid completion ID', 400);
-    }
     // TODO: Get userId from authentication middleware
     const flaggedById = 1; // Placeholder
     // Verify completion exists
@@ -36,6 +33,7 @@ exports.flagCompletion = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     if (existingFlag) {
         throw new errorHandler_1.AppError('You have already flagged this completion', 409);
     }
+    // Create the flag
     const newFlag = await prisma_1.prisma.flag.create({
         data: {
             completionId,
@@ -52,11 +50,52 @@ exports.flagCompletion = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
 });
 /**
  * GET /api/flags
- * Get all flags (admin only - placeholder)
+ * Get all flags for admin review (admin only)
+ *
+ * Requires admin authentication via authenticate and requireAdmin middleware.
+ * Fetches all flags with related data:
+ * - flaggedBy: User who created the flag
+ * - completion.user: User who created the flagged completion
+ * - completion.challenge: Challenge that was completed
+ *
+ * Results are sorted by most recent first.
+ *
+ * @returns {ApiResponse<Flag[]>} 200 OK with array of flags
+ * @throws {AppError} 401 if not authenticated
+ * @throws {AppError} 403 if not admin
  */
 exports.getFlags = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    // TODO: Add authentication middleware to check admin role
-    const flags = await prisma_1.prisma.flag.findMany();
+    const flags = await prisma_1.prisma.flag.findMany({
+        include: {
+            flaggedBy: {
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                },
+            },
+            completion: {
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                        },
+                    },
+                    challenge: {
+                        select: {
+                            id: true,
+                            title: true,
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: {
+            createdAt: 'desc', // Most recent goes first
+        },
+    });
     const response = {
         success: true,
         data: flags,
