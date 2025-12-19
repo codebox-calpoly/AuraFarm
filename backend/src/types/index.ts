@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { UserRole } from '@prisma/client';
+
+// Define UserRole enum locally to match Prisma schema
+export enum UserRole {
+  user = 'user',
+  admin = 'admin',
+}
 
 // User Types
 export interface User {
@@ -32,6 +37,10 @@ export interface Challenge {
 
 export interface ChallengeWithCompletions extends Challenge {
   completionsCount: number;
+}
+
+export interface ChallengeWithDistance extends Challenge {
+  distance: number; // Distance in meters from user's location
 }
 
 // Challenge Completion Types
@@ -125,6 +134,14 @@ export const queryParamsSchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number),
   limit: z.string().regex(/^\d+$/).transform(Number),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+});
+
+export const nearbyChallengesQuerySchema = z.object({
+  latitude: z.string().transform(Number).pipe(z.number().min(-90).max(90)),
+  longitude: z.string().transform(Number).pipe(z.number().min(-180).max(180)),
+  radius: z.string().optional().default('5000').transform(Number).pipe(z.number().positive().max(50000)),
+  page: z.string().optional().default('1').transform(Number).pipe(z.number().int().positive()),
+  limit: z.string().optional().default('20').transform(Number).pipe(z.number().int().positive().max(100)),
 });
 
 // Param validation schemas

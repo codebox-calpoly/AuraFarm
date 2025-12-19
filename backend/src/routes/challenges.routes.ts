@@ -4,6 +4,7 @@ import {
   getChallenges,
   getChallengeById,
   createChallenge,
+  getNearbyChallenges,
 } from '../controllers/challenges.controller';
 import { validateBody, validateQuery } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
@@ -11,6 +12,7 @@ import {
   createChallengeSchema,
   queryParamsSchema,
   challengeIdParamSchema,
+  nearbyChallengesQuerySchema,
 } from '../types';
 
 const router = Router();
@@ -24,6 +26,17 @@ router.get(
   '/',
   validateQuery(queryParamsSchema),
   getChallenges
+);
+
+/**
+ * @route   GET /api/challenges/nearby
+ * @desc    Get challenges within a specified radius of user's location
+ * @access  Public
+ */
+router.get(
+  '/nearby',
+  validateQuery(nearbyChallengesQuerySchema),
+  getNearbyChallenges
 );
 
 /**

@@ -52,7 +52,7 @@ export const getLeaderboard = asyncHandler(
       take: limitNum,
     });
 
-    const data: LeaderboardEntry[] = users.map((u) => ({
+    const data: LeaderboardEntry[] = users.map((u: any) => ({
       userId: u.id,
       userName: u.name,
       userEmail: u.email,
