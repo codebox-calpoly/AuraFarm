@@ -1,10 +1,14 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAdmin = exports.authenticate = void 0;
 const supabase_1 = require("../supabase");
 const prisma_1 = require("../prisma");
 const errorHandler_1 = require("./errorHandler");
 const asyncHandler_1 = require("./asyncHandler");
+const logger_1 = __importDefault(require("../utils/logger"));
 /**
  * Authentication middleware - verifies JWT token and attaches user to request
  *
@@ -56,6 +60,8 @@ exports.authenticate = (0, asyncHandler_1.asyncHandler)(async (req, res, next) =
         next();
     }
     catch (error) {
+        // Log auth error
+        logger_1.default.error('Authentication failed', { error });
         // Handle errors
         if (error instanceof errorHandler_1.AppError) {
             next(error);

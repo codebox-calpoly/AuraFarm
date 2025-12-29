@@ -3,6 +3,7 @@ import { supabase } from '../supabase';
 import { prisma } from '../prisma';
 import { AppError } from './errorHandler';
 import { asyncHandler } from './asyncHandler';
+import logger from '../utils/logger';
 // Declare global user interface
 declare global {
   namespace Express {
@@ -30,63 +31,66 @@ declare global {
  */
 
 export const authenticate = asyncHandler(async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
-    try {
-      // Get the authorization header
-      const authHeader = req.headers.authorization;
-  
-      // Check if header exists and has correct format
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        throw new AppError('No token provided', 401);
-      }
-  
-      // Extract the token (remove 'Bearer ' prefix)
-      const token = authHeader.substring(7);
-  
-      // Verify the token with Supabase
-      const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
-  
-      // Check if verification failed
-      if (error || !supabaseUser) {
-        throw new AppError('Invalid or expired token', 401);
-      }
-  
-      // Get user from database using email
-      const user = await prisma.user.findUnique({
-        where: { email: supabaseUser.email! },
-        select: {
-          id: true,
-          email: true,
-          role: true,
-        },
-      });
-  
-      // Check if user exists in database
-      if (!user) {
-        throw new AppError('User not found in database', 404);
-      }
-  
-      // Attach user to request
-      req.user = {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      };
-  
-      // Continue to next middleware/controller
-      next();
-    } catch (error) {
-      // Handle errors
-      if (error instanceof AppError) {
-        next(error);
-      } else {
-        next(new AppError('Authentication failed', 401));
-      }
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    // Get the authorization header
+    const authHeader = req.headers.authorization;
+
+    // Check if header exists and has correct format
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new AppError('No token provided', 401);
     }
-  });
+
+    // Extract the token (remove 'Bearer ' prefix)
+    const token = authHeader.substring(7);
+
+    // Verify the token with Supabase
+    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+
+    // Check if verification failed
+    if (error || !supabaseUser) {
+      throw new AppError('Invalid or expired token', 401);
+    }
+
+    // Get user from database using email
+    const user = await prisma.user.findUnique({
+      where: { email: supabaseUser.email! },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+      },
+    });
+
+    // Check if user exists in database
+    if (!user) {
+      throw new AppError('User not found in database', 404);
+    }
+
+    // Attach user to request
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Continue to next middleware/controller
+    next();
+  } catch (error) {
+    // Log auth error
+    logger.error('Authentication failed', { error });
+
+    // Handle errors
+    if (error instanceof AppError) {
+      next(error);
+    } else {
+      next(new AppError('Authentication failed', 401));
+    }
+  }
+});
 
 /**
  * Authorization middleware - verifies user has admin role

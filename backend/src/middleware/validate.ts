@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema, ZodError } from 'zod';
 import { AppError } from './errorHandler';
+import logger from '../utils/logger';
 
 export const validate = (schema: ZodSchema) => {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -60,9 +61,7 @@ export const validateQuery = (schema: ZodSchema) => {
       }
 
       // Debug logging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Validating query:', queryData);
-      }
+      logger.debug('Validating query:', { queryData });
 
       const validated = schema.parse(queryData) as Record<string, any>;
 
@@ -74,15 +73,13 @@ export const validateQuery = (schema: ZodSchema) => {
 
       next();
     } catch (error: any) {
-      // Log all errors in development
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Validation error type:', error?.constructor?.name);
-        console.error('Validation error:', error);
-        if (error instanceof ZodError) {
-          console.error('Zod issues:', JSON.stringify(error.issues, null, 2));
-        }
-        console.error('Query received:', req.query);
-      }
+      // Log all errors (debug level)
+      logger.debug('Validation error', {
+        type: error?.constructor?.name,
+        error: error,
+        zodIssues: error instanceof ZodError ? error.issues : undefined,
+        query: req.query
+      });
 
       if (error instanceof ZodError) {
         next(error);
