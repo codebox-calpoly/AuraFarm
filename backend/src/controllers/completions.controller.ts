@@ -17,8 +17,11 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     throw new AppError('Invalid challenge ID', 400);
   }
 
-  // TODO: Get userId from authentication middleware
-  const userId = 1; // Placeholder
+  // Get userId from authentication middleware
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+  const userId = req.user.id;
 
   // Verify challenge exists
   const challenge = await prisma.challenge.findUnique({

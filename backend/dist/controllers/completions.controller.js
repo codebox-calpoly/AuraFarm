@@ -14,8 +14,11 @@ exports.completeChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
     if (!challengeId || isNaN(Number(challengeId))) {
         throw new errorHandler_1.AppError('Invalid challenge ID', 400);
     }
-    // TODO: Get userId from authentication middleware
-    const userId = 1; // Placeholder
+    // Get userId from authentication middleware
+    if (!req.user) {
+        throw new errorHandler_1.AppError('Authentication required', 401);
+    }
+    const userId = req.user.id;
     // Verify challenge exists
     const challenge = await prisma_1.prisma.challenge.findUnique({
         where: { id: Number(challengeId) },

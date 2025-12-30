@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { LeaderboardEntry, PaginatedResponse } from "../types";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../prisma";
 
 /**
  * GET /api/leaderboard

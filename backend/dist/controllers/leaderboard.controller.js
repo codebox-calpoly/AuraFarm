@@ -2,8 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLeaderboard = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = require("../prisma");
 /**
  * GET /api/leaderboard
  * Get leaderboard sorted by aura points with completions count and rank
@@ -13,9 +12,9 @@ exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const limitNum = Math.max(1, Number(req.query.limit ?? 20));
     const startIndex = (pageNum - 1) * limitNum;
     // total users
-    const total = await prisma.user.count();
+    const total = await prisma_1.prisma.user.count();
     // Group users by auraPoints to compute ranks efficiently (descending)
-    const groups = await prisma.user.groupBy({
+    const groups = await prisma_1.prisma.user.groupBy({
         by: ["auraPoints"],
         _count: { _all: true },
         orderBy: { auraPoints: "desc" },
@@ -30,7 +29,7 @@ exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         cumulative += group._count._all;
     }
     // fetch paginated users ordered by auraPoints desc, include completions count
-    const users = await prisma.user.findMany({
+    const users = await prisma_1.prisma.user.findMany({
         orderBy: { auraPoints: "desc" },
         select: {
             id: true,
