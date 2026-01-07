@@ -2,28 +2,20 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { User, UserProfile, ApiResponse, ChallengeCompletion } from '../types';
+import { prisma } from '../prisma';
+import {
+  User as PrismaUser,
+  ChallengeCompletion as PrismaChallengeCompletion,
+} from '@prisma/client';
 
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockUsers: User[] = [
-  {
-    id: 1,
-    email: 'user@example.com',
-    name: 'John Doe',
-    auraPoints: 150,
-    streak: 5,
-    lastCompletedAt: new Date('2024-01-20'),
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: 2,
-    email: 'user2@example.com',
-    name: 'Jane Smith',
-    auraPoints: 200,
-    streak: 10,
-    lastCompletedAt: new Date('2024-01-21'),
-    createdAt: new Date('2024-01-02'),
-  },
-];
+function toUserProfile(
+  user: PrismaUser & { completions: PrismaChallengeCompletion[] }
+): UserProfile {
+  return {
+    ...user,
+    completionsCount: user.completions.length,
+  };
+}
 
 /**
  * GET /api/users/:id
@@ -40,7 +32,13 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Get userId from authentication middleware and verify access
   // TODO: Replace with Prisma query: prisma.user.findUnique({ where: { id: userId }, include: { completions: true } })
   
-  const user = mockUsers.find(u => u.id === userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      completions: true, // ChallengeCompletion[]
+      // flags: true, // you can include this too if you need it in the profile
+    },
+  });
   
   if (!user) {
     throw new AppError('User not found', 404);
@@ -68,7 +66,14 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
   // TODO: Get userId from authentication middleware
   const userId = 1; // Placeholder
   
-  const user = mockUsers.find(u => u.id === userId);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      completions: true,
+      // flags: true,
+    },
+  });
   
   if (!user) {
     throw new AppError('User not found', 404);
@@ -96,24 +101,27 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   const userId = 1; // Placeholder
   const { name } = req.body;
   
-  const user = mockUsers.find(u => u.id === userId);
-  
-  if (!user) {
-    throw new AppError('User not found', 404);
+  if (!name) {
+    throw new AppError('Nothing to update', 400);
   }
-  
-  // Update user
-  if (name) {
-    user.name = name;
-  }
-  
-  const response: ApiResponse<User> = {
-    success: true,
-    data: user,
-    message: 'Profile updated successfully',
-  };
+
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name },
+  });
+
+    const response: ApiResponse<PrismaUser> = {
+      success: true,
+      data: updatedUser,
+      message: 'Profile updated successfully',
+    };
   
   res.json(response);
+  } catch (err: any) {
+    // If Prisma cannot find the user, it throws
+    throw new AppError('User not found', 404);
+  }
 });
 
 /**
@@ -137,35 +145,33 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
   // })
   
   // Verify user exists
-  const user = mockUsers.find(u => u.id === userId);
-  if (!user) {
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+
+  if (!userExists) {
     throw new AppError('User not found', 404);
   }
-  
-  // Mock completions - in real implementation, fetch from database
-  const mockCompletions: ChallengeCompletion[] = [
-    {
-      id: 1,
-      userId,
-      challengeId: 1,
-      latitude: 37.7749,
-      longitude: -122.4194,
-      completedAt: new Date('2024-01-20'),
+
+  const completions = await prisma.challengeCompletion.findMany({
+    where: { userId },
+    include: {
+      challenge: true,        // Challenge details
+      flags: {
+        include: {
+          flaggedBy: true,    // User who flagged it
+        },
+      },
     },
-    {
-      id: 2,
-      userId,
-      challengeId: 2,
-      latitude: 37.7849,
-      longitude: -122.4094,
-      completedAt: new Date('2024-01-19'),
-    },
-  ];
+    orderBy: { completedAt: 'desc' },
+  });
   
-  const response: ApiResponse<ChallengeCompletion[]> = {
+  const response: ApiResponse<typeof completions> = {
     success: true,
-    data: mockCompletions,
+    data: completions,
   };
+
   
   res.json(response);
 });
