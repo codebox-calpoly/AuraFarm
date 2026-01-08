@@ -11,7 +11,7 @@ const geo_1 = require("../utils/geo");
  * Get all challenges with optional filtering
  */
 exports.getChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { difficulty, page = '1', limit = '20' } = req.query;
+    const { difficulty, search, page = '1', limit = '20' } = req.query;
     // Pagination
     const pageNum = Number(page) || 1;
     const limitNum = Math.min(Number(limit) || 20, 100);
@@ -19,6 +19,13 @@ exports.getChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const where = {};
     if (difficulty) {
         where.difficulty = difficulty;
+    }
+    // If a search term is provided, filter challenges where the title OR description contains the term
+    if (search) {
+        where.OR = [
+            { title: { contains: search, mode: 'insensitive' } }, // Case-insensitive title search
+            { description: { contains: search, mode: 'insensitive' } }, // Case-insensitive description search
+        ];
     }
     const [total, challenges] = await Promise.all([
         prisma_1.prisma.challenge.count({ where }),

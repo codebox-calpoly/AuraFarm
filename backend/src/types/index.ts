@@ -134,6 +134,8 @@ export const queryParamsSchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number),
   limit: z.string().regex(/^\d+$/).transform(Number),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  // Search by title or description (max 100 chars)
+  search: z.string().min(1).max(100).optional(),
 });
 
 export const nearbyChallengesQuerySchema = z.object({
