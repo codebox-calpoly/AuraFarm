@@ -12,8 +12,9 @@ import { calculateDistance } from '../utils/geo';
  * Get all challenges with optional filtering
  */
 export const getChallenges = asyncHandler(async (req: Request, res: Response) => {
-  const { difficulty, page = '1', limit = '20' } = req.query as {
+  const { difficulty, search, page = '1', limit = '20' } = req.query as {
     difficulty?: string;
+    search?: string; // Optional search term for title/description
     page?: string;
     limit?: string;
   }
@@ -26,9 +27,18 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
 
   const where: {
     difficulty?: string;
+    OR?: Array<{ title?: { contains: string; mode: 'insensitive' } } | { description?: { contains: string; mode: 'insensitive' } }>;
   } = {};
   if (difficulty) {
     where.difficulty = difficulty;
+  }
+
+  // If a search term is provided, filter challenges where the title OR description contains the term
+  if (search) {
+    where.OR = [
+      { title: { contains: search, mode: 'insensitive' } }, // Case-insensitive title search
+      { description: { contains: search, mode: 'insensitive' } }, // Case-insensitive description search
+    ];
   }
 
   const [total, challenges] = await Promise.all([
