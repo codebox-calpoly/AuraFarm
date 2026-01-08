@@ -142,3 +142,4 @@ exports.getUserCompletions = (0, asyncHandler_1.asyncHandler)(async (req, res) =
     };
     res.json(response);
 });
+
