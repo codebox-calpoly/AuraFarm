@@ -25,6 +25,12 @@ router.patch('/me', (0, validate_1.validateBody)(types_1.updateUserSchema), user
  */
 router.get('/:id/completions', (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserCompletions);
 /**
+ * @route   GET /api/users/:id/stats
+ * @desc    Get user statistics
+ * @access  Public
+ */
+router.get('/:id/stats', (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserStats);
+/**
  * @route   GET /api/users/:id
  * @desc    Get user profile by ID
  * @access  Public

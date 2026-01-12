@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-import { User, UserProfile, ApiResponse, ChallengeCompletion } from '../types';
+import { User, UserProfile, ApiResponse, ChallengeCompletion, UserRole } from '../types';
 import { prisma } from '../prisma';
 
 // Mock data - will be replaced with Prisma queries once database is connected
@@ -10,7 +10,7 @@ const mockUsers: User[] = [
     id: 1,
     email: 'user@example.com',
     name: 'John Doe',
-    role: 'user',
+    role: UserRole.user,
     auraPoints: 150,
     streak: 5,
     lastCompletedAt: new Date('2024-01-20'),
@@ -20,7 +20,7 @@ const mockUsers: User[] = [
     id: 2,
     email: 'user2@example.com',
     name: 'Jane Smith',
-    role: 'user',
+    role: UserRole.user,
     auraPoints: 200,
     streak: 10,
     lastCompletedAt: new Date('2024-01-21'),

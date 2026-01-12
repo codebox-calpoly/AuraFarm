@@ -1,7 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.createCompletionSchema = void 0;
+exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.nearbyChallengesQuerySchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.createCompletionSchema = exports.UserRole = void 0;
 const zod_1 = require("zod");
+// Define UserRole enum locally to match Prisma schema
+var UserRole;
+(function (UserRole) {
+    UserRole["user"] = "user";
+    UserRole["admin"] = "admin";
+})(UserRole || (exports.UserRole = UserRole = {}));
 // Validation Schemas
 exports.createCompletionSchema = zod_1.z.object({
     challengeId: zod_1.z.number().int().positive(),
@@ -27,6 +33,13 @@ exports.queryParamsSchema = zod_1.z.object({
     page: zod_1.z.string().regex(/^\d+$/).transform(Number),
     limit: zod_1.z.string().regex(/^\d+$/).transform(Number),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']).optional(),
+});
+exports.nearbyChallengesQuerySchema = zod_1.z.object({
+    latitude: zod_1.z.string().transform(Number).pipe(zod_1.z.number().min(-90).max(90)),
+    longitude: zod_1.z.string().transform(Number).pipe(zod_1.z.number().min(-180).max(180)),
+    radius: zod_1.z.string().optional().default('5000').transform(Number).pipe(zod_1.z.number().positive().max(50000)),
+    page: zod_1.z.string().optional().default('1').transform(Number).pipe(zod_1.z.number().int().positive()),
+    limit: zod_1.z.string().optional().default('20').transform(Number).pipe(zod_1.z.number().int().positive().max(100)),
 });
 // Param validation schemas
 exports.idParamSchema = zod_1.z.object({

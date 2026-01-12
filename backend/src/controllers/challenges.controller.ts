@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-import { Challenge, ChallengeWithCompletions, ApiResponse, PaginatedResponse } from '../types';
+import { Challenge, ChallengeWithCompletions, ChallengeWithDistance, ApiResponse, PaginatedResponse } from '../types';
 import { prisma } from '../prisma';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { calculateDistance } from '../utils/geo';
 
 
 /**
@@ -17,7 +18,7 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
     limit?: string;
   }
 
-  
+
   // Pagination
   const pageNum = Number(page) || 1;
   const limitNum = Math.min(Number(limit) || 20, 100);
@@ -29,7 +30,7 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
   if (difficulty) {
     where.difficulty = difficulty;
   }
-  
+
   const [total, challenges] = await Promise.all([
     prisma.challenge.count({ where }),
     prisma.challenge.findMany({
@@ -60,34 +61,34 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
 export const getChallengeById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const challengeId = parseInt(id);
-  
+
   if (isNaN(challengeId)) {
     throw new AppError('Invalid challenge ID', 400);
   }
-  
+
   const challenge = await prisma.challenge.findUnique({
     where: { id: challengeId },
   });
-  
+
   if (!challenge) {
     throw new AppError('Challenge not found', 404);
   }
-  
+
   // Get real completions count from database
   const completionsCount = await prisma.challengeCompletion.count({
     where: { challengeId },
   });
-  
+
   const challengeWithCompletions: ChallengeWithCompletions = {
     ...challenge,
     completionsCount,
   };
-  
+
   const response: ApiResponse<ChallengeWithCompletions> = {
     success: true,
     data: challengeWithCompletions,
   };
-  
+
   res.json(response);
 });
 
@@ -106,7 +107,7 @@ export const getChallengeById = asyncHandler(async (req: Request, res: Response)
  */
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
   const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
-  
+
   try {
     const newChallenge = await prisma.challenge.create({
       data: {
@@ -134,4 +135,75 @@ export const createChallenge = asyncHandler(async (req: Request, res: Response) 
 
     throw error;
   }
+});
+
+/**
+ * GET /api/challenges/nearby
+ * Get challenges within a specified radius of user's location
+ * 
+ * @query {number} latitude - User's latitude (-90 to 90)
+ * @query {number} longitude - User's longitude (- 180 to 180)
+ * @query {number} radius - Search radius in meters (default: 5000, max: 50000)
+ * @query {number} page - Page number for pagination (default: 1)
+ * @query {number} limit - Items per page (default: 20, max: 100)
+ * 
+ * @returns {PaginatedResponse<ChallengeWithDistance>} Challenges with distance field, sorted by proximity
+ * @throws {AppError} 400 if validation fails
+ */
+export const getNearbyChallenges = asyncHandler(async (req: Request, res: Response) => {
+  // Query params are validated and transformed by nearbyChallengesQuerySchema middleware
+  const { latitude, longitude, radius, page, limit } = req.query as unknown as {
+    latitude: number;
+    longitude: number;
+    radius: number;
+    page: number;
+    limit: number;
+  };
+
+  // Pagination
+  const pageNum = Number(page) || 1;
+  const limitNum = Math.min(Number(limit) || 20, 100);
+  const radiusNum = Number(radius) || 5000;
+
+  // Fetch all challenges from database
+  const allChallenges = await prisma.challenge.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Calculate distance for each challenge and filter by radius
+  const challengesWithDistance: ChallengeWithDistance[] = allChallenges
+    .map((challenge: Challenge) => {
+      const distance = calculateDistance(
+        latitude,
+        longitude,
+        challenge.latitude,
+        challenge.longitude
+      );
+
+      return {
+        ...challenge,
+        distance,
+      };
+    })
+    .filter((challenge: ChallengeWithDistance) => challenge.distance <= radiusNum)
+    .sort((a: ChallengeWithDistance, b: ChallengeWithDistance) => a.distance - b.distance); // Sort by distance (closest first)
+
+  // Apply pagination
+  const total = challengesWithDistance.length;
+  const totalPages = Math.ceil(total / limitNum);
+  const skip = (pageNum - 1) * limitNum;
+  const paginatedChallenges = challengesWithDistance.slice(skip, skip + limitNum);
+
+  const response: PaginatedResponse<ChallengeWithDistance> = {
+    success: true,
+    data: paginatedChallenges,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages,
+    },
+  };
+
+  res.json(response);
 });
