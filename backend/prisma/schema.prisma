@@ -23,7 +23,7 @@ model User {
   createdAt       DateTime              @default(now())
   completions     ChallengeCompletion[] // Reverse relation
   flags           Flag[] // Flags they've submitted
-  
+
   @@index([auraPoints])
 }
 
