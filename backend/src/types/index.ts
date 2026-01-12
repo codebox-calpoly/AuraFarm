@@ -131,8 +131,8 @@ export const updateUserSchema = z.object({
 });
 
 export const queryParamsSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number),
-  limit: z.string().regex(/^\d+$/).transform(Number),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   // Search by title or description (max 100 chars)
   search: z.string().min(1).max(100).optional(),
