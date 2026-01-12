@@ -23,6 +23,8 @@ model User {
   createdAt       DateTime              @default(now())
   completions     ChallengeCompletion[] // Reverse relation
   flags           Flag[] // Flags they've submitted
+
+  @@index([auraPoints])
 }
 
 model Challenge {
@@ -35,6 +37,9 @@ model Challenge {
   pointsReward Int
   createdAt    DateTime              @default(now())
   completions  ChallengeCompletion[] // Reverse relation
+
+  @@index([createdAt])
+  @@index([difficulty])
 }
 
 model ChallengeCompletion {
@@ -51,6 +56,8 @@ model ChallengeCompletion {
   @@unique([userId, challengeId]) // Prevent duplicate completions
   @@index([userId]) // Index for faster user completion queries
   @@index([challengeId]) // Index for faster challenge completion queries
+  @@index([completedAt])
+  @@index([userId, completedAt])
 }
 
 model Flag {
