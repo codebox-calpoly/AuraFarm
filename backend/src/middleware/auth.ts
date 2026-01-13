@@ -74,7 +74,7 @@ export const authenticate = asyncHandler(async (
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role as string,
     };
 
     // Continue to next middleware/controller

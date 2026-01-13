@@ -3,6 +3,7 @@ import {
   completeChallenge,
   getCompletionById,
 } from '../controllers/completions.controller';
+import rateLimiter from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
 import {
@@ -19,6 +20,7 @@ const router = Router();
  */
 router.post(
   '/',
+  rateLimiter.completionLimiter,
   validateBody(createCompletionSchema),
   completeChallenge
 );
