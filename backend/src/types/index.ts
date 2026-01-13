@@ -159,6 +159,6 @@ export const challengeIdParamSchema = z.object({
 
 export const completionIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
-});
+}); 
 
 
