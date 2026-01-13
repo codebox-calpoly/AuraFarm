@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const flags_controller_1 = require("../controllers/flags.controller");
+const rateLimiter_1 = __importDefault(require("../middleware/rateLimiter"));
 const validate_1 = require("../middleware/validate");
 const types_1 = require("../types");
 const auth_1 = require("../middleware/auth");
@@ -38,7 +42,7 @@ const router = (0, express_1.Router)();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', (0, validate_1.validateBody)(types_1.createFlagSchema), flags_controller_1.flagCompletion);
+router.post('/', rateLimiter_1.default.flagLimiter, (0, validate_1.validateBody)(types_1.createFlagSchema), flags_controller_1.flagCompletion);
 /**
  * @swagger
  * /flags:

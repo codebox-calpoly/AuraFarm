@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const completions_controller_1 = require("../controllers/completions.controller");
+const rateLimiter_1 = __importDefault(require("../middleware/rateLimiter"));
 const validate_1 = require("../middleware/validate");
 const validateParams_1 = require("../middleware/validateParams");
 const types_1 = require("../types");
@@ -38,7 +42,7 @@ const router = (0, express_1.Router)();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', (0, validate_1.validateBody)(types_1.createCompletionSchema), completions_controller_1.completeChallenge);
+router.post('/', rateLimiter_1.default.completionLimiter, (0, validate_1.validateBody)(types_1.createCompletionSchema), completions_controller_1.completeChallenge);
 /**
  * @swagger
  * /completions/{id}:

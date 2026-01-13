@@ -4,6 +4,7 @@ import {
   getCurrentUser,
   updateCurrentUser,
   getUserCompletions,
+  getUserStats,
 } from '../controllers/users.controller';
 import { validateBody } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
@@ -123,6 +124,17 @@ router.get(
   '/:id/completions',
   validateParams(userIdParamSchema),
   getUserCompletions
+);
+
+/**
+ * @route   GET /api/users/:id/stats
+ * @desc    Get user statistics
+ * @access  Public
+ */
+router.get(
+  '/:id/stats',
+  validateParams(userIdParamSchema),
+  getUserStats
 );
 
 /**

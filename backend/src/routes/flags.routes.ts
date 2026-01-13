@@ -3,6 +3,7 @@ import {
   flagCompletion,
   getFlags,
 } from '../controllers/flags.controller';
+import rateLimiter from '../middleware/rateLimiter';
 import { validateBody } from '../middleware/validate';
 import { createFlagSchema } from '../types';
 import { authenticate, requireAdmin } from '../middleware/auth';
@@ -43,6 +44,7 @@ const router = Router();
  */
 router.post(
   '/',
+  rateLimiter.flagLimiter,
   validateBody(createFlagSchema),
   flagCompletion
 );

@@ -5,6 +5,7 @@ import { ApiResponse } from '../types';
 import { prisma } from '../prisma';
 import { calculateDistance } from '../utils/geo';
 import { Prisma } from '@prisma/client';
+import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
 
 /**
  * POST /api/completions
@@ -70,37 +71,36 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
       },
     });
 
-    // 2. Update user's auraPoints and streak
-    // We need to fetch the user first to check the streak logic if we want to be precise,
-    // but for now we'll implement a simple increment as requested.
-    // A more complex streak logic would check lastCompletedAt.
-
-    // Let's implement a basic streak check:
-    // If lastCompletedAt was yesterday (or within 24-48h), increment streak.
-    // If today, keep streak.
-    // If older, reset to 1.
-
+    /**
+     * Calendar-Based Streak Logic
+     * 
+     * Streaks are calculated based on calendar days (UTC) to ensure consistency:
+     * 
+     * 1. First completion ever: streak = 1
+     * 2. Same calendar day: streak remains unchanged (multiple completions per day don't increase streak)
+     * 3. Consecutive day (yesterday): streak increments by 1
+     * 4. Gap of 2+ days: streak resets to 1 (user missed at least one day)
+     * 
+     * All dates are normalized to UTC to avoid timezone boundary issues.
+     * The streak represents consecutive calendar days with at least one completion.
+     */
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) throw new AppError('User not found', 404);
 
     const now = new Date();
     const lastCompleted = user.lastCompletedAt;
-    let newStreak = user.streak;
+    let newStreak: number;
 
-    if (lastCompleted) {
-      const diffTime = Math.abs(now.getTime() - lastCompleted.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      // Note: This is a simplified streak logic. 
-      // Real logic should check calendar days, not just 24h windows.
-      // But for this task, we'll stick to:
-      // If completed today (same calendar day), don't increment streak (or do? usually one per day counts).
-      // Let's assume we increment streak for every unique challenge completion for now to reward activity,
-      // OR we can just increment it blindly as the prompt "Update ... streak" suggests.
-      // I'll stick to the simple "increment" to ensure the user sees the change they asked for.
-
-      newStreak += 1;
-    } else {
+    if (lastCompleted === null) {
+      newStreak = 1;
+    }
+    else if (isSameCalendarDay(now, lastCompleted)) {
+      newStreak = user.streak;
+    }
+    else if (isConsecutiveDay(lastCompleted, now)) {
+      newStreak = user.streak + 1;
+    }
+    else {
       newStreak = 1;
     }
 
@@ -108,7 +108,7 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
       where: { id: userId },
       data: {
         auraPoints: { increment: challenge.pointsReward },
-        streak: { increment: 1 }, // Simple increment for every completion
+        streak: newStreak,  // Use calculated value, not increment
         lastCompletedAt: now,
       },
     });

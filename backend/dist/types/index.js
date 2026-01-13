@@ -30,9 +30,11 @@ exports.updateUserSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(100).optional(),
 });
 exports.queryParamsSchema = zod_1.z.object({
-    page: zod_1.z.string().regex(/^\d+$/).transform(Number),
-    limit: zod_1.z.string().regex(/^\d+$/).transform(Number),
+    page: zod_1.z.string().regex(/^\d+$/).transform(Number).optional(),
+    limit: zod_1.z.string().regex(/^\d+$/).transform(Number).optional(),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']).optional(),
+    // Search by title or description (max 100 chars)
+    search: zod_1.z.string().min(1).max(100).optional(),
 });
 exports.nearbyChallengesQuerySchema = zod_1.z.object({
     latitude: zod_1.z.string().transform(Number).pipe(zod_1.z.number().min(-90).max(90)),

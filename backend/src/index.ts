@@ -5,6 +5,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
+import rateLimiter from './middleware/rateLimiter';
 
 
 // Import routes
@@ -32,11 +33,11 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 
 // API Routes
-app.use('/api/challenges', challengesRoutes);
+app.use('/api/challenges', rateLimiter.publicLimiter, challengesRoutes);
 app.use('/api/completions', completionsRoutes);
 app.use('/api/flags', flagsRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/users', rateLimiter.authLimiter, usersRoutes);
+app.use('/api/leaderboard', rateLimiter.publicLimiter, leaderboardRoutes);
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);

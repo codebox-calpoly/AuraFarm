@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserCompletions = exports.updateCurrentUser = exports.getCurrentUser = exports.getUserById = void 0;
+exports.getUserStats = exports.getUserCompletions = exports.updateCurrentUser = exports.getCurrentUser = exports.getUserById = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
 const prisma_1 = require("../prisma");
@@ -163,4 +163,118 @@ exports.getUserCompletions = (0, asyncHandler_1.asyncHandler)(async (req, res) =
         data: completions,
     };
     res.json(response);
+});
+/**
+ * GET /api/users/:id/stats
+ * Get comprehensive statistics for a user
+ */
+exports.getUserStats = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
+    const { id } = req.params;
+    const userId = parseInt(id);
+    if (isNaN(userId)) {
+        throw new errorHandler_1.AppError('Invalid user ID', 400);
+    }
+    // Check if user exists
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            auraPoints: true,
+            streak: true,
+            createdAt: true
+        }
+    });
+    if (!user) {
+        throw new errorHandler_1.AppError('User not found', 404);
+    }
+    // Optimize: Select only necessary fields for statistics
+    const completions = await prisma_1.prisma.challengeCompletion.findMany({
+        where: { userId },
+        select: {
+            completedAt: true,
+            challenge: {
+                select: {
+                    difficulty: true,
+                    pointsReward: true
+                }
+            }
+        },
+        orderBy: {
+            completedAt: 'asc'
+        }
+    });
+    // Calculate statistics
+    const totalCompletions = completions.length;
+    // Stats by difficulty
+    const difficultyStats = completions.reduce((acc, curr) => {
+        const diff = curr.challenge.difficulty.toLowerCase();
+        acc[diff] = (acc[diff] || 0) + 1;
+        return acc;
+    }, {});
+    const pointsByDifficulty = completions.reduce((acc, curr) => {
+        const diff = curr.challenge.difficulty.toLowerCase();
+        acc[diff] = (acc[diff] || 0) + curr.challenge.pointsReward;
+        return acc;
+    }, {});
+    // Calculate longest streak
+    let currentStreakRun = 0;
+    let longestStreak = 0;
+    let lastDate = null;
+    completions.forEach((c) => {
+        const date = new Date(c.completedAt);
+        date.setHours(0, 0, 0, 0); // Normalize to day
+        if (!lastDate) {
+            currentStreakRun = 1;
+            longestStreak = 1;
+        }
+        else {
+            const diffTime = Math.abs(date.getTime() - lastDate.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                currentStreakRun++;
+            }
+            else if (diffDays > 1) {
+                currentStreakRun = 1;
+            }
+        }
+        if (currentStreakRun > longestStreak) {
+            longestStreak = currentStreakRun;
+        }
+        lastDate = date;
+    });
+    // Weekly/Monthly stats
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const completedThisWeek = completions.filter((c) => c.completedAt >= oneWeekAgo).length;
+    const completedThisMonth = completions.filter((c) => c.completedAt >= oneMonthAgo).length;
+    // Average points
+    const avgPointsPerCompletion = totalCompletions > 0
+        ? Math.round(user.auraPoints / totalCompletions)
+        : 0;
+    res.json({
+        success: true,
+        data: {
+            userId: user.id,
+            totalCompletions,
+            auraPoints: user.auraPoints,
+            currentStreak: user.streak,
+            longestStreak,
+            completionsByDifficulty: {
+                easy: difficultyStats['easy'] || 0,
+                medium: difficultyStats['medium'] || 0,
+                hard: difficultyStats['hard'] || 0
+            },
+            pointsByDifficulty: {
+                easy: pointsByDifficulty['easy'] || 0,
+                medium: pointsByDifficulty['medium'] || 0,
+                hard: pointsByDifficulty['hard'] || 0
+            },
+            activity: {
+                completedThisWeek,
+                completedThisMonth
+            },
+            averagePointsPerCompletion: avgPointsPerCompletion
+        }
+    });
 });

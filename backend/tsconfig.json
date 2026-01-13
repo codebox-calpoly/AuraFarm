@@ -2,7 +2,9 @@
     "compilerOptions": {
         "target": "ES2020",
         "module": "commonjs",
-        "lib": ["ES2020"],
+        "lib": [
+            "ES2020"
+        ],
         "outDir": "./dist",
         "rootDir": "./src",
         "strict": true,
@@ -11,9 +13,19 @@
         "forceConsistentCasingInFileNames": true,
         "moduleResolution": "node",
         "resolveJsonModule": true,
-        "types": ["node"]
+        "types": [
+            "node"
+        ]
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist", "prisma"]
-}   // means that the compiler will include all files in the src directory
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "prisma",
+        "src/**/__tests__/**/*",
+        "src/**/*.test.ts"
+    ]
+} // means that the compiler will include all files in the src directory
       // and exclude the node_modules, dist, and prisma directories?
