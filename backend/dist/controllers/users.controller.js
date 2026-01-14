@@ -3,31 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getUserStats = exports.getUserCompletions = exports.updateCurrentUser = exports.getCurrentUser = exports.getUserById = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
-const types_1 = require("../types");
 const prisma_1 = require("../prisma");
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockUsers = [
-    {
-        id: 1,
-        email: 'user@example.com',
-        name: 'John Doe',
-        role: types_1.UserRole.user,
-        auraPoints: 150,
-        streak: 5,
-        lastCompletedAt: new Date('2024-01-20'),
-        createdAt: new Date('2024-01-01'),
-    },
-    {
-        id: 2,
-        email: 'user2@example.com',
-        name: 'Jane Smith',
-        role: types_1.UserRole.user,
-        auraPoints: 200,
-        streak: 10,
-        lastCompletedAt: new Date('2024-01-21'),
-        createdAt: new Date('2024-01-02'),
-    },
-];
 /**
  * GET /api/users/:id
  * Get user profile by ID
@@ -38,16 +14,30 @@ exports.getUserById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     if (isNaN(userId)) {
         throw new errorHandler_1.AppError('Invalid user ID', 400);
     }
-    // TODO: Get userId from authentication middleware and verify access
-    // TODO: Replace with Prisma query: prisma.user.findUnique({ where: { id: userId }, include: { completions: true } })
-    const user = mockUsers.find(u => u.id === userId);
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            _count: {
+                select: { completions: true },
+            },
+        },
+    });
     if (!user) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
-    // Mock completions count
+    // Calculate rank (simplified for now, ideally cached or optimized query)
+    // For now, we can omit rank or do a simple count query if strictly needed
+    // Let's just return basic profile first
     const userProfile = {
-        ...user,
-        completionsCount: Math.floor(Math.random() * 20),
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role, // Cast to match enum if needed
+        auraPoints: user.auraPoints,
+        streak: user.streak,
+        lastCompletedAt: user.lastCompletedAt,
+        createdAt: user.createdAt,
+        completionsCount: user._count.completions,
     };
     const response = {
         success: true,
@@ -60,15 +50,37 @@ exports.getUserById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
  * Get current user's profile
  */
 exports.getCurrentUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    // TODO: Get userId from authentication middleware
-    const userId = 1; // Placeholder
-    const user = mockUsers.find(u => u.id === userId);
+    if (!req.user) {
+        throw new errorHandler_1.AppError('Not authenticated', 401);
+    }
+    const userId = req.user.id;
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            _count: {
+                select: { completions: true },
+            },
+        },
+    });
     if (!user) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
+    // Get rank
+    const higherRankedUsers = await prisma_1.prisma.user.count({
+        where: { auraPoints: { gt: user.auraPoints } },
+    });
+    const rank = higherRankedUsers + 1;
     const userProfile = {
-        ...user,
-        completionsCount: Math.floor(Math.random() * 20),
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        auraPoints: user.auraPoints,
+        streak: user.streak,
+        lastCompletedAt: user.lastCompletedAt,
+        createdAt: user.createdAt,
+        completionsCount: user._count.completions,
+        rank,
     };
     const response = {
         success: true,
@@ -81,20 +93,38 @@ exports.getCurrentUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
  * Update current user's profile
  */
 exports.updateCurrentUser = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    // TODO: Get userId from authentication middleware
-    const userId = 1; // Placeholder
+    if (!req.user) {
+        throw new errorHandler_1.AppError('Not authenticated', 401);
+    }
+    const userId = req.user.id;
     const { name } = req.body;
-    const user = mockUsers.find(u => u.id === userId);
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: userId },
+    });
     if (!user) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
     // Update user
-    if (name) {
-        user.name = name;
-    }
+    const updatedUser = await prisma_1.prisma.user.update({
+        where: { id: userId },
+        data: {
+            name: name || undefined,
+        },
+    });
+    // Re-map to frontend User type
+    const mappedUser = {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        role: updatedUser.role,
+        auraPoints: updatedUser.auraPoints,
+        streak: updatedUser.streak,
+        lastCompletedAt: updatedUser.lastCompletedAt,
+        createdAt: updatedUser.createdAt,
+    };
     const response = {
         success: true,
-        data: user,
+        data: mappedUser,
         message: 'Profile updated successfully',
     };
     res.json(response);
@@ -109,40 +139,28 @@ exports.getUserCompletions = (0, asyncHandler_1.asyncHandler)(async (req, res) =
     if (isNaN(userId)) {
         throw new errorHandler_1.AppError('Invalid user ID', 400);
     }
-    // TODO: Get userId from authentication middleware and verify access
-    // TODO: Replace with Prisma query:
-    // prisma.challengeCompletion.findMany({
-    //   where: { userId },
-    //   include: { challenge: true },
-    //   orderBy: { completedAt: 'desc' }
-    // })
-    // Verify user exists
-    const user = mockUsers.find(u => u.id === userId);
+    // Verify user exists first
+    const user = await prisma_1.prisma.user.findUnique({
+        where: { id: userId },
+    });
     if (!user) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
-    // Mock completions - in real implementation, fetch from database
-    const mockCompletions = [
-        {
-            id: 1,
-            userId,
-            challengeId: 1,
-            latitude: 37.7749,
-            longitude: -122.4194,
-            completedAt: new Date('2024-01-20'),
+    const completions = await prisma_1.prisma.challengeCompletion.findMany({
+        where: { userId },
+        include: {
+            challenge: true,
         },
-        {
-            id: 2,
-            userId,
-            challengeId: 2,
-            latitude: 37.7849,
-            longitude: -122.4094,
-            completedAt: new Date('2024-01-19'),
+        orderBy: {
+            completedAt: 'desc',
         },
-    ];
+    });
+    // Map to ChallengeCompletion type
+    // Note: Prisma challenge include matches the shape mostly, but we define explicit types.
+    // We can just cast or map if necessary. Prisma result should compatible with interface if properly typed.
     const response = {
         success: true,
-        data: mockCompletions,
+        data: completions,
     };
     res.json(response);
 });

@@ -19,6 +19,7 @@ export const publicLimiter: RequestHandler = rateLimit({
   keyGenerator,
   legacyHeaders: true, // X-RateLimit-* headers
   standardHeaders: false,
+  validate: false,
   handler: (req, res) => {
     res.status(429).json({ message: 'Too many requests, please try again later.' });
   },
@@ -30,6 +31,7 @@ export const authLimiter: RequestHandler = rateLimit({
   keyGenerator,
   legacyHeaders: true,
   standardHeaders: false,
+  validate: false,
   handler: (req, res) => {
     res.status(429).json({ message: 'Too many authentication attempts, please try again later.' });
   },
@@ -41,6 +43,7 @@ export const completionLimiter: RequestHandler = rateLimit({
   keyGenerator,
   legacyHeaders: true,
   standardHeaders: false,
+  validate: false,
   handler: (req, res) => {
     res.status(429).json({ message: 'Too many completion submissions, please try again later.' });
   },
@@ -52,6 +55,7 @@ export const flagLimiter: RequestHandler = rateLimit({
   keyGenerator,
   legacyHeaders: true,
   standardHeaders: false,
+  validate: false,
   handler: (req, res) => {
     res.status(429).json({ message: 'Too many flag submissions, please try again later.' });
   },

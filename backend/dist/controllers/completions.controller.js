@@ -5,6 +5,7 @@ const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
 const prisma_1 = require("../prisma");
 const geo_1 = require("../utils/geo");
+const date_1 = require("../utils/date");
 /**
  * POST /api/completions
  * Submit a challenge completion
@@ -14,8 +15,11 @@ exports.completeChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
     if (!challengeId || isNaN(Number(challengeId))) {
         throw new errorHandler_1.AppError('Invalid challenge ID', 400);
     }
-    // TODO: Get userId from authentication middleware
-    const userId = 1; // Placeholder
+    // Get userId from authentication middleware
+    if (!req.user) {
+        throw new errorHandler_1.AppError('Authentication required', 401);
+    }
+    const userId = req.user.id;
     // Verify challenge exists
     const challenge = await prisma_1.prisma.challenge.findUnique({
         where: { id: Number(challengeId) },
@@ -51,31 +55,33 @@ exports.completeChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
                 longitude,
             },
         });
-        // 2. Update user's auraPoints and streak
-        // We need to fetch the user first to check the streak logic if we want to be precise,
-        // but for now we'll implement a simple increment as requested.
-        // A more complex streak logic would check lastCompletedAt.
-        // Let's implement a basic streak check:
-        // If lastCompletedAt was yesterday (or within 24-48h), increment streak.
-        // If today, keep streak.
-        // If older, reset to 1.
+        /**
+         * Calendar-Based Streak Logic
+         *
+         * Streaks are calculated based on calendar days (UTC) to ensure consistency:
+         *
+         * 1. First completion ever: streak = 1
+         * 2. Same calendar day: streak remains unchanged (multiple completions per day don't increase streak)
+         * 3. Consecutive day (yesterday): streak increments by 1
+         * 4. Gap of 2+ days: streak resets to 1 (user missed at least one day)
+         *
+         * All dates are normalized to UTC to avoid timezone boundary issues.
+         * The streak represents consecutive calendar days with at least one completion.
+         */
         const user = await tx.user.findUnique({ where: { id: userId } });
         if (!user)
             throw new errorHandler_1.AppError('User not found', 404);
         const now = new Date();
         const lastCompleted = user.lastCompletedAt;
-        let newStreak = user.streak;
-        if (lastCompleted) {
-            const diffTime = Math.abs(now.getTime() - lastCompleted.getTime());
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            // Note: This is a simplified streak logic. 
-            // Real logic should check calendar days, not just 24h windows.
-            // But for this task, we'll stick to:
-            // If completed today (same calendar day), don't increment streak (or do? usually one per day counts).
-            // Let's assume we increment streak for every unique challenge completion for now to reward activity,
-            // OR we can just increment it blindly as the prompt "Update ... streak" suggests.
-            // I'll stick to the simple "increment" to ensure the user sees the change they asked for.
-            newStreak += 1;
+        let newStreak;
+        if (lastCompleted === null) {
+            newStreak = 1;
+        }
+        else if ((0, date_1.isSameCalendarDay)(now, lastCompleted)) {
+            newStreak = user.streak;
+        }
+        else if ((0, date_1.isConsecutiveDay)(lastCompleted, now)) {
+            newStreak = user.streak + 1;
         }
         else {
             newStreak = 1;
@@ -84,7 +90,7 @@ exports.completeChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) =>
             where: { id: userId },
             data: {
                 auraPoints: { increment: challenge.pointsReward },
-                streak: { increment: 1 }, // Simple increment for every completion
+                streak: newStreak, // Use calculated value, not increment
                 lastCompletedAt: now,
             },
         });

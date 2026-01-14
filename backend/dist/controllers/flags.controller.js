@@ -10,8 +10,11 @@ const prisma_1 = require("../prisma");
  */
 exports.flagCompletion = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const { completionId, reason } = req.body;
-    // TODO: Get userId from authentication middleware
-    const flaggedById = 1; // Placeholder
+    // Get userId from authentication middleware
+    if (!req.user) {
+        throw new errorHandler_1.AppError('Authentication required', 401);
+    }
+    const flaggedById = req.user.id;
     // Verify completion exists
     const completion = await prisma_1.prisma.challengeCompletion.findUnique({
         where: { id: completionId },
