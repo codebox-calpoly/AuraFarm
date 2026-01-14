@@ -1,8 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateQuery = exports.validateBody = exports.validate = void 0;
 const zod_1 = require("zod");
 const errorHandler_1 = require("./errorHandler");
+const logger_1 = __importDefault(require("../utils/logger"));
 const validate = (schema) => {
     return (req, res, next) => {
         try {
@@ -60,9 +64,7 @@ const validateQuery = (schema) => {
                 }
             }
             // Debug logging
-            if (process.env.NODE_ENV === 'development') {
-                console.log('Validating query:', queryData);
-            }
+            logger_1.default.debug('Validating query:', { queryData });
             const validated = schema.parse(queryData);
             // Clear and repopulate req.query
             Object.keys(req.query).forEach(key => delete req.query[key]);
@@ -72,15 +74,13 @@ const validateQuery = (schema) => {
             next();
         }
         catch (error) {
-            // Log all errors in development
-            if (process.env.NODE_ENV === 'development') {
-                console.error('Validation error type:', error?.constructor?.name);
-                console.error('Validation error:', error);
-                if (error instanceof zod_1.ZodError) {
-                    console.error('Zod issues:', JSON.stringify(error.issues, null, 2));
-                }
-                console.error('Query received:', req.query);
-            }
+            // Log all errors (debug level)
+            logger_1.default.debug('Validation error', {
+                type: error?.constructor?.name,
+                error: error,
+                zodIssues: error instanceof zod_1.ZodError ? error.issues : undefined,
+                query: req.query
+            });
             if (error instanceof zod_1.ZodError) {
                 next(error);
             }

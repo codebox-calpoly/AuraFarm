@@ -11,6 +11,7 @@ const requestLogger_1 = require("./middleware/requestLogger");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_1 = require("./config/swagger");
 const rateLimiter_1 = __importDefault(require("./middleware/rateLimiter"));
+const logger_1 = __importDefault(require("./utils/logger"));
 // Import routes
 const challenges_routes_1 = __importDefault(require("./routes/challenges.routes"));
 const completions_routes_1 = __importDefault(require("./routes/completions.routes"));
@@ -40,7 +41,7 @@ app.use(errorHandler_1.notFoundHandler);
 app.use(errorHandler_1.errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
-    console.log(`📚 API endpoints available at: http://localhost:${PORT}/api`);
+    logger_1.default.info(`🚀 Server running on port ${PORT}`);
+    logger_1.default.info(`📡 Health check: http://localhost:${PORT}/health`);
+    logger_1.default.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
 });

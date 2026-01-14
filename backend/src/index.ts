@@ -5,6 +5,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
 import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
+import logger from './utils/logger';
 import rateLimiter from './middleware/rateLimiter';
 
 
@@ -47,7 +48,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API endpoints available at: http://localhost:${PORT}/api`);
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(`📡 Health check: http://localhost:${PORT}/health`);
+  logger.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
 });
