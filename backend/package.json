@@ -24,6 +24,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "supabase": "^2.58.5",
+    "winston": "^3.19.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {

@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.notFoundHandler = exports.errorHandler = exports.AppError = void 0;
 const zod_1 = require("zod");
+const logger_1 = __importDefault(require("../utils/logger"));
 class AppError extends Error {
     constructor(message, statusCode = 500) {
         super(message);
@@ -63,9 +67,12 @@ const errorHandler = (err, req, res, next) => {
         error: message,
         ...(errors && { errors }),
     };
-    // Log error in development
-    if (process.env.NODE_ENV === 'development') {
-        console.error('Error:', err);
+    // Log error
+    if (statusCode >= 500) {
+        logger_1.default.error(message, { error: err, stack: err.stack, path: req.path, method: req.method });
+    }
+    else {
+        logger_1.default.warn(message, { error: message, statusCode, path: req.path, method: req.method });
     }
     res.status(statusCode).json(response);
 };
