@@ -21,6 +21,7 @@ exports.publicLimiter = (0, express_rate_limit_1.default)({
     keyGenerator,
     legacyHeaders: true, // X-RateLimit-* headers
     standardHeaders: false,
+    validate: false,
     handler: (req, res) => {
         res.status(429).json({ message: 'Too many requests, please try again later.' });
     },
@@ -31,6 +32,7 @@ exports.authLimiter = (0, express_rate_limit_1.default)({
     keyGenerator,
     legacyHeaders: true,
     standardHeaders: false,
+    validate: false,
     handler: (req, res) => {
         res.status(429).json({ message: 'Too many authentication attempts, please try again later.' });
     },
@@ -41,6 +43,7 @@ exports.completionLimiter = (0, express_rate_limit_1.default)({
     keyGenerator,
     legacyHeaders: true,
     standardHeaders: false,
+    validate: false,
     handler: (req, res) => {
         res.status(429).json({ message: 'Too many completion submissions, please try again later.' });
     },
@@ -51,6 +54,7 @@ exports.flagLimiter = (0, express_rate_limit_1.default)({
     keyGenerator,
     legacyHeaders: true,
     standardHeaders: false,
+    validate: false,
     handler: (req, res) => {
         res.status(429).json({ message: 'Too many flag submissions, please try again later.' });
     },

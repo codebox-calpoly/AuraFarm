@@ -13,6 +13,7 @@ function toUserProfile(
 ): UserProfile {
   return {
     ...user,
+    role: user.role as any, // Cast to match enum if needed
     completionsCount: user.completions.length,
   };
 }
@@ -28,10 +29,10 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   if (isNaN(userId)) {
     throw new AppError('Invalid user ID', 400);
   }
-  
+
   // TODO: Get userId from authentication middleware and verify access
   // TODO: Replace with Prisma query: prisma.user.findUnique({ where: { id: userId }, include: { completions: true } })
-  
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -39,7 +40,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
       // flags: true, // you can include this too if you need it in the profile
     },
   });
-  
+
   if (!user) {
     throw new AppError('User not found', 404);
   }
@@ -57,7 +58,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
-    completionsCount: user._count.completions,
+    completionsCount: user.completions.length,
   };
 
   const response: ApiResponse<UserProfile> = {
@@ -75,7 +76,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   // TODO: Get userId from authentication middleware
   const userId = 1; // Placeholder
-  
+
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -84,7 +85,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
       // flags: true,
     },
   });
-  
+
   if (!user) {
     throw new AppError('User not found', 404);
   }
@@ -104,7 +105,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
-    completionsCount: user._count.completions,
+    completionsCount: user.completions.length,
     rank,
   };
 
@@ -127,7 +128,7 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
 
   const userId = req.user.id;
   const { name } = req.body;
-  
+
   if (!name) {
     throw new AppError('Nothing to update', 400);
   }
@@ -136,15 +137,15 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: { name },
-  });
+    });
 
     const response: ApiResponse<PrismaUser> = {
       success: true,
       data: updatedUser,
       message: 'Profile updated successfully',
     };
-  
-  res.json(response);
+
+    res.json(response);
   } catch (err: any) {
     // If Prisma cannot find the user, it throws
     throw new AppError('User not found', 404);
@@ -162,7 +163,7 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
   if (isNaN(userId)) {
     throw new AppError('Invalid user ID', 400);
   }
-  
+
   // TODO: Get userId from authentication middleware and verify access
   // TODO: Replace with Prisma query:
   // prisma.challengeCompletion.findMany({
@@ -170,7 +171,7 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
   //   include: { challenge: true },
   //   orderBy: { completedAt: 'desc' }
   // })
-  
+
   // Verify user exists
   const userExists = await prisma.user.findUnique({
     where: { id: userId },
@@ -193,13 +194,13 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
     },
     orderBy: { completedAt: 'desc' },
   });
-  
+
   const response: ApiResponse<typeof completions> = {
     success: true,
     data: completions,
   };
 
-  
+
   res.json(response);
 });
 

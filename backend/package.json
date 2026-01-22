@@ -27,14 +27,14 @@
     "supabase": "^2.58.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
+    "winston": "^3.19.0",
     "zod": "^4.1.12",
     "zod-to-json-schema": "^3.25.1"
-    "winston": "^3.19.0",
-    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.5",
+    "@types/express-rate-limit": "^6.0.2",
     "@types/node": "^24.10.1",
     "@types/pg": "^8.15.6",
     "@types/swagger-jsdoc": "^6.0.4",
