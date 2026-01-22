@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.leaderboardEntrySchema = exports.flagSchema = exports.challengeCompletionSchema = exports.challengeWithDistanceSchema = exports.challengeWithCompletionsSchema = exports.challengeSchema = exports.userProfileSchema = exports.userSchema = exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.nearbyChallengesQuerySchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.createCompletionSchema = exports.UserRole = void 0;
+exports.leaderboardEntrySchema = exports.flagSchema = exports.challengeCompletionSchema = exports.challengeWithDistanceSchema = exports.challengeWithCompletionsSchema = exports.challengeSchema = exports.userProfileSchema = exports.userSchema = exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.completionsListQuerySchema = exports.nearbyChallengesQuerySchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.createCompletionSchema = exports.UserRole = void 0;
 const zod_1 = require("zod");
 // Define UserRole enum locally to match Prisma schema
 var UserRole;
@@ -42,6 +42,41 @@ exports.nearbyChallengesQuerySchema = zod_1.z.object({
     radius: zod_1.z.string().optional().default('5000').transform(Number).pipe(zod_1.z.number().positive().max(50000)),
     page: zod_1.z.string().optional().default('1').transform(Number).pipe(zod_1.z.number().int().positive()),
     limit: zod_1.z.string().optional().default('20').transform(Number).pipe(zod_1.z.number().int().positive().max(100)),
+});
+exports.completionsListQuerySchema = zod_1.z
+    .object({
+    userId: zod_1.z.string().regex(/^\d+$/).transform((v) => Number(v)).optional(),
+    challengeId: zod_1.z.string().regex(/^\d+$/).transform((v) => Number(v)).optional(),
+    startDate: zod_1.z
+        .string()
+        .refine((v) => !isNaN(Date.parse(v)), { message: 'Invalid startDate' })
+        .transform((v) => new Date(v))
+        .optional(),
+    endDate: zod_1.z
+        .string()
+        .refine((v) => !isNaN(Date.parse(v)), { message: 'Invalid endDate' })
+        .transform((v) => new Date(v))
+        .optional(),
+    page: zod_1.z.string().regex(/^\d+$/).optional().default('1').transform((v) => Number(v)),
+    limit: zod_1.z.string().regex(/^\d+$/).optional().default('20').transform((v) => Number(v)),
+    sortBy: zod_1.z.enum(['completedAt']).optional().default('completedAt'),
+    sortOrder: zod_1.z.enum(['asc', 'desc']).optional().default('desc'),
+})
+    .superRefine((val, ctx) => {
+    if (val.startDate && val.endDate && val.startDate > val.endDate) {
+        ctx.addIssue({
+            code: zod_1.z.ZodIssueCode.custom,
+            message: 'startDate must be before or equal to endDate',
+            path: ['startDate'],
+        });
+    }
+    if (val.limit < 1 || val.limit > 100) {
+        ctx.addIssue({
+            code: zod_1.z.ZodIssueCode.custom,
+            message: 'limit must be between 1 and 100',
+            path: ['limit'],
+        });
+    }
 });
 // Param validation schemas
 exports.idParamSchema = zod_1.z.object({

@@ -146,6 +146,52 @@ export const nearbyChallengesQuerySchema = z.object({
   limit: z.string().optional().default('20').transform(Number).pipe(z.number().int().positive().max(100)),
 });
 
+export const completionsListQuerySchema = z
+  .object({
+    userId: z.string().regex(/^\d+$/).transform((v: string) => Number(v)).optional(),
+    challengeId: z.string().regex(/^\d+$/).transform((v: string) => Number(v)).optional(),
+
+    startDate: z
+      .string()
+      .refine((v: string) => !isNaN(Date.parse(v)), { message: 'Invalid startDate' })
+      .transform((v: string) => new Date(v))
+      .optional(),
+
+    endDate: z
+      .string()
+      .refine((v: string) => !isNaN(Date.parse(v)), { message: 'Invalid endDate' })
+      .transform((v: string) => new Date(v))
+      .optional(),
+
+    page: z.string().regex(/^\d+$/).optional().default('1').transform((v: string) => Number(v)),
+    limit: z.string().regex(/^\d+$/).optional().default('20').transform((v: string) => Number(v)),
+
+    sortBy: z.enum(['completedAt']).optional().default('completedAt'),
+    sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+  })
+  .superRefine((val: {
+    startDate?: Date;
+    endDate?: Date;
+    limit: number;
+  }, ctx: z.RefinementCtx) => {
+    if (val.startDate && val.endDate && val.startDate > val.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'startDate must be before or equal to endDate',
+        path: ['startDate'],
+      });
+    }
+
+    if (val.limit < 1 || val.limit > 100) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'limit must be between 1 and 100',
+        path: ['limit'],
+      });
+    }
+  });
+
+
 // Param validation schemas
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),

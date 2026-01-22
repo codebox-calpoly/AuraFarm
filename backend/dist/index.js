@@ -10,8 +10,8 @@ const errorHandler_1 = require("./middleware/errorHandler");
 const requestLogger_1 = require("./middleware/requestLogger");
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
 const swagger_1 = require("./config/swagger");
-const rateLimiter_1 = __importDefault(require("./middleware/rateLimiter"));
 const logger_1 = __importDefault(require("./utils/logger"));
+const rateLimiter_1 = __importDefault(require("./middleware/rateLimiter"));
 // Import routes
 const challenges_routes_1 = __importDefault(require("./routes/challenges.routes"));
 const completions_routes_1 = __importDefault(require("./routes/completions.routes"));

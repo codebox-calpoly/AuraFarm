@@ -162,3 +162,81 @@ export const getCompletionById = asyncHandler(async (req: Request, res: Response
 
   res.json(response);
 });
+
+/**
+ * GET /api/completions
+ * List completions with optional filters + pagination
+ */
+export const getCompletions = asyncHandler(async (req: Request, res: Response) => {
+  const {
+    userId,
+    challengeId,
+    startDate,
+    endDate,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  } = req.query as any;
+
+  const where: Prisma.ChallengeCompletionWhereInput = {};
+
+  if (userId) where.userId = userId;
+  if (challengeId) where.challengeId = challengeId;
+
+  if (startDate || endDate) {
+    where.completedAt = {
+      ...(startDate ? { gte: startDate } : {}),
+      ...(endDate ? { lte: endDate } : {}),
+    };
+  }
+
+  const pageNum = Number(page ?? 1);
+  const limitNum = Number(limit ?? 20);
+  const skip = (pageNum - 1) * limitNum;
+
+  // Only sorting allowed is completedAt
+  const orderBy: Prisma.ChallengeCompletionOrderByWithRelationInput = {
+    completedAt: (sortOrder === 'asc' ? 'asc' : 'desc'),
+  };
+
+  const [total, completions] = await prisma.$transaction([
+    prisma.challengeCompletion.count({ where }),
+    prisma.challengeCompletion.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limitNum,
+      select: {
+        id: true,
+        userId: true,
+        challengeId: true,
+        latitude: true,
+        longitude: true,
+        completedAt: true,
+        user: {
+          select: { id: true, name: true },
+        },
+        challenge: {
+          select: { id: true, title: true },
+        },
+      },
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limitNum));
+
+  const response = {
+    success: true,
+    data: completions,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages,
+    },
+  };
+
+  res.json(response);
+});
+
