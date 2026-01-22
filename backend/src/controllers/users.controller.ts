@@ -4,30 +4,6 @@ import { AppError } from '../middleware/errorHandler';
 import { User, UserProfile, ApiResponse, ChallengeCompletion, UserRole } from '../types';
 import { prisma } from '../prisma';
 
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockUsers: User[] = [
-  {
-    id: 1,
-    email: 'user@example.com',
-    name: 'John Doe',
-    role: UserRole.user,
-    auraPoints: 150,
-    streak: 5,
-    lastCompletedAt: new Date('2024-01-20'),
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: 2,
-    email: 'user2@example.com',
-    name: 'Jane Smith',
-    role: UserRole.user,
-    auraPoints: 200,
-    streak: 10,
-    lastCompletedAt: new Date('2024-01-21'),
-    createdAt: new Date('2024-01-02'),
-  },
-];
-
 /**
  * GET /api/users/:id
  * Get user profile by ID
@@ -40,19 +16,33 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Invalid user ID', 400);
   }
 
-  // TODO: Get userId from authentication middleware and verify access
-  // TODO: Replace with Prisma query: prisma.user.findUnique({ where: { id: userId }, include: { completions: true } })
-
-  const user = mockUsers.find(u => u.id === userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      _count: {
+        select: { completions: true },
+      },
+    },
+  });
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
-  // Mock completions count
+  // Calculate rank (simplified for now, ideally cached or optimized query)
+  // For now, we can omit rank or do a simple count query if strictly needed
+  // Let's just return basic profile first
+
   const userProfile: UserProfile = {
-    ...user,
-    completionsCount: Math.floor(Math.random() * 20),
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as any, // Cast to match enum if needed
+    auraPoints: user.auraPoints,
+    streak: user.streak,
+    lastCompletedAt: user.lastCompletedAt,
+    createdAt: user.createdAt,
+    completionsCount: user._count.completions,
   };
 
   const response: ApiResponse<UserProfile> = {
@@ -68,18 +58,42 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * Get current user's profile
  */
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  // TODO: Get userId from authentication middleware
-  const userId = 1; // Placeholder
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
 
-  const user = mockUsers.find(u => u.id === userId);
+  const userId = req.user.id;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      _count: {
+        select: { completions: true },
+      },
+    },
+  });
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
+  // Get rank
+  const higherRankedUsers = await prisma.user.count({
+    where: { auraPoints: { gt: user.auraPoints } },
+  });
+  const rank = higherRankedUsers + 1;
+
   const userProfile: UserProfile = {
-    ...user,
-    completionsCount: Math.floor(Math.random() * 20),
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role as any,
+    auraPoints: user.auraPoints,
+    streak: user.streak,
+    lastCompletedAt: user.lastCompletedAt,
+    createdAt: user.createdAt,
+    completionsCount: user._count.completions,
+    rank,
   };
 
   const response: ApiResponse<UserProfile> = {
@@ -95,24 +109,44 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
  * Update current user's profile
  */
 export const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  // TODO: Get userId from authentication middleware
-  const userId = 1; // Placeholder
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
+
+  const userId = req.user.id;
   const { name } = req.body;
 
-  const user = mockUsers.find(u => u.id === userId);
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
   // Update user
-  if (name) {
-    user.name = name;
-  }
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: name || undefined,
+    },
+  });
+
+  // Re-map to frontend User type
+  const mappedUser: User = {
+    id: updatedUser.id,
+    email: updatedUser.email,
+    name: updatedUser.name,
+    role: updatedUser.role as any,
+    auraPoints: updatedUser.auraPoints,
+    streak: updatedUser.streak,
+    lastCompletedAt: updatedUser.lastCompletedAt,
+    createdAt: updatedUser.createdAt,
+  };
 
   const response: ApiResponse<User> = {
     success: true,
-    data: user,
+    data: mappedUser,
     message: 'Profile updated successfully',
   };
 
@@ -131,43 +165,32 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
     throw new AppError('Invalid user ID', 400);
   }
 
-  // TODO: Get userId from authentication middleware and verify access
-  // TODO: Replace with Prisma query:
-  // prisma.challengeCompletion.findMany({
-  //   where: { userId },
-  //   include: { challenge: true },
-  //   orderBy: { completedAt: 'desc' }
-  // })
+  // Verify user exists first
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
 
-  // Verify user exists
-  const user = mockUsers.find(u => u.id === userId);
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
-  // Mock completions - in real implementation, fetch from database
-  const mockCompletions: ChallengeCompletion[] = [
-    {
-      id: 1,
-      userId,
-      challengeId: 1,
-      latitude: 37.7749,
-      longitude: -122.4194,
-      completedAt: new Date('2024-01-20'),
+  const completions = await prisma.challengeCompletion.findMany({
+    where: { userId },
+    include: {
+      challenge: true,
     },
-    {
-      id: 2,
-      userId,
-      challengeId: 2,
-      latitude: 37.7849,
-      longitude: -122.4094,
-      completedAt: new Date('2024-01-19'),
+    orderBy: {
+      completedAt: 'desc',
     },
-  ];
+  });
 
-  const response: ApiResponse<ChallengeCompletion[]> = {
+  // Map to ChallengeCompletion type
+  // Note: Prisma challenge include matches the shape mostly, but we define explicit types.
+  // We can just cast or map if necessary. Prisma result should compatible with interface if properly typed.
+
+  const response: ApiResponse<any[]> = { // Using any[] temporarily to avoid deep typing mismatch issues if strict
     success: true,
-    data: mockCompletions,
+    data: completions,
   };
 
   res.json(response);

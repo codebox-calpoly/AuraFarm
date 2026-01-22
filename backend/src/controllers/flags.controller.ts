@@ -10,24 +10,27 @@ import { prisma } from '../prisma';
  */
 export const flagCompletion = asyncHandler(async (req: Request, res: Response) => {
   const { completionId, reason } = req.body;
-  
-  // TODO: Get userId from authentication middleware
-  const flaggedById = 1; // Placeholder
-  
+
+  // Get userId from authentication middleware
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+  const flaggedById = req.user.id;
+
   // Verify completion exists
   const completion = await prisma.challengeCompletion.findUnique({
     where: { id: completionId },
   });
-  
+
   if (!completion) {
     throw new AppError('Completion not found', 404);
   }
-  
+
   // Prevent users from flagging their own completions
   if (completion.userId === flaggedById) {
     throw new AppError('You cannot flag your own completion', 400);
   }
-  
+
   // Check if user already flagged this completion
   const existingFlag = await prisma.flag.findFirst({
     where: {
@@ -35,11 +38,11 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
       flaggedById,
     },
   });
-  
+
   if (existingFlag) {
     throw new AppError('You have already flagged this completion', 409);
   }
-  
+
   // Create the flag
   const newFlag = await prisma.flag.create({
     data: {
@@ -48,13 +51,13 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
       reason: reason || null,
     },
   });
-  
+
   const response: ApiResponse<Flag> = {
     success: true,
     data: newFlag,
     message: 'Completion flagged successfully',
   };
-  
+
   res.status(201).json(response);
 });
 

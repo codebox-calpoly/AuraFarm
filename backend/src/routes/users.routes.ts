@@ -16,16 +16,66 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/users/me
- * @desc    Get current user's profile
- * @access  Private (TODO: Add auth middleware)
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Current user profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserProfile'
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/me', getCurrentUser);
 
 /**
- * @route   PATCH /api/users/me
- * @desc    Update current user's profile
- * @access  Private (TODO: Add auth middleware)
+ * @swagger
+ * /users/me:
+ *   patch:
+ *     summary: Update current user profile
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateUser'
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized
  */
 router.patch(
   '/me',
@@ -34,9 +84,41 @@ router.patch(
 );
 
 /**
- * @route   GET /api/users/:id/completions
- * @desc    Get all completions for a specific user
- * @access  Private (TODO: Add auth middleware)
+ * @swagger
+ * /users/{id}/completions:
+ *   get:
+ *     summary: Get user completions
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User completions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ChallengeCompletion'
+ *       400:
+ *         description: Invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
  */
 router.get(
   '/:id/completions',
@@ -56,9 +138,39 @@ router.get(
 );
 
 /**
- * @route   GET /api/users/:id
- * @desc    Get user profile by ID
- * @access  Public
+ * @swagger
+ * /users/{id}:
+ *   get:
+ *     summary: Get user profile by ID
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/UserProfile'
+ *       400:
+ *         description: Invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found
  */
 router.get(
   '/:id',
@@ -67,4 +179,3 @@ router.get(
 );
 
 export default router;
-

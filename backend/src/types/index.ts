@@ -164,3 +164,67 @@ export const completionIdParamSchema = z.object({
 }); 
 
 
+// Response Schemas (for Swagger)
+export const userSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  name: z.string(),
+  auraPoints: z.number(),
+  streak: z.number(),
+  lastCompletedAt: z.string().nullable().transform((str) => str ? new Date(str) : null), // Date comes as string in JSON
+  createdAt: z.string().transform((str) => new Date(str)),
+  role: z.enum(['user', 'admin']),
+});
+
+export const userProfileSchema = userSchema.extend({
+  completionsCount: z.number(),
+  rank: z.number().optional(),
+});
+
+export const challengeSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  difficulty: z.string(),
+  pointsReward: z.number(),
+  createdAt: z.string().transform((str) => new Date(str)),
+});
+
+export const challengeWithCompletionsSchema = challengeSchema.extend({
+  completionsCount: z.number(),
+});
+
+export const challengeWithDistanceSchema = challengeSchema.extend({
+  distance: z.number(),
+});
+
+export const challengeCompletionSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  challengeId: z.number(),
+  latitude: z.number(),
+  longitude: z.number(),
+  completedAt: z.string().transform((str) => new Date(str)),
+  user: userSchema.optional(),
+  challenge: challengeSchema.optional(),
+});
+
+export const flagSchema = z.object({
+  id: z.number(),
+  completionId: z.number(),
+  flaggedById: z.number(),
+  reason: z.string().nullable(),
+  createdAt: z.string().transform((str) => new Date(str)),
+});
+
+export const leaderboardEntrySchema = z.object({
+  userId: z.number(),
+  userName: z.string(),
+  userEmail: z.string(),
+  auraPoints: z.number(),
+  streak: z.number(),
+  rank: z.number(),
+  completionsCount: z.number(),
+});

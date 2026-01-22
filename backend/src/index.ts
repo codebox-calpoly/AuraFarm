@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './config/swagger';
 import logger from './utils/logger';
 import rateLimiter from './middleware/rateLimiter';
 
@@ -26,6 +28,9 @@ app.use(requestLogger);
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Swagger Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 
 // API Routes
