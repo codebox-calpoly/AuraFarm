@@ -3,6 +3,10 @@ import express from 'express';
 import cors from 'cors';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { requestLogger } from './middleware/requestLogger';
+import swaggerUi from 'swagger-ui-express';
+import { specs } from './config/swagger';
+import logger from './utils/logger';
+import rateLimiter from './middleware/rateLimiter';
 
 
 // Import routes
@@ -25,13 +29,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Swagger Documentation
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 
 // API Routes
-app.use('/api/challenges', challengesRoutes);
+app.use('/api/challenges', rateLimiter.publicLimiter, challengesRoutes);
 app.use('/api/completions', completionsRoutes);
 app.use('/api/flags', flagsRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/users', rateLimiter.authLimiter, usersRoutes);
+app.use('/api/leaderboard', rateLimiter.publicLimiter, leaderboardRoutes);
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);
@@ -41,7 +48,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Health check: http://localhost:${PORT}/health`);
-  console.log(`📚 API endpoints available at: http://localhost:${PORT}/api`);
+  logger.info(`🚀 Server running on port ${PORT}`);
+  logger.info(`📡 Health check: http://localhost:${PORT}/health`);
+  logger.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
 });

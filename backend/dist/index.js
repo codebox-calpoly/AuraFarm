@@ -8,6 +8,10 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const errorHandler_1 = require("./middleware/errorHandler");
 const requestLogger_1 = require("./middleware/requestLogger");
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_1 = require("./config/swagger");
+const rateLimiter_1 = __importDefault(require("./middleware/rateLimiter"));
+const logger_1 = __importDefault(require("./utils/logger"));
 // Import routes
 const challenges_routes_1 = __importDefault(require("./routes/challenges.routes"));
 const completions_routes_1 = __importDefault(require("./routes/completions.routes"));
@@ -23,19 +27,21 @@ app.use(requestLogger_1.requestLogger);
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+// Swagger Documentation
+app.use('/api/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_1.specs));
 // API Routes
-app.use('/api/challenges', challenges_routes_1.default);
+app.use('/api/challenges', rateLimiter_1.default.publicLimiter, challenges_routes_1.default);
 app.use('/api/completions', completions_routes_1.default);
 app.use('/api/flags', flags_routes_1.default);
-app.use('/api/users', users_routes_1.default);
-app.use('/api/leaderboard', leaderboard_routes_1.default);
+app.use('/api/users', rateLimiter_1.default.authLimiter, users_routes_1.default);
+app.use('/api/leaderboard', rateLimiter_1.default.publicLimiter, leaderboard_routes_1.default);
 // 404 handler for undefined routes
 app.use(errorHandler_1.notFoundHandler);
 // Error handling middleware (must be last)
 app.use(errorHandler_1.errorHandler);
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Health check: http://localhost:${PORT}/health`);
-    console.log(`📚 API endpoints available at: http://localhost:${PORT}/api`);
+    logger_1.default.info(`🚀 Server running on port ${PORT}`);
+    logger_1.default.info(`📡 Health check: http://localhost:${PORT}/health`);
+    logger_1.default.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
 });

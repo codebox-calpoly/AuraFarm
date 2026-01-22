@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// Define UserRole enum locally to match Prisma schema
+export enum UserRole {
+  user = 'user',
+  admin = 'admin',
+}
+
 // User Types
 export interface User {
   id: number;
@@ -9,6 +15,7 @@ export interface User {
   streak: number;
   lastCompletedAt: Date | null;
   createdAt: Date;
+  role: UserRole;
 }
 
 export interface UserProfile extends User {
@@ -30,6 +37,10 @@ export interface Challenge {
 
 export interface ChallengeWithCompletions extends Challenge {
   completionsCount: number;
+}
+
+export interface ChallengeWithDistance extends Challenge {
+  distance: number; // Distance in meters from user's location
 }
 
 // Challenge Completion Types
@@ -120,9 +131,19 @@ export const updateUserSchema = z.object({
 });
 
 export const queryParamsSchema = z.object({
-  page: z.string().regex(/^\d+$/).transform(Number),
-  limit: z.string().regex(/^\d+$/).transform(Number),
+  page: z.string().regex(/^\d+$/).transform(Number).optional(),
+  limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  // Search by title or description (max 100 chars)
+  search: z.string().min(1).max(100).optional(),
+});
+
+export const nearbyChallengesQuerySchema = z.object({
+  latitude: z.string().transform(Number).pipe(z.number().min(-90).max(90)),
+  longitude: z.string().transform(Number).pipe(z.number().min(-180).max(180)),
+  radius: z.string().optional().default('5000').transform(Number).pipe(z.number().positive().max(50000)),
+  page: z.string().optional().default('1').transform(Number).pipe(z.number().int().positive()),
+  limit: z.string().optional().default('20').transform(Number).pipe(z.number().int().positive().max(100)),
 });
 
 export const completionsListQuerySchema = z
@@ -186,6 +207,70 @@ export const challengeIdParamSchema = z.object({
 
 export const completionIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
+}); 
+
+
+// Response Schemas (for Swagger)
+export const userSchema = z.object({
+  id: z.number(),
+  email: z.string().email(),
+  name: z.string(),
+  auraPoints: z.number(),
+  streak: z.number(),
+  lastCompletedAt: z.string().nullable().transform((str) => str ? new Date(str) : null), // Date comes as string in JSON
+  createdAt: z.string().transform((str) => new Date(str)),
+  role: z.enum(['user', 'admin']),
 });
 
+export const userProfileSchema = userSchema.extend({
+  completionsCount: z.number(),
+  rank: z.number().optional(),
+});
 
+export const challengeSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string(),
+  latitude: z.number(),
+  longitude: z.number(),
+  difficulty: z.string(),
+  pointsReward: z.number(),
+  createdAt: z.string().transform((str) => new Date(str)),
+});
+
+export const challengeWithCompletionsSchema = challengeSchema.extend({
+  completionsCount: z.number(),
+});
+
+export const challengeWithDistanceSchema = challengeSchema.extend({
+  distance: z.number(),
+});
+
+export const challengeCompletionSchema = z.object({
+  id: z.number(),
+  userId: z.number(),
+  challengeId: z.number(),
+  latitude: z.number(),
+  longitude: z.number(),
+  completedAt: z.string().transform((str) => new Date(str)),
+  user: userSchema.optional(),
+  challenge: challengeSchema.optional(),
+});
+
+export const flagSchema = z.object({
+  id: z.number(),
+  completionId: z.number(),
+  flaggedById: z.number(),
+  reason: z.string().nullable(),
+  createdAt: z.string().transform((str) => new Date(str)),
+});
+
+export const leaderboardEntrySchema = z.object({
+  userId: z.number(),
+  userName: z.string(),
+  userEmail: z.string(),
+  auraPoints: z.number(),
+  streak: z.number(),
+  rank: z.number(),
+  completionsCount: z.number(),
+});

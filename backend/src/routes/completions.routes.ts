@@ -16,6 +16,7 @@ const router = Router();
 
 router.post(
   '/',
+  rateLimiter.completionLimiter,
   validateBody(createCompletionSchema),
   completeChallenge
 );

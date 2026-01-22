@@ -1,35 +1,96 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.requireAuth = void 0;
+exports.requireAdmin = exports.authenticate = void 0;
 const supabase_1 = require("../supabase");
+const prisma_1 = require("../prisma");
 const errorHandler_1 = require("./errorHandler");
-const requireAuth = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return next(new errorHandler_1.AppError("Missing Authorization header", 401));
-    }
-    const parts = authHeader.split(" ");
-    if (parts[0] !== "Bearer" || parts.length !== 2) {
-        return next(new errorHandler_1.AppError("Invalid Authorization header format", 401));
-    }
-    const token = parts[1];
+const asyncHandler_1 = require("./asyncHandler");
+const logger_1 = __importDefault(require("../utils/logger"));
+/**
+ * Authentication middleware - verifies JWT token and attaches user to request
+ *
+ * Extracts JWT token from Authorization header, verifies it with Supabase,
+ * and looks up the user in the database. Attaches user info to req.user
+ * for use in subsequent middleware and controllers.
+ *
+ * @middleware
+ * @throws {AppError} 401 if no token provided
+ * @throws {AppError} 401 if token is invalid or expired
+ * @throws {AppError} 404 if user not found in database
+ */
+exports.authenticate = (0, asyncHandler_1.asyncHandler)(async (req, res, next) => {
     try {
-        const result = await supabase_1.supabase.auth.getUser(token);
-        // data in the form of: result: { data: { user: User | null }, error: AuthError | null }
-        if (result.error || !result.data?.user) {
-            return next(new errorHandler_1.AppError("Invalid or expired token", 401));
+        // Get the authorization header
+        const authHeader = req.headers.authorization;
+        // Check if header exists and has correct format
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new errorHandler_1.AppError('No token provided', 401);
         }
-        // Attach user to request for later middleware/handlers
-        const user = result.data.user;
-        req.user = user;
-        req.userId = user.id;
+        // Extract the token (remove 'Bearer ' prefix)
+        const token = authHeader.substring(7);
+        // Verify the token with Supabase
+        const { data: { user: supabaseUser }, error } = await supabase_1.supabase.auth.getUser(token);
+        // Check if verification failed
+        if (error || !supabaseUser) {
+            throw new errorHandler_1.AppError('Invalid or expired token', 401);
+        }
+        // Get user from database using email
+        const user = await prisma_1.prisma.user.findUnique({
+            where: { email: supabaseUser.email },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+            },
+        });
+        // Check if user exists in database
+        if (!user) {
+            throw new errorHandler_1.AppError('User not found in database', 404);
+        }
+        // Attach user to request
+        req.user = {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+        };
+        // Continue to next middleware/controller
         next();
     }
-    catch (err) {
-        if (process.env.NODE_ENV === "development") {
-            console.error("Authentication middleware error:", err);
+    catch (error) {
+        // Log auth error
+        logger_1.default.error('Authentication failed', { error });
+        // Handle errors
+        if (error instanceof errorHandler_1.AppError) {
+            next(error);
         }
-        next(new errorHandler_1.AppError("Authentication failed", 401));
+        else {
+            next(new errorHandler_1.AppError('Authentication failed', 401));
+        }
     }
+});
+/**
+ * Authorization middleware - verifies user has admin role
+ *
+ * Must be used after authenticate middleware. Checks if req.user exists
+ * and has role === 'admin'. Returns 403 Forbidden if user is not admin.
+ *
+ * @middleware
+ * @throws {AppError} 401 if user not authenticated
+ * @throws {AppError} 403 if user is not admin
+ */
+const requireAdmin = (req, res, next) => {
+    // Check if user is authenticated
+    if (!req.user) {
+        return next(new errorHandler_1.AppError('Authentication required', 401));
+    }
+    // Check if user has admin role
+    if (req.user.role !== 'admin') {
+        return next(new errorHandler_1.AppError('Admin access required', 403));
+    }
+    // User is admin, continue
+    next();
 };
-exports.requireAuth = requireAuth;
+exports.requireAdmin = requireAdmin;

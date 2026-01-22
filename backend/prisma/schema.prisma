@@ -7,16 +7,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum UserRole {
+  user
+  admin
+}
+
 model User {
   id              Int                   @id @default(autoincrement())
   email           String                @unique
   name            String
+  role            UserRole              @default(user)
   auraPoints      Int                   @default(0)
   streak          Int                   @default(0)
   lastCompletedAt DateTime? // For streak tracking
   createdAt       DateTime              @default(now())
   completions     ChallengeCompletion[] // Reverse relation
   flags           Flag[] // Flags they've submitted
+
+  @@index([auraPoints])
 }
 
 model Challenge {
@@ -29,6 +37,9 @@ model Challenge {
   pointsReward Int
   createdAt    DateTime              @default(now())
   completions  ChallengeCompletion[] // Reverse relation
+
+  @@index([createdAt])
+  @@index([difficulty])
 }
 
 model ChallengeCompletion {
@@ -45,6 +56,8 @@ model ChallengeCompletion {
   @@unique([userId, challengeId]) // Prevent duplicate completions
   @@index([userId]) // Index for faster user completion queries
   @@index([challengeId]) // Index for faster challenge completion queries
+  @@index([completedAt])
+  @@index([userId, completedAt])
 }
 
 model Flag {

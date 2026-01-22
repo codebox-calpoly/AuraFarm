@@ -43,5 +43,8 @@ app-example
 # generated native folders
 /ios
 /android
+ISSUES.md
 
 
+
+.DS_Store

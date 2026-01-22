@@ -4,3 +4,6 @@ node_modules
 .env.local
 API.md
 /src/generated/prisma
+error.txt
+*.log
+dist/dist/

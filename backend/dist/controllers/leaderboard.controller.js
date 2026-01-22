@@ -2,53 +2,65 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getLeaderboard = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
-// Mock data - will be replaced with Prisma queries once database is connected
-const mockLeaderboard = [
-    {
-        userId: 2,
-        userName: 'Jane Smith',
-        userEmail: 'user2@example.com',
-        auraPoints: 200,
-        streak: 10,
-        rank: 1,
-        completionsCount: 15,
-    },
-    {
-        userId: 1,
-        userName: 'John Doe',
-        userEmail: 'user@example.com',
-        auraPoints: 150,
-        streak: 5,
-        rank: 2,
-        completionsCount: 10,
-    },
-];
+const prisma_1 = require("../prisma");
 /**
  * GET /api/leaderboard
- * Get leaderboard sorted by aura points
+ * Get leaderboard sorted by aura points with completions count and rank
  */
 exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { page = 1, limit = 20 } = req.query;
-    // TODO: Replace with Prisma query:
-    // prisma.user.findMany({
-    //   orderBy: { auraPoints: 'desc' },
-    //   select: { id, name, email, auraPoints, streak, completions: { count: true } },
-    //   skip: (page - 1) * limit,
-    //   take: limit,
-    // })
-    const pageNum = Number(page);
-    const limitNum = Number(limit);
+    const pageNum = Math.max(1, Number(req.query.page ?? 1));
+    const limitNum = Math.max(1, Number(req.query.limit ?? 20));
     const startIndex = (pageNum - 1) * limitNum;
-    const endIndex = startIndex + limitNum;
-    const paginated = mockLeaderboard.slice(startIndex, endIndex);
+    // total users
+    const total = await prisma_1.prisma.user.count();
+    // Group users by auraPoints to compute ranks efficiently (descending)
+    const groups = await prisma_1.prisma.user.groupBy({
+        by: ["auraPoints"],
+        _count: { _all: true },
+        orderBy: { auraPoints: "desc" },
+    });
+    // build map: auraPoints -> rank (dense ranking where ties get same rank)
+    const rankMap = new Map();
+    let cumulative = 0;
+    for (const group of groups) {
+        const auraPoints = group.auraPoints ?? 0;
+        // rank is 1 + number of users with strictly greater auraPoints
+        rankMap.set(auraPoints, cumulative + 1);
+        cumulative += group._count._all;
+    }
+    // fetch paginated users ordered by auraPoints desc, include completions count
+    const users = await prisma_1.prisma.user.findMany({
+        orderBy: { auraPoints: "desc" },
+        select: {
+            id: true,
+            name: true,
+            email: true,
+            auraPoints: true,
+            streak: true,
+            _count: {
+                select: { completions: true },
+            },
+        },
+        skip: startIndex,
+        take: limitNum,
+    });
+    const data = users.map((u) => ({
+        userId: u.id,
+        userName: u.name,
+        userEmail: u.email,
+        auraPoints: u.auraPoints ?? 0,
+        streak: u.streak ?? 0,
+        completionsCount: u._count?.completions ?? 0,
+        rank: rankMap.get(u.auraPoints ?? 0) ?? 0,
+    }));
     const response = {
         success: true,
-        data: paginated,
+        data,
         pagination: {
             page: pageNum,
             limit: limitNum,
-            total: mockLeaderboard.length,
-            totalPages: Math.ceil(mockLeaderboard.length / limitNum),
+            total,
+            totalPages: Math.ceil(total / limitNum),
         },
     };
     res.json(response);
