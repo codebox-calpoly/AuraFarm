@@ -1,98 +1,97 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, ScrollView, Platform } from 'react-native';
+import { useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { ThemedText } from '@/components/themed-text';
+import { Header } from '@/components/home/Header';
+import { TabSwitcher } from '@/components/home/TabSwitcher';
+import { AuraProgressBar } from '@/components/home/AuraProgressBar';
+import { ChallengeCard } from '@/components/home/ChallengeCard';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [activeTab, setActiveTab] = useState<'my-challenges' | 'feed'>('my-challenges');
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+  // Mock Data
+  const incomingChallenge = {
+    title: 'Hike the P',
+    points: 300,
+    timeLeft: '3 days 2 hrs 3 min',
+  };
+
+  const completedChallenges = [
+    { id: 1, title: 'Hike the P', points: 300, date: 'Jan 24th, 2026' },
+    { id: 2, title: 'Hike the P', points: 300, date: 'Jan 24th, 2026' },
+    // Duplicate for demo as per design screenshot showing same item
+  ];
+
+  return (
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ThemedView style={styles.container}>
+        <Header />
+        
+        <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {activeTab === 'my-challenges' ? (
+            <>
+              {/* Progress Bar */}
+              <AuraProgressBar current={75} max={100} />
+
+              {/* Incoming Section */}
+              <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
+              <ChallengeCard
+                type="incoming"
+                title={incomingChallenge.title}
+                points={incomingChallenge.points}
+                timeLeft={incomingChallenge.timeLeft}
+                onPress={() => console.log('View Incoming')}
+              />
+
+              {/* Completed Section */}
+              <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
+              {completedChallenges.map((challenge) => (
+                <ChallengeCard
+                  key={challenge.id}
+                  type="completed"
+                  title={challenge.title}
+                  points={challenge.points}
+                  dateCompleted={challenge.date}
+                  onPress={() => console.log('View Completed', challenge.id)}
+                />
+              ))}
+            </>
+          ) : (
+            <ThemedView style={styles.feedPlaceholder}>
+              <ThemedText>Feed Content Coming Soon...</ThemedText>
+            </ThemedView>
+          )}
+        </ScrollView>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff', // Or use theme color
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  feedPlaceholder: {
+    padding: 20,
     alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
   },
 });
