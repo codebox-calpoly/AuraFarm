@@ -1,3 +1,4 @@
+import { ExpoConfig, ConfigContext } from 'expo/config';
 import 'dotenv/config';
 
 export default {
