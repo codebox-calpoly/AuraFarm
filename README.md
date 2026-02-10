@@ -13,8 +13,8 @@ A lighthearted mobile game that rewards students for doing good things or explor
 - [Atharv Allepally](https://www.linkedin.com/in/atharv-allepally-613204301/) - Developer
 - [Jake Orchanian](https://www.linkedin.com/in/jakeo-dev/) - Developer
 - [Jacky Liu](https://www.linkedin.com/in/jacky-liu-724706214/) - Developer
+- [Srinithi Doddapaneni](https://www.linkedin.com/in/srinithi-doddapaneni-5592b0309/) - Developer
 - Drew Tompkins - Developer
-- Srinithi Doddapaneni - Developer
 
 ## Contributing
 
