@@ -13,10 +13,13 @@ export function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
         style={styles.tab} 
         onPress={() => onTabChange('my-challenges')}
       >
-        <ThemedText style={[
-          styles.tabText, 
-          activeTab === 'my-challenges' && styles.activeTabText
-        ]}>
+        <ThemedText 
+          style={[
+            styles.tabText, 
+            activeTab === 'my-challenges' && styles.activeTabText
+          ]}
+          lightColor={activeTab === 'my-challenges' ? '#000' : '#9CA3AF'}
+        >
           My Challenges
         </ThemedText>
         {activeTab === 'my-challenges' && <View style={styles.activeIndicator} />}
@@ -26,10 +29,13 @@ export function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
         style={styles.tab} 
         onPress={() => onTabChange('feed')}
       >
-        <ThemedText style={[
-          styles.tabText, 
-          activeTab === 'feed' && styles.activeTabText
-        ]}>
+        <ThemedText 
+          style={[
+            styles.tabText, 
+            activeTab === 'feed' && styles.activeTabText
+          ]}
+          lightColor={activeTab === 'feed' ? '#000' : '#9CA3AF'}
+        >
           Feed
         </ThemedText>
         {activeTab === 'feed' && <View style={styles.activeIndicator} />}

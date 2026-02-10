@@ -23,8 +23,8 @@ export function AuraProgressBar({ current, max }: AuraProgressBarProps) {
         <Ionicons name="sparkles" size={20} color="#FFD700" style={styles.iconRight} />
       </View>
       
-      <ThemedText style={styles.pointsText}>
-        <ThemedText style={styles.pointsValue}>{current}</ThemedText>/{max} pts
+      <ThemedText style={styles.pointsText} lightColor="#FF6B6B">
+        {current}/{max} pts
       </ThemedText>
     </ThemedView>
   );
@@ -65,8 +65,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: '#FF6B6B',
-  },
-  pointsValue: {
-    fontWeight: 'bold',
   },
 });

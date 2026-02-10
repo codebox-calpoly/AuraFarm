@@ -4,7 +4,7 @@ import { ThemedView } from '@/components/themed-view';
 
 export function Header() {
   return (
-    <ThemedView style={styles.container}>
+    <ThemedView style={styles.container} lightColor="transparent">
       <Image
         source={require('@/assets/images/home-header.png')}
         style={styles.logo}

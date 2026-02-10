@@ -16,19 +16,19 @@ export function ChallengeCard({ type, title, points, timeLeft, dateCompleted, on
   if (type === 'incoming') {
     return (
       <View style={styles.incomingContainer}>
-        <ThemedView style={styles.incomingContent}>
+        <ThemedView style={styles.incomingContent} lightColor="#FFF5F5">
           <View style={styles.timerRow}>
             <Ionicons name="time-outline" size={16} color="#FF0000" />
-            <ThemedText style={styles.timerText}>{timeLeft}</ThemedText>
+            <ThemedText style={styles.timerText} lightColor="#FF0000">{timeLeft}</ThemedText>
           </View>
 
-          <ThemedText type="subtitle" style={styles.incomingTitle}>{title}</ThemedText>
+          <ThemedText type="subtitle" style={styles.incomingTitle} lightColor="#000">{title}</ThemedText>
           
           <View style={styles.incomingFooter}>
-            <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
+            <ThemedText style={styles.pointsText} lightColor="#4ADE80">+{points} Aura</ThemedText>
             
             <TouchableOpacity style={styles.viewButton} onPress={onPress}>
-              <ThemedText style={styles.viewButtonText}>View</ThemedText>
+              <ThemedText style={styles.viewButtonText} lightColor="white">View</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -40,9 +40,9 @@ export function ChallengeCard({ type, title, points, timeLeft, dateCompleted, on
   return (
     <TouchableOpacity style={styles.completedContainer} onPress={onPress}>
       <View style={styles.completedContent}>
-        <ThemedText style={styles.dateText}>{dateCompleted}</ThemedText>
-        <ThemedText type="subtitle" style={styles.completedTitle}>{title}</ThemedText>
-        <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
+        <ThemedText style={styles.dateText} lightColor="#6B7280">{dateCompleted}</ThemedText>
+        <ThemedText type="subtitle" style={styles.completedTitle} lightColor="#000">{title}</ThemedText>
+        <ThemedText style={styles.pointsText} lightColor="#4ADE80">+{points} Aura</ThemedText>
       </View>
       <Ionicons name="chevron-forward" size={24} color="#000" />
     </TouchableOpacity>

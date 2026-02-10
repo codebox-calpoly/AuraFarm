@@ -85,7 +85,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ThemedView style={styles.container}>
+      <ThemedView style={styles.container} lightColor="#fff">
         <Header />
         
         <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
@@ -97,7 +97,7 @@ export default function HomeScreen() {
               <AuraProgressBar current={75} max={100} />
 
               {/* Incoming Section */}
-              <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
+              <ThemedText style={styles.sectionTitle} lightColor="#000">Incoming</ThemedText>
               {incomingChallenges.length > 0 ? (
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
@@ -110,11 +110,11 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedText style={styles.emptyState}>No incoming challenges</ThemedText>
+                <ThemedText style={styles.emptyState} lightColor="#999">No incoming challenges </ThemedText>
               )}
 
               {/* Completed Section */}
-              <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
+              <ThemedText style={styles.sectionTitle} lightColor="#000">Completed</ThemedText>
               {completedChallenges.map((challenge) => (
                 <ChallengeCard
                   key={challenge.id}
@@ -127,8 +127,8 @@ export default function HomeScreen() {
               ))}
             </>
           ) : (
-            <ThemedView style={styles.feedPlaceholder}>
-              <ThemedText>Feed Content Coming Soon...</ThemedText>
+            <ThemedView style={styles.feedPlaceholder} lightColor="#fff">
+              <ThemedText lightColor="#000">Feed Content Coming Soon...</ThemedText>
             </ThemedView>
           )}
         </ScrollView>
