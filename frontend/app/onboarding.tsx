@@ -34,10 +34,10 @@ export default function OnboardingScreen() {
         } else {
             try {
                 await AsyncStorage.setItem('hasCompletedOnboarding', 'true');
-                router.replace('/(tabs)');
+                router.replace('/signup');
             } catch (error) {
                 console.error('Error saving onboarding status:', error);
-                router.replace('/(tabs)');
+                router.replace('/signup');
             }
         }
     };
