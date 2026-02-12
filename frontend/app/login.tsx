@@ -18,7 +18,7 @@ export default function OnboardingScreen() {
   const [email, setEmail] = useState("");
   const onChangeEmail = (text: string) => {
     setEmail(text);
-    };
+  };
 
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
@@ -58,9 +58,7 @@ export default function OnboardingScreen() {
         {/* Text Content */}
         <View style={styles.textContainer}>
           <Text style={styles.title}>Log In</Text>
-          <Text style={styles.description}>
-            Enter your email and password
-          </Text>
+          <Text style={styles.description}>Enter your email and password</Text>
         </View>
 
         {/* Email Input */}
@@ -115,12 +113,12 @@ export default function OnboardingScreen() {
         {/* Log In Button */}
         <TouchableOpacity
           onPress={handleLogin}
-          style={[styles.button, styles.buttonLogIn]}
+          style={[styles.button, styles.buttonPrimary]}
         >
           <Text style={styles.buttonText}>Log In</Text>
         </TouchableOpacity>
 
-        <Text style={styles.loginText}>
+        <Text style={styles.bottomText}>
           Don't have an account?{" "}
           <TouchableOpacity onPress={handleSignup}>
             <Text style={styles.bottomButtonText}>Sign Up</Text>
@@ -205,11 +203,19 @@ const styles = StyleSheet.create({
   },
   button: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 20,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  buttonLogIn: {
-    backgroundColor: "#22C55E",
+  buttonPrimary: {
+    backgroundColor: "#4FB948",
+  },
+  buttonTextPrimary: {
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#ffffff",
   },
   buttonText: {
     textAlign: "center",
@@ -227,12 +233,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 36,
   },
-  loginText: {
+  bottomText: {
     marginTop: 24,
     fontSize: 14,
+    fontWeight: "600",
   },
   bottomButtonText: {
-    color: "#22C55E",
+    color: "#4FB948",
   },
   inputLabel: {
     fontSize: 14,

@@ -144,12 +144,12 @@ export default function OnboardingScreen() {
         {/* Sign Up Button */}
         <TouchableOpacity
           onPress={handleSignup}
-          style={[styles.button, styles.buttonSignUp]}
+          style={[styles.button, styles.buttonPrimary]}
         >
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={styles.buttonTextPrimary}>Sign Up</Text>
         </TouchableOpacity>
 
-        <Text style={styles.loginText}>
+        <Text style={styles.bottomText}>
           Already have an account?{" "}
           <TouchableOpacity onPress={handleLogin}>
             <Text style={styles.bottomButtonText}>Log In</Text>
@@ -234,13 +234,15 @@ const styles = StyleSheet.create({
   },
   button: {
     width: "100%",
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 20,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
-  buttonSignUp: {
-    backgroundColor: "#22C55E",
+  buttonPrimary: {
+    backgroundColor: "#4FB948",
   },
-  buttonText: {
+  buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
     fontWeight: "600",
@@ -256,12 +258,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 36,
   },
-  loginText: {
+  bottomText: {
     marginTop: 24,
     fontSize: 14,
+    fontWeight: "600",
   },
   bottomButtonText: {
-    color: "#22C55E",
+    color: "#4FB948",
   },
   inputLabel: {
     fontSize: 14,
