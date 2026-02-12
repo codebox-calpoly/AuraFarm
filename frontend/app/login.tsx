@@ -15,19 +15,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function OnboardingScreen() {
   const router = useRouter();
 
-  const [username, setUsername] = useState("");
-  const onChangeUsername = (text: string) => {
-    setUsername(text);
-  };
-
   const [email, setEmail] = useState("");
-  const [validEmail, setValidEmail] = useState(false);
   const onChangeEmail = (text: string) => {
     setEmail(text);
-
-    const validEmailRegex = /.+(@calpoly\.edu)/;
-    setValidEmail(validEmailRegex.test(text));
-  };
+    };
 
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
@@ -35,12 +26,16 @@ export default function OnboardingScreen() {
     setPassword(text);
   };
 
-  const handleLogin = async () => {
-    router.replace("/login");
+  const handleSignup = async () => {
+    router.replace("/signup");
   };
 
-  const handleSignup = async () => {
-    router.replace("/verification");
+  const handleLogin = async () => {
+    // logic to handle login
+  };
+
+  const handleForgotPassword = async () => {
+    // logic to handle forgot password
   };
 
   return (
@@ -62,25 +57,10 @@ export default function OnboardingScreen() {
       >
         {/* Text Content */}
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Sign Up</Text>
+          <Text style={styles.title}>Log In</Text>
           <Text style={styles.description}>
-            Enter your credentials to continue
+            Enter your email and password
           </Text>
-        </View>
-
-        {/* Username Input */}
-        <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Username</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onChangeText={onChangeUsername}
-              value={username}
-              placeholder="musty_mustang"
-              placeholderTextColor="#c2c2c2"
-            />
-          </View>
         </View>
 
         {/* Email Input */}
@@ -95,20 +75,7 @@ export default function OnboardingScreen() {
               placeholder="mmustang@calpoly.edu"
               placeholderTextColor="#c2c2c2"
             />
-            {validEmail ?
-              <IconSymbol
-                size={25}
-                name="checkmark"
-                color="#4FB948"
-                style={styles.validEmailIcon}
-              />
-            : null}
           </View>
-          {!validEmail && email !== "" ?
-            <Text style={styles.invalidEmailText}>
-              Email must be @calpoly.edu
-            </Text>
-          : null}
         </View>
 
         {/* Password Input */}
@@ -136,23 +103,27 @@ export default function OnboardingScreen() {
               />
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
-        {/* Sign Up Button */}
+        {/* Log In Button */}
         <TouchableOpacity
-          onPress={handleSignup}
-          style={[styles.button, styles.buttonSignUp]}
+          onPress={handleLogin}
+          style={[styles.button, styles.buttonLogIn]}
         >
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={styles.buttonText}>Log In</Text>
         </TouchableOpacity>
 
         <Text style={styles.loginText}>
-          Already have an account?{" "}
-          <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.bottomButtonText}>Log In</Text>
+          Don't have an account?{" "}
+          <TouchableOpacity onPress={handleSignup}>
+            <Text style={styles.bottomButtonText}>Sign Up</Text>
           </TouchableOpacity>
         </Text>
       </View>
@@ -237,7 +208,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
   },
-  buttonSignUp: {
+  buttonLogIn: {
     backgroundColor: "#22C55E",
   },
   buttonText: {
@@ -281,15 +252,15 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    fontSize: 16,
+    fontSize: 18,
     height: 48,
   },
   passwordToggle: {},
   passwordToggleIcon: {},
-  validEmailIcon: {},
-  invalidEmailText: {
-    marginTop: 4,
-    fontSize: 12,
-    color: "#D8143A",
+  forgotPasswordText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#181725",
+    textAlign: "right",
   },
 });
