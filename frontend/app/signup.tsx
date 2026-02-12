@@ -12,7 +12,7 @@ import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function OnboardingScreen() {
+export default function SignUpScreen() {
   const router = useRouter();
 
   const [username, setUsername] = useState("");
@@ -149,12 +149,14 @@ export default function OnboardingScreen() {
           <Text style={styles.buttonTextPrimary}>Sign Up</Text>
         </TouchableOpacity>
 
-        <Text style={styles.bottomText}>
-          Already have an account?{" "}
+        <View style={styles.bottomTextContainer}>
+          <Text style={styles.bottomText}>Already have an account? </Text>
           <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.bottomButtonText}>Log In</Text>
+            <Text style={[styles.bottomText, styles.bottomTextButton]}>
+              Log In
+            </Text>
           </TouchableOpacity>
-        </Text>
+        </View>
       </View>
     </View>
   );
@@ -258,12 +260,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 36,
   },
-  bottomText: {
+  bottomTextContainer: {
+    display: "flex",
+    flexDirection: "row",
     marginTop: 24,
+  },
+  bottomText: {
     fontSize: 14,
     fontWeight: "600",
   },
-  bottomButtonText: {
+  bottomTextButton: {
     color: "#4FB948",
   },
   inputLabel: {
@@ -274,16 +280,15 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
     width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
     borderColor: "#e1e2e3",
     borderBottomWidth: 1.5,
     gap: 12,
   },
   input: {
-    width: "100%",
+    flex: 1,
     fontSize: 16,
     height: 48,
   },

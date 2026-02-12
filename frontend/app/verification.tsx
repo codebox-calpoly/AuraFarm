@@ -3,7 +3,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Image,
   TextInput,
 } from "react-native";
 import { useState } from "react";
@@ -12,41 +11,30 @@ import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function LogInScreen() {
+export default function VerificationScreen() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const onChangeEmail = (text: string) => {
-    setEmail(text);
+  const [code, setCode] = useState("");
+  const onChangeCode = (text: string) => {
+    if (text.length <= 4) setCode(text);
   };
 
-  const [password, setPassword] = useState("");
-  const [passwordHidden, setPasswordHidden] = useState(true);
-  const onChangePassword = (text: string) => {
-    setPassword(text);
+  const handleResendCode = async () => {
+    // logic for resending code
   };
 
   const handleSignup = async () => {
-    router.replace("/signup");
-  };
-
-  const handleLogin = async () => {
-    // logic to handle login
-  };
-
-  const handleForgotPassword = async () => {
-    // logic to handle forgot password
+    router.replace("/verification");
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Image
-          style={styles.logo}
-          source={require("../assets/images/red-logo.png")}
-          resizeMode="contain"
-        />
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => router.replace("/signup")}>
+          <IconSymbol name="chevron.left" size={35} color="#000000" />
+        </TouchableOpacity>
       </View>
 
       {/* Content Area */}
@@ -57,75 +45,49 @@ export default function LogInScreen() {
       >
         {/* Text Content */}
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Log In</Text>
-          <Text style={styles.description}>Enter your email and password</Text>
+          <Text style={styles.title}>
+            Enter 4-digit code sent to{" "}
+            <Text style={styles.bold}>mmustang@calpoly.edu</Text>
+          </Text>
         </View>
 
-        {/* Email Input */}
+        {/* Code Input */}
         <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Email</Text>
+          <Text style={styles.inputLabel}>Code</Text>
 
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              onChangeText={onChangeEmail}
-              value={email}
-              placeholder="mmustang@calpoly.edu"
+              onChangeText={onChangeCode}
+              value={code}
+              placeholder="- - - -"
               placeholderTextColor="#c2c2c2"
+              keyboardType="numeric"
             />
           </View>
-        </View>
-
-        {/* Password Input */}
-        <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Password</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onChangeText={onChangePassword}
-              value={password}
-              placeholder="••••••••••••••"
-              placeholderTextColor="#c2c2c2"
-              secureTextEntry={passwordHidden}
-            />
-            <TouchableOpacity
-              onPress={() => setPasswordHidden(!passwordHidden)}
-              style={styles.passwordToggle}
-            >
-              <IconSymbol
-                size={25}
-                name={passwordHidden ? "eye.slash" : "eye"}
-                color="#8c8c8c"
-                style={styles.passwordToggleIcon}
-              />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity onPress={handleForgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
         </View>
       </Animated.View>
 
       {/* Bottom Section */}
       <View style={styles.bottomSection}>
-        {/* Log In Button */}
-        <TouchableOpacity
-          onPress={handleLogin}
-          style={[styles.button, styles.buttonPrimary]}
-        >
-          <Text style={styles.buttonText}>Log In</Text>
+        <TouchableOpacity onPress={handleResendCode}>
+          <Text style={[styles.bottomText, styles.bottomButtonText]}>
+            Resend Code
+          </Text>
         </TouchableOpacity>
 
-        <View style={styles.bottomTextContainer}>
-          <Text style={styles.bottomText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={handleSignup}>
-            <Text style={[styles.bottomText, styles.bottomTextButton]}>
-              Sign Up
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {/* Continue Button */}
+        <TouchableOpacity
+          onPress={handleSignup}
+          style={[styles.buttonCircle, styles.buttonPrimary]}
+        >
+          <IconSymbol
+            size={35}
+            name="chevron.right"
+            color="#4FB948"
+            style={styles.continueIcon}
+          />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -142,8 +104,9 @@ const styles = StyleSheet.create({
   },
   header: {
     width: "100%",
-    alignItems: "center",
+    alignItems: "flex-start",
     paddingTop: 32,
+    marginBottom: 24,
   },
   headerText: {
     fontSize: 30,
@@ -169,13 +132,18 @@ const styles = StyleSheet.create({
   textContainer: {
     width: "100%",
     paddingHorizontal: 16,
+    display: "flex",
+    flexDirection: "row",
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontWeight: 400,
     color: "#1F2937",
     textAlign: "left",
     marginBottom: 12,
+  },
+  bold: {
+    fontWeight: "600",
   },
   description: {
     fontSize: 16,
@@ -185,6 +153,9 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: "100%",
     alignItems: "center",
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   pagination: {
     flexDirection: "row",
@@ -213,38 +184,30 @@ const styles = StyleSheet.create({
   buttonPrimary: {
     backgroundColor: "#4FB948",
   },
+  buttonCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 999,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
     fontWeight: "600",
     color: "#ffffff",
   },
-  buttonText: {
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  logo: {
-    marginTop: -52,
-    width: 225,
-    height: 225,
-  },
   credentialsContainer: {
     width: "100%",
     paddingHorizontal: 16,
     marginTop: 36,
   },
-  bottomTextContainer: {
-    display: "flex",
-    flexDirection: "row",
-    marginTop: 24,
-  },
   bottomText: {
+    marginTop: 24,
     fontSize: 14,
-    fontWeight: "600",
   },
-  bottomTextButton: {
+  bottomButtonText: {
     color: "#4FB948",
   },
   inputLabel: {
@@ -255,24 +218,27 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     display: "flex",
-    width: "100%",
     flexDirection: "row",
+    justifyContent: "center",
     alignItems: "center",
+    width: "100%",
     borderColor: "#e1e2e3",
     borderBottomWidth: 1.5,
     gap: 12,
   },
   input: {
-    flex: 1,
-    fontSize: 18,
+    width: "100%",
+    fontSize: 16,
     height: 48,
   },
   passwordToggle: {},
   passwordToggleIcon: {},
-  forgotPasswordText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#181725",
-    textAlign: "right",
+  continueIcon: {
+    color: "#ffffff",
+  },
+  invalidEmailText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#D8143A",
   },
 });
