@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Platform } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,6 +9,8 @@ import { TabSwitcher } from '@/components/home/TabSwitcher';
 import { AuraProgressBar } from '@/components/home/AuraProgressBar';
 import { ChallengeCard } from '@/components/home/ChallengeCard';
 import { ChallengeDetailModal } from '@/components/home/ChallengeDetailModal';
+import { FeedCard } from '@/components/home/FeedCard';
+import { ReportPostModal } from '@/components/home/ReportPostModal';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<'my-challenges' | 'feed'>('my-challenges');
@@ -19,6 +21,8 @@ export default function HomeScreen() {
     timeLeft: string;
     description: string;
   } | null>(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
 
   // State for challenges
   const [incomingChallenges, setIncomingChallenges] = useState([
@@ -38,6 +42,50 @@ export default function HomeScreen() {
     date: string;
     description: string;
   }>>([]);
+
+  // Mock feed data - in production, this would come from the API
+  const [feedPosts] = useState([
+    {
+      id: 1,
+      challengeTitle: 'Hike the P',
+      points: 300,
+      userName: 'Marc Rober',
+      caption: 'I DID IT!!!!!!!',
+      date: 'Jan 9th, 2026',
+      likes: 123,
+      userImage: undefined, // Will use placeholder for now
+    },
+    {
+      id: 2,
+      challengeTitle: 'Find a cool rock',
+      points: 30,
+      userName: 'Marc Rober',
+      caption: 'Found this awesome rock on my hike!',
+      date: 'Jan 8th, 2026',
+      likes: 45,
+      userImage: undefined,
+    },
+  ]);
+
+  // Helper function to format date like "Jan 9th, 2026"
+  const formatFeedDate = (date: Date): string => {
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    const year = date.getFullYear();
+    
+    // Add ordinal suffix (st, nd, rd, th)
+    const getOrdinalSuffix = (n: number): string => {
+      if (n > 3 && n < 21) return 'th';
+      switch (n % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
+    
+    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+  };
 
   const handleViewChallenge = (challenge: { title: string; points: number; timeLeft: string; description: string }) => {
     setSelectedChallenge(challenge);
@@ -83,21 +131,38 @@ export default function HomeScreen() {
     handleCloseModal();
   };
 
+  const handleOpenReportModal = (postId: number) => {
+    setSelectedPostId(postId);
+    setReportModalVisible(true);
+  };
+
+  const handleCloseReportModal = () => {
+    setReportModalVisible(false);
+    setSelectedPostId(null);
+  };
+
+  const handleSubmitReport = (reason: string) => {
+    // In production, this would call the API to report the post
+    console.log('Reporting post', selectedPostId, 'with reason:', reason);
+    // You could also hide the post from the feed here
+    handleCloseReportModal();
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <ThemedView style={styles.container} lightColor="#fff">
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
+      <ThemedView className="flex-1 px-4" lightColor="#fff">
         <Header />
         
         <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView className="pb-5" showsVerticalScrollIndicator={false}>
           {activeTab === 'my-challenges' ? (
             <>
               {/* Progress Bar */}
               <AuraProgressBar current={75} max={100} />
 
               {/* Incoming Section */}
-              <ThemedText style={styles.sectionTitle} lightColor="#000">Incoming</ThemedText>
+              <ThemedText className="text-aura-black text-lg font-bold mb-3 mt-2" lightColor="#000">Incoming</ThemedText>
               {incomingChallenges.length > 0 ? (
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
@@ -110,11 +175,11 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedText style={styles.emptyState} lightColor="#999">No incoming challenges </ThemedText>
+                <ThemedText className="text-gray-400 text-base text-center my-8" lightColor="#999">No incoming challenges </ThemedText>
               )}
 
               {/* Completed Section */}
-              <ThemedText style={styles.sectionTitle} lightColor="#000">Completed</ThemedText>
+              <ThemedText className="text-aura-black text-lg font-bold mb-3 mt-2" lightColor="#000">Completed</ThemedText>
               {completedChallenges.map((challenge) => (
                 <ChallengeCard
                   key={challenge.id}
@@ -127,9 +192,29 @@ export default function HomeScreen() {
               ))}
             </>
           ) : (
-            <ThemedView style={styles.feedPlaceholder} lightColor="#fff">
-              <ThemedText lightColor="#000">Feed Content Coming Soon...</ThemedText>
-            </ThemedView>
+            <>
+              {feedPosts.length > 0 ? (
+                feedPosts.map((post) => (
+                  <FeedCard
+                    key={post.id}
+                    challengeTitle={post.challengeTitle}
+                    points={post.points}
+                    userName={post.userName}
+                    userImage={post.userImage}
+                    caption={post.caption}
+                    date={post.date}
+                    likes={post.likes}
+                    onPress={() => console.log('View post', post.id)}
+                    onOptionsPress={() => handleOpenReportModal(post.id)}
+                    onLikePress={() => console.log('Like post', post.id)}
+                  />
+                ))
+              ) : (
+                <ThemedView className="p-5 items-center" lightColor="#fff">
+                  <ThemedText lightColor="#000">No posts yet</ThemedText>
+                </ThemedView>
+              )}
+            </>
           )}
         </ScrollView>
 
@@ -145,37 +230,14 @@ export default function HomeScreen() {
             onSubmit={handleSubmit}
           />
         )}
+
+        {/* Report Post Modal */}
+        <ReportPostModal
+          visible={reportModalVisible}
+          onClose={handleCloseReportModal}
+          onSubmit={handleSubmitReport}
+        />
       </ThemedView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#fff', // Or use theme color
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 16,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-    marginTop: 8,
-  },
-  emptyState: {
-    fontSize: 16,
-    color: '#999',
-    textAlign: 'center',
-    marginVertical: 32,
-  },
-  feedPlaceholder: {
-    padding: 20,
-    alignItems: 'center',
-  },
-});

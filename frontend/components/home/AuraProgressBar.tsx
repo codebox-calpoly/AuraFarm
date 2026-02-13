@@ -1,7 +1,7 @@
-import { StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Image } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { tailwindColors } from '@/constants/tailwind-colors';
 
 interface AuraProgressBarProps {
   current: number;
@@ -12,58 +12,31 @@ export function AuraProgressBar({ current, max }: AuraProgressBarProps) {
   const percentage = Math.min((current / max) * 100, 100);
 
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.barContainer}>
-        <Ionicons name="sparkles" size={20} color="#FF0000" style={styles.iconLeft} />
+    <ThemedView className="w-full px-5 mb-6 bg-transparent">
+      <View className="flex-row items-center gap-3">
+        <Image 
+          source={require('@/assets/images/red-star.png')} 
+          className="w-5 h-6"
+          resizeMode="contain"
+        />
         
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${percentage}%` }]} />
+        <View className="flex-1 h-3 bg-gray-200 rounded-md overflow-hidden">
+          <View 
+            className="h-full bg-aura-red rounded-md" 
+            style={{ width: `${percentage}%` }}
+          />
         </View>
         
-        <Ionicons name="sparkles" size={20} color="#FFD700" style={styles.iconRight} />
+        <Image 
+          source={require('@/assets/images/gold-star.png')} 
+          className="w-5 h-6"
+          resizeMode="contain"
+        />
       </View>
       
-      <ThemedText style={styles.pointsText} lightColor="#FF6B6B">
-        {current}/{max} pts
+      <ThemedText className="text-right mt-1 text-xs font-sans" style={{ color: tailwindColors['aura-red'] }}>
+        {current}/{max} Aura
       </ThemedText>
     </ThemedView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    backgroundColor: 'transparent',
-  },
-  barContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  track: {
-    flex: 1,
-    height: 12,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 6,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    backgroundColor: '#FF0000',
-    borderRadius: 6,
-  },
-  iconLeft: {
-     // Red sparkle
-  },
-  iconRight: {
-     // Gold sparkle
-  },
-  pointsText: {
-    textAlign: 'right',
-    marginTop: 4,
-    fontSize: 12,
-    color: '#FF6B6B',
-  },
-});
