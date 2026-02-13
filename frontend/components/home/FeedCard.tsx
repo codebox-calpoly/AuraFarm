@@ -34,6 +34,7 @@ export function FeedCard({
         <ThemedView style={styles.container}>
             {/* Header with title, Aura, and options menu */}
             <View style={styles.header}>
+                <View style={styles.optionsButton} />
                 <View style={styles.titleSection}>
                     <ThemedText style={styles.challengeTitle}>
                         {challengeTitle}
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
         paddingHorizontal: 16,
         paddingTop: 16,
         paddingBottom: 12,
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     pointsText: {
         fontSize: 14,
         fontFamily: 'Poppins_600SemiBold',
-        color: tailwindColors['aura-green'],
+        color: tailwindColors['aura-yellow'],
         textAlign: 'center',
     },
     optionsButton: {

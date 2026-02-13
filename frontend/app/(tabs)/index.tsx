@@ -24,6 +24,7 @@ export default function HomeScreen() {
   } | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [reportedPosts, setReportedPosts] = useState<Set<number>>(new Set());
 
   // State for challenges
   const [incomingChallenges, setIncomingChallenges] = useState([
@@ -146,7 +147,12 @@ export default function HomeScreen() {
     // In production, this would call the API to report the post
     console.log('Reporting post', selectedPostId, 'with reason:', reason);
     // You could also hide the post from the feed here
-    handleCloseReportModal();
+    // Note: Don't close the modal here - let it show the confirmation screen
+    
+    // Mark this post as reported
+    if (selectedPostId !== null) {
+      setReportedPosts(prev => new Set(prev).add(selectedPostId));
+    }
   };
 
   return (
@@ -237,6 +243,7 @@ export default function HomeScreen() {
           visible={reportModalVisible}
           onClose={handleCloseReportModal}
           onSubmit={handleSubmitReport}
+          alreadyReported={selectedPostId !== null && reportedPosts.has(selectedPostId)}
         />
       </ThemedView>
     </SafeAreaView>

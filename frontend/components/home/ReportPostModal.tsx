@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { StyleSheet, View, Modal, TouchableOpacity, Pressable, TextInput } from 'react-native';
+import { useState, useEffect } from 'react';
+import { StyleSheet, View, Modal, TouchableOpacity, Pressable, TextInput, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -9,24 +9,37 @@ export interface ReportPostModalProps {
   visible: boolean;
   onClose: () => void;
   onSubmit: (reason: string) => void;
+  alreadyReported?: boolean;
 }
 
 export function ReportPostModal({
   visible,
   onClose,
   onSubmit,
+  alreadyReported = false,
 }: ReportPostModalProps) {
   const [reportReason, setReportReason] = useState('');
+  const [isConfirming, setIsConfirming] = useState(alreadyReported);
+
+  // Sync confirmation state when modal opens
+  useEffect(() => {
+    if (visible) {
+      setIsConfirming(alreadyReported);
+    }
+  }, [visible, alreadyReported]);
 
   const handleClose = () => {
     setReportReason('');
+    // Don't reset isConfirming here to avoid flash - useEffect will handle it on next open
     onClose();
   };
 
   const handleSubmit = () => {
     onSubmit(reportReason);
     setReportReason('');
-    onClose();
+    setTimeout(() => {
+      setIsConfirming(true);
+    }, 100);
   };
 
   return (
@@ -37,50 +50,92 @@ export function ReportPostModal({
       onRequestClose={handleClose}
     >
       <Pressable style={styles.overlay} onPress={handleClose}>
-        <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ width: '100%', maxWidth: 400 }}
+        >
+        <Pressable 
+          style={styles.modalContainer} 
+          onPress={(e) => {
+            e.stopPropagation();
+            Keyboard.dismiss();
+          }}
+        >
           <ThemedView style={styles.modalContent}>
-            {/* Header with title and close button */}
-            <View style={styles.header}>
-              <ThemedText style={styles.title}>
-                Report this post?
-              </ThemedText>
-              <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-                <Ionicons name="close" size={24} color={tailwindColors['aura-gray-500']} />
-              </TouchableOpacity>
-            </View>
+            {!isConfirming ? (
+              <>
+                {/* Header with title and close button */}
+                <View style={styles.header}>
+                  <ThemedText style={styles.title}>
+                    Report this post?
+                  </ThemedText>
+                  <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                    <Ionicons name="close" size={24} color={tailwindColors['aura-gray-500']} />
+                  </TouchableOpacity>
+                </View>
 
-            {/* Explanatory text */}
-            <View style={styles.explanationContainer}>
-              <ThemedText style={styles.explanationText}>
-                Reporting this post will hide it for you.
-              </ThemedText>
-              <ThemedText style={styles.explanationText}>
-                We will review all submissions to determine next steps.
-              </ThemedText>
-            </View>
+                {/* Explanatory text */}
+                <View style={styles.explanationContainer}>
+                  <ThemedText style={styles.explanationText}>
+                    Reporting this post will hide it for you.
+                  </ThemedText>
+                  <ThemedText style={styles.explanationText}>
+                    We will review all submissions to determine next steps.
+                  </ThemedText>
+                </View>
 
-            {/* Text input field */}
-            <TextInput
-              style={styles.textInput}
-              placeholder="Start typing..."
-              placeholderTextColor={tailwindColors['aura-gray-400']}
-              value={reportReason}
-              onChangeText={setReportReason}
-              multiline
-              textAlignVertical="top"
-            />
+                {/* Text input field */}
+                <TextInput
+                  style={styles.textInput}
+                  placeholder="Start typing..."
+                  placeholderTextColor={tailwindColors['aura-gray-400']}
+                  value={reportReason}
+                  onChangeText={setReportReason}
+                  multiline
+                  textAlignVertical="top"
+                  onPress={(e) => e.stopPropagation()}
+                />
 
-            {/* Submit button */}
-            <TouchableOpacity 
-              style={styles.submitButton} 
-              onPress={handleSubmit}
-            >
-              <ThemedText style={styles.submitButtonText}>
-                Submit
-              </ThemedText>
-            </TouchableOpacity>
+                {/* Submit button */}
+                <TouchableOpacity 
+                  style={styles.submitButton} 
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    handleSubmit();
+                  }}
+                >
+                  <ThemedText style={styles.submitButtonText}>
+                    Submit
+                  </ThemedText>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* TODO: Add confirmation view here */}
+                <View style={styles.confirmHeader}>
+                  <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+                    <Ionicons name="close" size={24} color={tailwindColors['aura-gray-500']} />
+                  </TouchableOpacity>
+                </View>
+                <ThemedText style={styles.confirmTitle}>
+                  We have received your report
+                </ThemedText>
+                <ThemedText style={styles.confirmMessage}>
+                  Thank you for your report. Our team will review your submission as soon as possible.
+                </ThemedText>
+                <TouchableOpacity 
+                  style={styles.dismissButton} 
+                  onPress={handleClose}
+                >
+                  <ThemedText style={styles.dismissButtonText}>
+                    Dismiss
+                  </ThemedText>
+                </TouchableOpacity>
+              </>
+            )}
           </ThemedView>
         </Pressable>
+        </KeyboardAvoidingView>
       </Pressable>
     </Modal>
   );
@@ -160,6 +215,44 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitButtonText: {
+    color: tailwindColors['aura-white'],
+    fontSize: 16,
+    fontFamily: 'Poppins_700Bold',
+  },
+  confirmHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 16,
+    paddingTop: 4,
+  },
+  confirmTitle: {
+    fontSize: 24,
+    fontFamily: 'Poppins_700Bold',
+    color: tailwindColors['aura-gray-700'],
+    textAlign: 'center',
+    marginBottom: 16,
+    marginTop: 20,
+    lineHeight: 32,
+    paddingTop: 4,
+  },
+  confirmMessage: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: tailwindColors['aura-gray-700'],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 8, // Add some breathing room
+  },
+  dismissButton: {
+    backgroundColor: tailwindColors['aura-green'],
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dismissButtonText: {
     color: tailwindColors['aura-white'],
     fontSize: 16,
     fontFamily: 'Poppins_700Bold',
