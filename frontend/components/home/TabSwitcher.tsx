@@ -1,5 +1,6 @@
-import { TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
+import { tailwindColors } from '@/constants/tailwind-colors';
 
 interface TabSwitcherProps {
   activeTab: 'my-challenges' | 'feed';
@@ -8,30 +9,64 @@ interface TabSwitcherProps {
 
 export function TabSwitcher({ activeTab, onTabChange }: TabSwitcherProps) {
   return (
-    <View className="flex-row justify-center gap-10 mb-5">
+    <View style={styles.container}>
       <TouchableOpacity 
-        className="items-center py-2" 
+        style={styles.tab} 
         onPress={() => onTabChange('my-challenges')}
       >
         <ThemedText 
-          className={`text-base ${activeTab === 'my-challenges' ? 'font-bold text-aura-black' : 'font-semibold text-gray-400'}`}
+          style={[
+            styles.tabText, 
+            activeTab === 'my-challenges' && styles.activeTabText
+          ]}
         >
           My Challenges
         </ThemedText>
-        {activeTab === 'my-challenges' && <View className="h-0.5 w-full bg-aura-black mt-1" />}
+        {activeTab === 'my-challenges' && <View style={styles.activeIndicator} />}
       </TouchableOpacity>
       
       <TouchableOpacity 
-        className="items-center py-2" 
+        style={styles.tab} 
         onPress={() => onTabChange('feed')}
       >
         <ThemedText 
-          className={`text-base ${activeTab === 'feed' ? 'font-bold text-aura-black' : 'font-semibold text-gray-400'}`}
+          style={[
+            styles.tabText, 
+            activeTab === 'feed' && styles.activeTabText
+          ]}
         >
           Feed
         </ThemedText>
-        {activeTab === 'feed' && <View className="h-0.5 w-full bg-aura-black mt-1" />}
+        {activeTab === 'feed' && <View style={styles.activeIndicator} />}
       </TouchableOpacity>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 40,
+    marginBottom: 20,
+  },
+  tab: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  tabText: {
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
+    color: tailwindColors['aura-gray-400'],
+  },
+  activeTabText: {
+    fontFamily: 'Poppins_700Bold',
+    color: tailwindColors['aura-black'],
+  },
+  activeIndicator: {
+    height: 2,
+    width: '100%',
+    backgroundColor: tailwindColors['aura-black'],
+    marginTop: 4,
+  },
+});

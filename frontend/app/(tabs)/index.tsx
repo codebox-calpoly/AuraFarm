@@ -1,4 +1,4 @@
-import { ScrollView } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -11,6 +11,7 @@ import { ChallengeCard } from '@/components/home/ChallengeCard';
 import { ChallengeDetailModal } from '@/components/home/ChallengeDetailModal';
 import { FeedCard } from '@/components/home/FeedCard';
 import { ReportPostModal } from '@/components/home/ReportPostModal';
+import { tailwindColors } from '@/constants/tailwind-colors';
 
 export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<'my-challenges' | 'feed'>('my-challenges');
@@ -149,20 +150,20 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <ThemedView className="flex-1 px-4" lightColor="#fff">
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <ThemedView style={styles.container}>
         <Header />
         
         <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <ScrollView className="pb-5" showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {activeTab === 'my-challenges' ? (
             <>
               {/* Progress Bar */}
               <AuraProgressBar current={75} max={100} />
 
               {/* Incoming Section */}
-              <ThemedText className="text-aura-black text-lg font-bold mb-3 mt-2" lightColor="#000">Incoming</ThemedText>
+              <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
               {incomingChallenges.length > 0 ? (
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
@@ -175,11 +176,11 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedText className="text-gray-400 text-base text-center my-8" lightColor="#999">No incoming challenges </ThemedText>
+                <ThemedText style={styles.emptyState}>No incoming challenges </ThemedText>
               )}
 
               {/* Completed Section */}
-              <ThemedText className="text-aura-black text-lg font-bold mb-3 mt-2" lightColor="#000">Completed</ThemedText>
+              <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
               {completedChallenges.map((challenge) => (
                 <ChallengeCard
                   key={challenge.id}
@@ -210,8 +211,8 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedView className="p-5 items-center" lightColor="#fff">
-                  <ThemedText lightColor="#000">No posts yet</ThemedText>
+                <ThemedView style={styles.feedPlaceholder}>
+                  <ThemedText>No posts yet</ThemedText>
                 </ThemedView>
               )}
             </>
@@ -241,3 +242,37 @@ export default function HomeScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: tailwindColors['aura-white'],
+  },
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    backgroundColor: tailwindColors['aura-white'],
+  },
+  scrollView: {
+    paddingBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins_700Bold',
+    color: tailwindColors['aura-black'],
+    marginBottom: 12,
+    marginTop: 8,
+  },
+  emptyState: {
+    fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
+    color: tailwindColors['aura-gray-400'],
+    textAlign: 'center',
+    marginVertical: 32,
+  },
+  feedPlaceholder: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: tailwindColors['aura-white'],
+  },
+});

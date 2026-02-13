@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Modal, TouchableOpacity, Pressable } from 'react-native';
+import { StyleSheet, View, Modal, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -54,106 +54,89 @@ export function ChallengeDetailModal({
       animationType="fade"
       onRequestClose={handleClose}
     >
-      {/* Semi-transparent overlay */}
-      <Pressable 
-        className="flex-1 justify-center items-center p-5" 
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-        onPress={handleClose}
-      >
-        {/* Modal content - prevent clicks from closing */}
-        <Pressable className="w-full max-w-md" onPress={(e) => e.stopPropagation()}>
-          <ThemedView 
-            className="bg-white rounded-2xl border-2 border-aura-red p-6 relative"
-            style={{
-              shadowColor: '#383737',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-              elevation: 8,
-            }}
-          >
+      <Pressable style={styles.overlay} onPress={handleClose}>
+        <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
+          <ThemedView style={styles.modalContent}>
             {/* Close button */}
-            <TouchableOpacity className="absolute top-4 right-4 z-10 p-1" onPress={handleClose}>
-              <Ionicons name="close" size={24} color="#6B7280" /> 
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <Ionicons name="close" size={24} color={tailwindColors['aura-gray-500']} />
             </TouchableOpacity>
 
             {!showUploadOptions ? (
               <>
                 {/* Timer */}
-                <View className="flex-row items-center gap-1 mb-3">
+                <View style={styles.timerRow}>
                   <Ionicons name="time-outline" size={16} color={tailwindColors['aura-red']} />
-                  <ThemedText className="text-aura-red text-sm font-sans">{timeLeft}</ThemedText>
+                  <ThemedText style={styles.timerText}>{timeLeft}</ThemedText>
                 </View>
 
                 {/* Title */}
-                <ThemedText type="subtitle" className="text-aura-black text-3xl font-bold mb-4">
+                <ThemedText type="subtitle" style={styles.title}>
                   {title}
                 </ThemedText>
 
                 {/* Description */}
-                <ThemedText className="text-gray-700 text-base font-sans leading-6 mb-6">{description}</ThemedText>
+                <ThemedText style={styles.description}>{description}</ThemedText>
 
                 {/* Initial Submit Button */}
-                <TouchableOpacity className="bg-aura-green flex-row items-center justify-center gap-2 py-3.5 px-8 rounded-xl self-center mb-3 w-full" onPress={handleInitialSubmit}>
-                  <Ionicons name="camera" size={20} color="white" />
-                  <ThemedText className="text-lg font-semibold" style={{ color: '#FFFFFF' }}>Submit</ThemedText>
+                <TouchableOpacity style={styles.submitButton} onPress={handleInitialSubmit}>
+                  <Ionicons name="camera" size={20} color={tailwindColors['aura-white']} />
+                  <ThemedText style={styles.submitButtonText}>Submit</ThemedText>
                 </TouchableOpacity>
 
                 {/* Points */}
-                <ThemedText className="text-lg font-semibold text-center" style={{ color: tailwindColors['aura-green'] }}>+{points} Aura</ThemedText>
+                <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
               </>
             ) : (
               <>
                 {/* Back button */}
-                <TouchableOpacity className="flex-row items-center mb-4 gap-1" onPress={handleBack}>
-                  <Ionicons name="arrow-back" size={20} color="#6B7280" /> 
-                  <ThemedText className="text-gray-500 text-sm font-sans">Back</ThemedText>
+                <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+                  <Ionicons name="arrow-back" size={20} color={tailwindColors['aura-gray-500']} />
+                  <ThemedText style={styles.backButtonText}>Back</ThemedText>
                 </TouchableOpacity>
 
                 {/* Upload Title */}
-                <ThemedText type="subtitle" className="text-aura-black text-2xl font-bold mb-2 text-center">
+                <ThemedText type="subtitle" style={styles.uploadTitle}>
                   Upload Proof
                 </ThemedText>
                 
-                <ThemedText className="text-gray-500 text-sm font-sans text-center mb-6 leading-5">
+                <ThemedText style={styles.uploadDescription}>
                   Upload a photo to complete the challenge and earn your Aura!
                 </ThemedText>
 
                 {/* Upload Options */}
-                <View className="flex-row justify-between gap-4 mb-4">
+                <View style={styles.uploadOptionsContainer}>
                   <TouchableOpacity 
-                    className={`flex-1 rounded-xl p-4 items-center border relative ${
-                      selectedPhoto === 'library' 
-                        ? 'bg-green-50 border-2 border-aura-green border-solid' 
-                        : 'bg-gray-50 border border-gray-200 border-dashed'
-                    }`}
+                    style={[
+                      styles.uploadOption, 
+                      selectedPhoto === 'library' && styles.selectedOption
+                    ]}
                     onPress={() => handleSelectPhoto('library')}
                   >
-                    <View className="w-15 h-15 rounded-full justify-center items-center mb-3" style={{ backgroundColor: '#FFF1F1' }}>
+                    <View style={styles.iconCircle}>
                       <Ionicons name="image-outline" size={32} color={tailwindColors['aura-red']} />
                     </View>
-                    <ThemedText className="text-gray-700 text-xs font-semibold text-center">Browse Photo Library</ThemedText>
+                    <ThemedText style={styles.uploadOptionText}>Browse Photo Library</ThemedText>
                     {selectedPhoto === 'library' && (
-                      <View className="absolute -top-2 -right-2 bg-white rounded-xl">
+                      <View style={styles.checkmarkBadge}>
                         <Ionicons name="checkmark-circle" size={24} color={tailwindColors['aura-green']} />
                       </View>
                     )}
                   </TouchableOpacity>
 
                   <TouchableOpacity 
-                    className={`flex-1 rounded-xl p-4 items-center border relative ${
-                      selectedPhoto === 'camera' 
-                        ? 'bg-green-50 border-2 border-aura-green border-solid' 
-                        : 'bg-gray-50 border border-gray-200 border-dashed'
-                    }`}
+                    style={[
+                      styles.uploadOption, 
+                      selectedPhoto === 'camera' && styles.selectedOption
+                    ]}
                     onPress={() => handleSelectPhoto('camera')}
                   >
-                    <View className="w-15 h-15 rounded-full justify-center items-center mb-3" style={{ backgroundColor: '#FFF1F1' }}>
+                    <View style={styles.iconCircle}>
                       <Ionicons name="camera-outline" size={32} color={tailwindColors['aura-red']} />
                     </View>
-                    <ThemedText className="text-gray-700 text-xs font-semibold text-center">Take Photo</ThemedText>
+                    <ThemedText style={styles.uploadOptionText}>Take Photo</ThemedText>
                     {selectedPhoto === 'camera' && (
-                      <View className="absolute -top-2 -right-2 bg-white rounded-xl">
+                      <View style={styles.checkmarkBadge}>
                         <Ionicons name="checkmark-circle" size={24} color={tailwindColors['aura-green']} />
                       </View>
                     )}
@@ -162,14 +145,15 @@ export function ChallengeDetailModal({
 
                 {/* Final Confirm Button */}
                 <TouchableOpacity 
-                  className={`bg-aura-green py-3.5 px-8 rounded-xl self-center w-full mt-5 ${
-                    !selectedPhoto ? 'opacity-60' : ''
-                  }`}
-                  style={{ backgroundColor: !selectedPhoto ? '#A7F3D0' : tailwindColors['aura-green'] }}
+                  style={[
+                    styles.submitButton, 
+                    styles.confirmButton,
+                    !selectedPhoto && styles.disabledButton
+                  ]} 
                   onPress={onSubmit}
                   disabled={!selectedPhoto}
                 >
-                  <ThemedText className="text-lg font-semibold text-center" style={{ color: '#FFFFFF' }}>Confirm Submission</ThemedText>
+                  <ThemedText style={styles.submitButtonText}>Confirm Submission</ThemedText>
                 </TouchableOpacity>
               </>
             )}
@@ -179,3 +163,163 @@ export function ChallengeDetailModal({
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  modalContent: {
+    backgroundColor: tailwindColors['aura-white'],
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: tailwindColors['aura-red'],
+    padding: 24,
+    position: 'relative',
+    shadowColor: tailwindColors['aura-black'],
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 1,
+    padding: 4,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 4,
+  },
+  backButtonText: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: tailwindColors['aura-gray-500'],
+  },
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 12,
+  },
+  timerText: {
+    color: tailwindColors['aura-red'],
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+  },
+  title: {
+    fontSize: 28,
+    fontFamily: 'Poppins_700Bold',
+    marginBottom: 16,
+    color: tailwindColors['aura-black'],
+  },
+  uploadTitle: {
+    fontSize: 24,
+    fontFamily: 'Poppins_700Bold',
+    marginBottom: 8,
+    color: tailwindColors['aura-black'],
+    textAlign: 'center',
+  },
+  uploadDescription: {
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+    color: tailwindColors['aura-gray-500'],
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  description: {
+    fontSize: 16,
+    fontFamily: 'Poppins_400Regular',
+    lineHeight: 24,
+    color: tailwindColors['aura-gray-700'],
+    marginBottom: 24,
+  },
+  uploadOptionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    marginBottom: 16,
+  },
+  uploadOption: {
+    flex: 1,
+    backgroundColor: tailwindColors['aura-gray-50'],
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: tailwindColors['aura-gray-200'],
+    borderStyle: 'dashed',
+    position: 'relative',
+  },
+  selectedOption: {
+    borderColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors['aura-green-light'],
+    borderStyle: 'solid',
+    borderWidth: 2,
+  },
+  checkmarkBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: tailwindColors['aura-white'],
+    borderRadius: 12,
+  },
+  iconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: tailwindColors['aura-red-tint'],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  uploadOptionText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_600SemiBold',
+    color: tailwindColors['aura-gray-700'],
+    textAlign: 'center',
+  },
+  submitButton: {
+    backgroundColor: tailwindColors['aura-green'],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignSelf: 'center',
+    marginBottom: 12,
+    width: '100%',
+  },
+  confirmButton: {
+    marginTop: 20,
+  },
+  disabledButton: {
+    backgroundColor: tailwindColors['aura-green-tint'],
+    opacity: 0.6,
+  },
+  submitButtonText: {
+    color: tailwindColors['aura-white'],
+    fontSize: 18,
+    fontFamily: 'Poppins_600SemiBold',
+  },
+  pointsText: {
+    color: tailwindColors['aura-green'],
+    fontSize: 18,
+    fontFamily: 'Poppins_600SemiBold',
+    textAlign: 'center',
+  },
+});

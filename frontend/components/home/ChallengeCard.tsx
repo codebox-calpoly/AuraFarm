@@ -1,4 +1,4 @@
-import { View, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,20 +16,20 @@ export interface ChallengeCardProps {
 export function ChallengeCard({ type, title, points, timeLeft, dateCompleted, onPress }: ChallengeCardProps) {
   if (type === 'incoming') {
     return (
-      <View className="mb-6">
-        <ThemedView className="border-2 border-aura-red rounded-2xl p-4" style={{ backgroundColor: '#FFF5F5' }}>
-          <View className="flex-row items-center gap-1 mb-2">
+      <View style={styles.incomingContainer}>
+        <ThemedView style={styles.incomingContent}>
+          <View style={styles.timerRow}>
             <Ionicons name="time-outline" size={16} color={tailwindColors['aura-red']} />
-            <ThemedText className="text-aura-red text-sm font-sans">{timeLeft}</ThemedText>
+            <ThemedText style={styles.timerText}>{timeLeft}</ThemedText>
           </View>
 
-          <ThemedText type="subtitle" className="text-aura-black text-2xl mb-4">{title}</ThemedText>
+          <ThemedText type="subtitle" style={styles.incomingTitle}>{title}</ThemedText>
           
-          <View className="flex-row justify-between items-center">
-            <ThemedText className="text-base font-semibold" style={{ color: tailwindColors['aura-green'] }}>+{points} Aura</ThemedText>
+          <View style={styles.incomingFooter}>
+            <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
             
-            <TouchableOpacity className="bg-aura-red px-6 py-2 rounded-full" onPress={onPress}>
-              <ThemedText className="font-semibold" style={{ color: '#FFFFFF' }}>View</ThemedText>
+            <TouchableOpacity style={styles.viewButton} onPress={onPress}>
+              <ThemedText style={styles.viewButtonText}>View</ThemedText>
             </TouchableOpacity>
           </View>
         </ThemedView>
@@ -39,23 +39,94 @@ export function ChallengeCard({ type, title, points, timeLeft, dateCompleted, on
 
   // Completed Variant
   return (
-    <TouchableOpacity 
-      className="flex-row items-center p-4 bg-gray-100 rounded-xl mb-3 border-2 border-gray-200 shadow-sm" 
-      onPress={onPress}
-      style={{
-        shadowColor: '#383737',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
-      }}
-    >
-      <View className="flex-1">
-        <ThemedText className="text-xs font-semibold mb-1" style={{ color: '#6B7280' }}>{dateCompleted}</ThemedText>
-        <ThemedText type="subtitle" className="text-lg mb-1" style={{ color: tailwindColors['aura-black'] }}>{title}</ThemedText>
-        <ThemedText className="text-base font-semibold" style={{ color: tailwindColors['aura-green'] }}>+{points} Aura</ThemedText>
+    <TouchableOpacity style={styles.completedContainer} onPress={onPress}>
+      <View style={styles.completedContent}>
+        <ThemedText style={styles.dateText}>{dateCompleted}</ThemedText>
+        <ThemedText type="subtitle" style={styles.completedTitle}>{title}</ThemedText>
+        <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
       </View>
       <Ionicons name="chevron-forward" size={24} color={tailwindColors['aura-black']} />
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  // Incoming Styles
+  incomingContainer: {
+    marginBottom: 24,
+  },
+  incomingContent: {
+    borderWidth: 2,
+    borderColor: tailwindColors['aura-red'],
+    borderRadius: 16,
+    padding: 16,
+    backgroundColor: tailwindColors['aura-red-light'],
+  },
+  timerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 8,
+  },
+  timerText: {
+    color: tailwindColors['aura-red'],
+    fontSize: 14,
+    fontFamily: 'Poppins_400Regular',
+  },
+  incomingTitle: {
+    fontSize: 24,
+    marginBottom: 16,
+    color: tailwindColors['aura-black'],
+  },
+  incomingFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pointsText: {
+    color: tailwindColors['aura-green'],
+    fontSize: 16,
+    fontFamily: 'Poppins_600SemiBold',
+  },
+  viewButton: {
+    backgroundColor: tailwindColors['aura-red'],
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  viewButtonText: {
+    color: tailwindColors['aura-white'],
+    fontFamily: 'Poppins_600SemiBold',
+  },
+
+  // Completed Styles
+  completedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: tailwindColors['aura-gray-100'],
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: tailwindColors['aura-gray-200'],
+    shadowColor: tailwindColors['aura-black'],
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  completedContent: {
+    flex: 1,
+  },
+  dateText: {
+    fontSize: 12,
+    fontFamily: 'Poppins_600SemiBold',
+    color: tailwindColors['aura-gray-500'],
+    marginBottom: 4,
+  },
+  completedTitle: {
+    fontSize: 18,
+    marginBottom: 4,
+    color: tailwindColors['aura-black'],
+  },
+});
