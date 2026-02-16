@@ -4,12 +4,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -69,7 +70,7 @@ export default function VerificationScreen() {
       </Animated.View>
 
       {/* Bottom Section */}
-      <View style={styles.bottomSection}>
+      <KeyboardAvoidingView style={styles.bottomSection} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity onPress={handleResendCode}>
           <Text style={[styles.bottomText, styles.bottomButtonText]}>
             Resend Code
@@ -88,7 +89,7 @@ export default function VerificationScreen() {
             style={styles.continueIcon}
           />
         </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -157,23 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  pagination: {
-    flexDirection: "row",
-    marginBottom: 32,
-    gap: 8,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 32,
-    backgroundColor: "#000000",
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: "#D1D5DB",
-  },
   button: {
     width: "100%",
     paddingVertical: 20,
@@ -205,7 +189,7 @@ const styles = StyleSheet.create({
   },
   bottomText: {
     marginTop: 24,
-    fontSize: 14,
+    fontSize: 18,
   },
   bottomButtonText: {
     color: "#4FB948",

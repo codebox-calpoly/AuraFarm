@@ -5,34 +5,52 @@ import {
   StyleSheet,
   Image,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignUpScreen() {
   const router = useRouter();
 
+  const [showInputErrors, setShowInputErrors] = useState(false);
+
   const [username, setUsername] = useState("");
+  const [validUsername, setValidUsername] = useState(false);
   const onChangeUsername = (text: string) => {
     setUsername(text);
+    setShowInputErrors(false);
+
+    const validUsernameRegex = /[A-Za-z0-9._-]+/;
+    setValidUsername(
+      text.length >= 2 && text.length <= 30 && validUsernameRegex.test(text),
+    );
   };
 
   const [email, setEmail] = useState("");
   const [validEmail, setValidEmail] = useState(false);
   const onChangeEmail = (text: string) => {
     setEmail(text);
+    setShowInputErrors(false);
 
     const validEmailRegex = /.+(@calpoly\.edu)/;
-    setValidEmail(validEmailRegex.test(text));
+    setValidEmail(text.length >= 13 && validEmailRegex.test(text));
   };
 
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
+  const [validPassword, setValidPassword] = useState(false);
   const onChangePassword = (text: string) => {
     setPassword(text);
+    setShowInputErrors(false);
+
+    const validPasswordRegex = /[a-zA-Z0-9!@#$%^&*()_+\-={}|;':",./<>?~]+/;
+    setValidPassword(
+      text.length >= 8 && text.length <= 30 && validPasswordRegex.test(text),
+    );
   };
 
   const handleLogin = async () => {
@@ -40,12 +58,21 @@ export default function SignUpScreen() {
   };
 
   const handleSignup = async () => {
+    if (!validUsername || !validEmail || !validPassword) {
+      setShowInputErrors(true);
+      return;
+    }
+
     router.replace("/verification");
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
+      style={styles.container}
+    >
+      {/* Logo */}
       <View style={styles.header}>
         <Image
           style={styles.logo}
@@ -55,10 +82,15 @@ export default function SignUpScreen() {
       </View>
 
       {/* Content Area */}
-      <Animated.View
+      <Animated.ScrollView
         entering={FadeInRight.duration(400)}
         exiting={FadeOutLeft.duration(400)}
         style={styles.contentContainer}
+        contentContainerStyle={{
+          paddingBottom: 48,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Text Content */}
         <View style={styles.textContainer}>
@@ -79,8 +111,15 @@ export default function SignUpScreen() {
               value={username}
               placeholder="musty_mustang"
               placeholderTextColor="#c2c2c2"
+              maxLength={30}
             />
           </View>
+          {showInputErrors && !validUsername ?
+            <Text style={styles.invalidUsernameText}>
+              Username must be 2-30 characters and contain only letters,
+              numbers, dots, underscores, or hyphens
+            </Text>
+          : null}
         </View>
 
         {/* Email Input */}
@@ -104,7 +143,7 @@ export default function SignUpScreen() {
               />
             : null}
           </View>
-          {!validEmail && email !== "" ?
+          {showInputErrors && !validEmail ?
             <Text style={styles.invalidEmailText}>
               Email must be @calpoly.edu
             </Text>
@@ -136,29 +175,36 @@ export default function SignUpScreen() {
               />
             </TouchableOpacity>
           </View>
-        </View>
-      </Animated.View>
 
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        {/* Sign Up Button */}
-        <TouchableOpacity
-          onPress={handleSignup}
-          style={[styles.button, styles.buttonPrimary]}
-        >
-          <Text style={styles.buttonTextPrimary}>Sign Up</Text>
-        </TouchableOpacity>
-
-        <View style={styles.bottomTextContainer}>
-          <Text style={styles.bottomText}>Already have an account? </Text>
-          <TouchableOpacity onPress={handleLogin}>
-            <Text style={[styles.bottomText, styles.bottomTextButton]}>
-              Log In
+          {showInputErrors && !validPassword ?
+            <Text style={styles.invalidPasswordText}>
+              Password must be 8-30 characters and contain only letters,
+              numbers, and special characters
             </Text>
-          </TouchableOpacity>
+          : null}
         </View>
-      </View>
-    </View>
+
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          {/* Sign Up Button */}
+          <TouchableOpacity
+            onPress={handleSignup}
+            style={[styles.button, styles.buttonPrimary]}
+          >
+            <Text style={styles.buttonTextPrimary}>Sign Up</Text>
+          </TouchableOpacity>
+
+          <View style={styles.bottomTextContainer}>
+            <Text style={styles.bottomText}>Already have an account? </Text>
+            <TouchableOpacity onPress={handleLogin}>
+              <Text style={[styles.bottomText, styles.bottomTextButton]}>
+                Log In
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Animated.ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -166,10 +212,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingTop: 48,
   },
   header: {
     width: "100%",
@@ -187,7 +231,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     width: "100%",
-    alignItems: "center",
   },
   imagePlaceholder: {
     width: "100%",
@@ -216,23 +259,7 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: "100%",
     alignItems: "center",
-  },
-  pagination: {
-    flexDirection: "row",
-    marginBottom: 32,
-    gap: 8,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 32,
-    backgroundColor: "#000000",
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: "#D1D5DB",
+    marginTop: 48,
   },
   button: {
     width: "100%",
@@ -296,6 +323,16 @@ const styles = StyleSheet.create({
   passwordToggleIcon: {},
   validEmailIcon: {},
   invalidEmailText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#D8143A",
+  },
+  invalidUsernameText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#D8143A",
+  },
+  invalidPasswordText: {
     marginTop: 4,
     fontSize: 12,
     color: "#D8143A",

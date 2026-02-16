@@ -5,25 +5,30 @@ import {
   StyleSheet,
   Image,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function LogInScreen() {
   const router = useRouter();
 
+  const [showInputErrors, setShowInputErrors] = useState(false);
+
   const [email, setEmail] = useState("");
   const onChangeEmail = (text: string) => {
     setEmail(text);
+    setShowInputErrors(false);
   };
 
   const [password, setPassword] = useState("");
   const [passwordHidden, setPasswordHidden] = useState(true);
   const onChangePassword = (text: string) => {
     setPassword(text);
+    setShowInputErrors(false);
   };
 
   const handleSignup = async () => {
@@ -31,6 +36,11 @@ export default function LogInScreen() {
   };
 
   const handleLogin = async () => {
+    if (email === "" || password === "") {
+      setShowInputErrors(true);
+      return;
+    }
+
     // logic to handle login
   };
 
@@ -39,8 +49,12 @@ export default function LogInScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
+      style={styles.container}
+    >
+      {/* Logo */}
       <View style={styles.header}>
         <Image
           style={styles.logo}
@@ -50,10 +64,15 @@ export default function LogInScreen() {
       </View>
 
       {/* Content Area */}
-      <Animated.View
+      <Animated.ScrollView
         entering={FadeInRight.duration(400)}
         exiting={FadeOutLeft.duration(400)}
         style={styles.contentContainer}
+        contentContainerStyle={{
+          paddingBottom: 48,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Text Content */}
         <View style={styles.textContainer}>
@@ -74,6 +93,9 @@ export default function LogInScreen() {
               placeholderTextColor="#c2c2c2"
             />
           </View>
+          {showInputErrors && email === "" ?
+            <Text style={styles.invalidEmailText}>Invalid email</Text>
+          : null}
         </View>
 
         {/* Password Input */}
@@ -101,33 +123,36 @@ export default function LogInScreen() {
               />
             </TouchableOpacity>
           </View>
+          {showInputErrors && password === "" ?
+            <Text style={styles.invalidPasswordText}>Invalid password</Text>
+          : null}
 
           <TouchableOpacity onPress={handleForgotPassword}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
         </View>
-      </Animated.View>
 
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        {/* Log In Button */}
-        <TouchableOpacity
-          onPress={handleLogin}
-          style={[styles.button, styles.buttonPrimary]}
-        >
-          <Text style={styles.buttonText}>Log In</Text>
-        </TouchableOpacity>
-
-        <View style={styles.bottomTextContainer}>
-          <Text style={styles.bottomText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={handleSignup}>
-            <Text style={[styles.bottomText, styles.bottomTextButton]}>
-              Sign Up
-            </Text>
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          {/* Log In Button */}
+          <TouchableOpacity
+            onPress={handleLogin}
+            style={[styles.button, styles.buttonPrimary]}
+          >
+            <Text style={styles.buttonText}>Log In</Text>
           </TouchableOpacity>
+
+          <View style={styles.bottomTextContainer}>
+            <Text style={styles.bottomText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={handleSignup}>
+              <Text style={[styles.bottomText, styles.bottomTextButton]}>
+                Sign Up
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </View>
+      </Animated.ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -135,10 +160,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingTop: 48,
   },
   header: {
     width: "100%",
@@ -156,7 +179,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     width: "100%",
-    alignItems: "center",
   },
   imagePlaceholder: {
     width: "100%",
@@ -185,23 +207,7 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: "100%",
     alignItems: "center",
-  },
-  pagination: {
-    flexDirection: "row",
-    marginBottom: 32,
-    gap: 8,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 32,
-    backgroundColor: "#000000",
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: "#D1D5DB",
+    marginTop: 48,
   },
   button: {
     width: "100%",
@@ -274,5 +280,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#181725",
     textAlign: "right",
+  },
+  invalidEmailText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#D8143A",
+  },
+  invalidPasswordText: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#D8143A",
   },
 });
