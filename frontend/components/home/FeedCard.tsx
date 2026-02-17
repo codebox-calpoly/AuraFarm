@@ -31,25 +31,31 @@ export function FeedCard({
     onLikePress,
 }: FeedCardProps) {
     return (
-        <ThemedView style={styles.container}>
-            {/* Header with title, Aura, and options menu */}
-            <View style={styles.header}>
-                <View style={styles.optionsButton} />
-                <View style={styles.titleSection}>
-                    <ThemedText style={styles.challengeTitle}>
-                        {challengeTitle}
-                    </ThemedText>
-                    <ThemedText style={styles.pointsText}>
-                        +{points} Aura
-                    </ThemedText>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.touchableContainer}>
+            <ThemedView style={styles.container}>
+                {/* Header with title, Aura, and options menu */}
+                <View style={styles.header}>
+                    <View style={styles.optionsButton} />
+                    <View style={styles.titleSection}>
+                        <ThemedText style={styles.challengeTitle}>
+                            {challengeTitle}
+                        </ThemedText>
+                        <ThemedText style={styles.pointsText}>
+                            +{points} Aura
+                        </ThemedText>
+                    </View>
+                    <TouchableOpacity 
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onOptionsPress?.();
+                        }} 
+                        style={styles.optionsButton}
+                    >
+                        <Ionicons name="flag-outline" size={20} color={tailwindColors['aura-black']} />
+                    </TouchableOpacity>
                 </View>
-                <TouchableOpacity onPress={onOptionsPress} style={styles.optionsButton}>
-                    <Ionicons name="ellipsis-vertical" size={20} color={tailwindColors['aura-black']} />
-                </TouchableOpacity>
-            </View>
 
-            {/* Image */}
-            <TouchableOpacity onPress={onPress} activeOpacity={0.9}>
+                {/* Image */}
                 <View style={styles.imageContainer}>
                     {userImage ? (
                         <Image
@@ -63,43 +69,51 @@ export function FeedCard({
                         </View>
                     )}
                 </View>
-            </TouchableOpacity>
 
-            {/* User info and caption */}
-            <View style={styles.contentSection}>
-                <ThemedText style={styles.userName}>
-                    {userName}
-                </ThemedText>
-                {caption && (
-                    <ThemedText style={styles.caption}>
-                        {caption}
+                {/* User info and caption */}
+                <View style={styles.contentSection}>
+                    <ThemedText style={styles.userName}>
+                        {userName}
                     </ThemedText>
-                )}
-                <ThemedText style={styles.dateText}>
-                    {date}
-                </ThemedText>
-            </View>
+                    {caption && (
+                        <ThemedText style={styles.caption}>
+                            {caption}
+                        </ThemedText>
+                    )}
+                    <ThemedText style={styles.dateText}>
+                        {date}
+                    </ThemedText>
+                </View>
 
-            {/* Likes */}
-            <View style={styles.footer}>
-                <TouchableOpacity onPress={onLikePress} style={styles.likeButton}>
-                    <Ionicons name="heart-outline" size={20} color={tailwindColors['aura-black']} />
-                    <ThemedText style={styles.likesText}>
-                        {likes}
-                    </ThemedText>
-                </TouchableOpacity>
-            </View>
-        </ThemedView>
+                {/* Likes */}
+                <View style={styles.footer}>
+                    <TouchableOpacity 
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onLikePress?.();
+                        }} 
+                        style={styles.likeButton}
+                    >
+                        <Ionicons name="heart-outline" size={20} color={tailwindColors['aura-black']} />
+                        <ThemedText style={styles.likesText}>
+                            {likes}
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </ThemedView>
+        </TouchableOpacity>
     );
 }
 
 const styles = StyleSheet.create({
+    touchableContainer: {
+        marginBottom: 20,
+    },
     container: {
         backgroundColor: tailwindColors['aura-white'],
         borderRadius: 16,
         borderWidth: 2,
         borderColor: tailwindColors['aura-black'],
-        marginBottom: 20,
         overflow: 'hidden',
         shadowColor: tailwindColors['aura-black'],
         shadowOffset: { width: 0, height: 2 },

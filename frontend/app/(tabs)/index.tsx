@@ -1,6 +1,7 @@
 import { StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
@@ -14,6 +15,7 @@ import { ReportPostModal } from '@/components/home/ReportPostModal';
 import { tailwindColors } from '@/constants/tailwind-colors';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'my-challenges' | 'feed'>('my-challenges');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<{
@@ -211,7 +213,7 @@ export default function HomeScreen() {
                     caption={post.caption}
                     date={post.date}
                     likes={post.likes}
-                    onPress={() => console.log('View post', post.id)}
+                    onPress={() => router.push(`/post/${post.id}`)}
                     onOptionsPress={() => handleOpenReportModal(post.id)}
                     onLikePress={() => console.log('Like post', post.id)}
                   />
