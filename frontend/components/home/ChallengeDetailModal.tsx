@@ -13,7 +13,7 @@ export interface ChallengeDetailModalProps {
   description: string;
   points: number;
   timeLeft: string;
-  onSubmit: () => void;
+  onSubmit: (imageUri: string, caption: string) => void;
 }
 
 export function ChallengeDetailModal({
@@ -78,8 +78,8 @@ export function ChallengeDetailModal({
   };
 
   const handlePost = () => {
-    console.log('Submitting post:', { image, caption });
-    onSubmit();
+    if (!image) return;
+    onSubmit(image, caption);
     handleClose();
   };
 

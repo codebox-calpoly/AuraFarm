@@ -8,64 +8,55 @@ import { useState } from 'react';
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { tailwindColors } from '@/constants/tailwind-colors';
+import { Header } from '@/components/home/Header';
+import { postStore } from '@/stores/postStore';
 
 export default function EditPostScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, imageUri, caption: captionParam, points } = useLocalSearchParams<{
+    id: string;
+    imageUri?: string;
+    caption?: string;
+    points?: string;
+    title?: string;
+  }>();
   const router = useRouter();
 
-  // Mock data lookup - in production, this would fetch from the API based on the id
-  const mockPosts: Record<string, any> = {
-    '1': {
-      id: 1,
-      challengeTitle: 'Hike the P',
-      points: 300,
-      postImage: undefined,
-      caption: 'I DID IT!!!!!!!',
-    },
-    '2': {
-      id: 2,
-      challengeTitle: 'Find a cool rock',
-      points: 30,
-      postImage: undefined,
-      caption: 'Found this awesome rock on my hike!',
-    },
+  // TODO: When backend is ready, replace params with:
+  // const { data: post } = await fetch(`/api/posts/${id}`).then(r => r.json());
+  const post = {
+    id: Number(id),
+    points: Number(points ?? 0),
+    postImage: imageUri ?? null,
   };
 
-  const post = mockPosts[String(id)] || mockPosts['1'];
+  const [caption, setCaption] = useState(captionParam ?? '');
 
-  const [caption, setCaption] = useState(post.caption);
-
-  const handleBack = () => {
-    router.back();
-  };
+  const handleBack = () => router.back();
 
   const handleSave = () => {
-    console.log('Saving post with caption:', caption);
-    // In production, this would call the API to update the caption
-    // Then navigate back to the post detail view
+    // Write updated caption to store so the view page picks it up on focus.
+    // TODO: Replace with PATCH /api/posts/:id when backend is ready.
+    postStore.setCaption(String(id), caption);
     router.back();
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
         <ThemedView style={styles.container}>
-          {/* Header */}
+          <Header />
+          {/* Nav bar */}
           <View style={styles.header}>
             <TouchableOpacity onPress={handleBack} style={styles.backButton}>
               <Ionicons name="chevron-back" size={24} color={tailwindColors['aura-black']} />
             </TouchableOpacity>
-            
+
             <View style={styles.titleSection}>
-              <ThemedText style={styles.challengeTitle}>
-                {post.challengeTitle}
-              </ThemedText>
-              <ThemedText style={styles.pointsText}>
-                +{post.points} points
-              </ThemedText>
+              <ThemedText style={styles.challengeTitle}>Your Post</ThemedText>
+              <ThemedText style={styles.pointsText}>+{post.points} points</ThemedText>
             </View>
 
             <View style={styles.backButton} />
@@ -87,7 +78,7 @@ export default function EditPostScreen() {
               )}
             </View>
 
-            {/* Edit Caption Section */}
+            {/* Edit Caption */}
             <View style={styles.editSection}>
               <ThemedText style={styles.label}>Edit caption</ThemedText>
               <TextInput
@@ -96,13 +87,12 @@ export default function EditPostScreen() {
                 onChangeText={setCaption}
                 placeholder="Enter caption..."
                 placeholderTextColor={tailwindColors['aura-gray-400']}
-                multiline
                 maxLength={500}
               />
             </View>
 
             {/* Save Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.saveButton}
               onPress={handleSave}
               activeOpacity={0.8}
@@ -154,15 +144,19 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
-    color: tailwindColors['aura-yellow'],
+    color: tailwindColors['aura-orange'],
   },
   scrollView: {
     flex: 1,
   },
   imageContainer: {
-    width: '100%',
+    width: '80%',
     aspectRatio: 1,
+    alignSelf: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
     backgroundColor: tailwindColors['aura-gray-100'],
+    marginTop: 16,
   },
   image: {
     width: '100%',
@@ -193,7 +187,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Poppins_400Regular',
     color: tailwindColors['aura-black'],
-    minHeight: 100,
     textAlignVertical: 'top',
     backgroundColor: tailwindColors['aura-white'],
   },

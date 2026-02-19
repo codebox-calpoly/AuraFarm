@@ -2,7 +2,6 @@ import { StyleSheet, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { Header } from '@/components/home/Header';
@@ -45,6 +44,9 @@ export default function HomeScreen() {
     points: number;
     date: string;
     description: string;
+    postImage: string;
+    caption: string;
+    likes: number;
   }>>([]);
 
   // Mock feed data - in production, this would come from the API
@@ -101,24 +103,21 @@ export default function HomeScreen() {
     setSelectedChallenge(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (imageUri: string, caption: string) => {
     if (selectedChallenge) {
-      // Find the challenge in incoming challenges
       const challengeToComplete = incomingChallenges.find(
         c => c.title === selectedChallenge.title
       );
 
       if (challengeToComplete) {
-        // Remove from incoming
         setIncomingChallenges(prev => prev.filter(c => c.id !== challengeToComplete.id));
 
-        // Add to completed with current date
         const today = new Date();
         const formattedDate = today.toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
           year: 'numeric',
-        }).replace(',', 'th,'); // Simple date formatting
+        }).replace(',', 'th,');
 
         setCompletedChallenges(prev => [
           {
@@ -127,6 +126,9 @@ export default function HomeScreen() {
             points: challengeToComplete.points,
             date: formattedDate,
             description: challengeToComplete.description,
+            postImage: imageUri,
+            caption: caption,
+            likes: 0,
           },
           ...prev,
         ]);
@@ -196,7 +198,9 @@ export default function HomeScreen() {
                   title={challenge.title}
                   points={challenge.points}
                   dateCompleted={challenge.date}
-                  onPress={() => console.log('View Completed', challenge.id)}
+                  onPress={() => router.push(
+                    `/post/${challenge.id}?imageUri=${encodeURIComponent(challenge.postImage)}&caption=${encodeURIComponent(challenge.caption)}&likes=${challenge.likes}&title=${encodeURIComponent(challenge.title)}&points=${challenge.points}&isOwnPost=true`
+                  )}
                 />
               ))}
             </>

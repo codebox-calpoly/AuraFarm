@@ -3,78 +3,87 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { tailwindColors } from '@/constants/tailwind-colors';
+import { Header } from '@/components/home/Header';
+import { postStore } from '@/stores/postStore';
 
 export default function PostDetailScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, imageUri, caption: captionParam, likes: likesParam, title, points, isOwnPost } = useLocalSearchParams<{
+    id: string;
+    imageUri?: string;
+    caption?: string;
+    likes?: string;
+    title?: string;
+    points?: string;
+    isOwnPost?: string;
+  }>();
   const router = useRouter();
 
-  // Mock data lookup - in production, this would fetch from the API based on the id
-  const mockPosts: Record<string, any> = {
-    '1': {
-      id: 1,
-      challengeTitle: 'Hike the P',
-      points: 300,
-      userName: 'Marc Rober',
-      userImage: undefined,
-      postImage: undefined,
-      caption: 'I DID IT!!!!!!!',
-      date: 'Jan 9th, 2026',
-      likes: 123,
-      isLiked: false,
-      isOwnPost: true,
-    },
-    '2': {
-      id: 2,
-      challengeTitle: 'Find a cool rock',
-      points: 30,
-      userName: 'Marc Rober',
-      userImage: undefined,
-      postImage: undefined,
-      caption: 'Found this awesome rock on my hike!',
-      date: 'Jan 8th, 2026',
-      likes: 45,
-      isLiked: false,
-      isOwnPost: false,
-    },
+  // TODO: When backend is ready, replace params with:
+  // const { data: post } = await fetch(`/api/posts/${id}`).then(r => r.json());
+  // All field names below match the expected API response shape.
+  const post = {
+    id: Number(id),
+    challengeTitle: title ?? 'Challenge',
+    points: Number(points ?? 0),
+    postImage: imageUri ?? null,
+    isOwnPost: isOwnPost === 'true',
   };
 
-  const post = mockPosts[String(id)] || mockPosts['1'];
+  const [likes, setLikes] = useState(Number(likesParam ?? 0));
+  const [isLiked, setIsLiked] = useState(false);
+  const [caption, setCaption] = useState(captionParam ?? '');
 
-  const handleBack = () => {
-    router.back();
-  };
+  // On focus, check if the edit page wrote a new caption to the store.
+  // TODO: Replace with re-fetch from API when backend is ready.
+  useFocusEffect(
+    useCallback(() => {
+      const updated = postStore.getCaption(String(id));
+      if (updated !== undefined) {
+        setCaption(updated);
+        postStore.clear(String(id));
+      }
+    }, [id])
+  );
+
+  const handleBack = () => router.back();
 
   const handleEdit = () => {
     if (post.isOwnPost) {
-      router.push(`/post/edit/${id}`);
+      router.push(
+        `/post/edit/${id}?imageUri=${encodeURIComponent(post.postImage ?? '')}&caption=${encodeURIComponent(caption)}&points=${post.points}&title=${encodeURIComponent(post.challengeTitle)}`
+      );
     }
   };
 
   const handleLike = () => {
-    console.log('Toggle like for post', id);
-    // In production, this would call the API to toggle the like
+    // TODO: When backend is ready, call POST /api/posts/:id/like or DELETE /api/posts/:id/like
+    if (isLiked) {
+      setLikes(prev => prev - 1);
+    } else {
+      setLikes(prev => prev + 1);
+    }
+    setIsLiked(prev => !prev);
   };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <ThemedView style={styles.container}>
-        {/* Header */}
+        <Header />
+        {/* Nav bar */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
             <Ionicons name="chevron-back" size={24} color={tailwindColors['aura-black']} />
           </TouchableOpacity>
-          
+
           <View style={styles.titleSection}>
-            <ThemedText style={styles.challengeTitle}>
-              {post.challengeTitle}
-            </ThemedText>
-            <ThemedText style={styles.pointsText}>
-              +{post.points} points
-            </ThemedText>
+            <ThemedText style={styles.challengeTitle}>{post.challengeTitle}</ThemedText>
+            <ThemedText style={styles.pointsText}>+{post.points} points</ThemedText>
           </View>
 
           {post.isOwnPost ? (
@@ -105,19 +114,19 @@ export default function PostDetailScreen() {
           {/* Likes */}
           <View style={styles.likesSection}>
             <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-              <ThemedText style={styles.likesCount}>{post.likes}</ThemedText>
-              <Ionicons 
-                name={post.isLiked ? "heart" : "heart-outline"} 
-                size={28} 
-                color={tailwindColors['aura-black']} 
+              <ThemedText style={styles.likesCount}>{likes}</ThemedText>
+              <Ionicons
+                name={isLiked ? 'heart' : 'heart-outline'}
+                size={28}
+                color={isLiked ? tailwindColors['aura-red'] : tailwindColors['aura-black']}
               />
             </TouchableOpacity>
           </View>
 
-          {/* Caption Section */}
+          {/* Caption */}
           <View style={styles.captionSection}>
             <ThemedText style={styles.captionLabel}>Caption</ThemedText>
-            <ThemedText style={styles.captionText}>{post.caption}</ThemedText>
+            <ThemedText style={styles.captionText}>{caption}</ThemedText>
           </View>
         </ScrollView>
       </ThemedView>
@@ -160,7 +169,7 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 14,
     fontFamily: 'Poppins_600SemiBold',
-    color: tailwindColors['aura-yellow'],
+    color: tailwindColors['aura-orange'],
   },
   editButton: {
     padding: 4,
@@ -171,9 +180,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageContainer: {
-    width: '100%',
+    width: '80%',
     aspectRatio: 1,
+    alignSelf: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
     backgroundColor: tailwindColors['aura-gray-100'],
+    marginTop: 16,
   },
   image: {
     width: '100%',
