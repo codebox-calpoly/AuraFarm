@@ -24,8 +24,8 @@ export default function VerificationScreen() {
     // logic for resending code
   };
 
-  const handleSignup = async () => {
-    router.replace("/verification");
+  const handleContinue = async () => {
+    // logic for continuing
   };
 
   return (
@@ -79,7 +79,7 @@ export default function VerificationScreen() {
 
         {/* Continue Button */}
         <TouchableOpacity
-          onPress={handleSignup}
+          onPress={handleContinue}
           style={[styles.buttonCircle, styles.buttonPrimary]}
         >
           <IconSymbol
