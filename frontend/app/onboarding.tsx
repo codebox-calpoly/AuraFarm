@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { tailwindColors } from "@/constants/tailwind-colors";
 
 const { width } = Dimensions.get("window");
 
@@ -131,7 +132,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 30,
     fontWeight: "bold",
-    color: "#DC2626",
+    color: tailwindColors['aura-red'],
     textShadowColor: "rgba(220, 38, 38, 0.3)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
@@ -200,7 +201,7 @@ const styles = StyleSheet.create({
     borderColor: "#030303",
   },
   buttonPrimary: {
-    backgroundColor: "#4FB948",
+    backgroundColor: tailwindColors['aura-green'],
   },
   buttonTextSecondary: {
     textAlign: "center",

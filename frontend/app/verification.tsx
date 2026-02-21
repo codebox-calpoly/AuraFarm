@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { tailwindColors } from "@/constants/tailwind-colors";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -90,7 +91,7 @@ export default function VerificationScreen() {
             <IconSymbol
               size={35}
               name="chevron.right"
-              color="#4FB948"
+              color={tailwindColors['aura-green']}
               style={styles.continueIcon}
             />
           </TouchableOpacity>
@@ -115,26 +116,10 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     marginBottom: 24,
   },
-  headerText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#DC2626",
-    textShadowColor: "rgba(220, 38, 38, 0.3)",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
   contentContainer: {
     flex: 1,
     width: "100%",
     alignItems: "center",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "#000000",
-    borderRadius: 16,
-    marginBottom: 32,
-    maxWidth: 384,
   },
   textContainer: {
     width: "100%",
@@ -172,7 +157,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   buttonPrimary: {
-    backgroundColor: "#4FB948",
+    backgroundColor: tailwindColors['aura-green'],
   },
   buttonCircle: {
     width: 64,
@@ -198,7 +183,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   bottomButtonText: {
-    color: "#4FB948",
+    color: tailwindColors['aura-green'],
   },
   inputLabel: {
     fontSize: 14,
@@ -229,6 +214,6 @@ const styles = StyleSheet.create({
   invalidEmailText: {
     marginTop: 4,
     fontSize: 12,
-    color: "#D8143A",
+    color: tailwindColors['aura-red'],
   },
 });

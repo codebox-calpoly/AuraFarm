@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tailwindColors } from "@/constants/tailwind-colors";
 
 export default function SplashScreen() {
     const router = useRouter();
@@ -48,7 +49,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#DC2626', // red-600
+        backgroundColor: tailwindColors['aura-red'],
         alignItems: 'center',
         justifyContent: 'center',
     },

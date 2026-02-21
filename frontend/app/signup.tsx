@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { tailwindColors } from "@/constants/tailwind-colors";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -112,6 +113,7 @@ export default function SignUpScreen() {
               placeholder="musty_mustang"
               placeholderTextColor="#c2c2c2"
               maxLength={30}
+              textContentType="username"
             />
           </View>
           {showInputErrors && !validUsername ?
@@ -133,12 +135,13 @@ export default function SignUpScreen() {
               value={email}
               placeholder="mmustang@calpoly.edu"
               placeholderTextColor="#c2c2c2"
+              textContentType="emailAddress"
             />
             {validEmail ?
               <IconSymbol
                 size={25}
                 name="checkmark"
-                color="#4FB948"
+                color={tailwindColors['aura-green']}
                 style={styles.validEmailIcon}
               />
             : null}
@@ -162,6 +165,7 @@ export default function SignUpScreen() {
               placeholder="••••••••••••••"
               placeholderTextColor="#c2c2c2"
               secureTextEntry={passwordHidden}
+              textContentType="password"
             />
             <TouchableOpacity
               onPress={() => setPasswordHidden(!passwordHidden)}
@@ -220,25 +224,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 32,
   },
-  headerText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#DC2626",
-    textShadowColor: "rgba(220, 38, 38, 0.3)",
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-  },
   contentContainer: {
     flex: 1,
     width: "100%",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    aspectRatio: 1,
-    backgroundColor: "#000000",
-    borderRadius: 16,
-    marginBottom: 32,
-    maxWidth: 384,
   },
   textContainer: {
     width: "100%",
@@ -247,7 +235,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#1F2937",
     textAlign: "left",
     marginBottom: 12,
   },
@@ -269,7 +256,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   buttonPrimary: {
-    backgroundColor: "#4FB948",
+    backgroundColor: tailwindColors['aura-green'],
   },
   buttonTextPrimary: {
     textAlign: "center",
@@ -297,7 +284,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   bottomTextButton: {
-    color: "#4FB948",
+    color: tailwindColors['aura-green'],
   },
   inputLabel: {
     fontSize: 14,
@@ -325,16 +312,16 @@ const styles = StyleSheet.create({
   invalidEmailText: {
     marginTop: 4,
     fontSize: 12,
-    color: "#D8143A",
+    color: tailwindColors['aura-red'],
   },
   invalidUsernameText: {
     marginTop: 4,
     fontSize: 12,
-    color: "#D8143A",
+    color: tailwindColors['aura-red'],
   },
   invalidPasswordText: {
     marginTop: 4,
     fontSize: 12,
-    color: "#D8143A",
+    color: tailwindColors['aura-red'],
   },
 });
