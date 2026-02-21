@@ -29,68 +29,74 @@ export default function VerificationScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        {/* Back Button */}
-        <TouchableOpacity onPress={() => router.replace("/signup")}>
-          <IconSymbol name="chevron.left" size={35} color="#000000" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Content Area */}
-      <Animated.View
-        entering={FadeInRight.duration(400)}
-        exiting={FadeOutLeft.duration(400)}
-        style={styles.contentContainer}
-      >
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>
-            Enter 4-digit code sent to{" "}
-            <Text style={styles.bold}>mmustang@calpoly.edu</Text>
-          </Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // Adjust if you have a header
+    >
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          {/* Back Button */}
+          <TouchableOpacity onPress={() => router.replace("/signup")}>
+            <IconSymbol name="chevron.left" size={35} color="#000000" />
+          </TouchableOpacity>
         </View>
 
-        {/* Code Input */}
-        <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Code</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onChangeText={onChangeCode}
-              value={code}
-              placeholder="- - - -"
-              placeholderTextColor="#c2c2c2"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-      </Animated.View>
-
-      {/* Bottom Section */}
-      <KeyboardAvoidingView style={styles.bottomSection} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <TouchableOpacity onPress={handleResendCode}>
-          <Text style={[styles.bottomText, styles.bottomButtonText]}>
-            Resend Code
-          </Text>
-        </TouchableOpacity>
-
-        {/* Continue Button */}
-        <TouchableOpacity
-          onPress={handleContinue}
-          style={[styles.buttonCircle, styles.buttonPrimary]}
+        {/* Content Area */}
+        <Animated.View
+          entering={FadeInRight.duration(400)}
+          exiting={FadeOutLeft.duration(400)}
+          style={styles.contentContainer}
         >
-          <IconSymbol
-            size={35}
-            name="chevron.right"
-            color="#4FB948"
-            style={styles.continueIcon}
-          />
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </View>
+          {/* Text Content */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>
+              Enter 4-digit code sent to{" "}
+              <Text style={styles.bold}>mmustang@calpoly.edu</Text>
+            </Text>
+          </View>
+
+          {/* Code Input */}
+          <View style={styles.credentialsContainer}>
+            <Text style={styles.inputLabel}>Code</Text>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                onChangeText={onChangeCode}
+                value={code}
+                placeholder="- - - -"
+                placeholderTextColor="#c2c2c2"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          <TouchableOpacity onPress={handleResendCode}>
+            <Text style={[styles.bottomText, styles.bottomButtonText]}>
+              Resend Code
+            </Text>
+          </TouchableOpacity>
+
+          {/* Continue Button */}
+          <TouchableOpacity
+            onPress={handleContinue}
+            style={[styles.buttonCircle, styles.buttonPrimary]}
+          >
+            <IconSymbol
+              size={35}
+              name="chevron.right"
+              color="#4FB948"
+              style={styles.continueIcon}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
