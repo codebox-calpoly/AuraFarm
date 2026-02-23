@@ -14,10 +14,13 @@ export default function TabsLayout() {
           marginBottom: 6,
         },
         tabBarStyle: {
-          backgroundColor: "#f1f1f1",
+          backgroundColor: "#efefef",
           borderTopWidth: 0,
-          height: 86,
+          height: 92,
           paddingTop: 8,
+          borderTopLeftRadius: 22,
+          borderTopRightRadius: 22,
+          overflow: "hidden",
         },
       }}
     >
