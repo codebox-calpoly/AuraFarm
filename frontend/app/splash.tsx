@@ -3,58 +3,60 @@ import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors } from '@/constants/tailwind-colors';
+import { isAuthenticated } from '@/lib/auth';
 
 export default function SplashScreen() {
-    const router = useRouter();
+  const router = useRouter();
 
-    useEffect(() => {
-        const checkOnboarding = async () => {
-            try {
-                const hasCompletedOnboarding = await AsyncStorage.getItem('hasCompletedOnboarding');
+  useEffect(() => {
+    const checkAndNavigate = async () => {
+      try {
+        const [hasCompletedOnboarding, loggedIn] = await Promise.all([
+          AsyncStorage.getItem('hasCompletedOnboarding'),
+          isAuthenticated(),
+        ]);
 
-                // Add logging to debug
-                console.log('Current onboarding status:', hasCompletedOnboarding);
+        setTimeout(() => {
+          if (hasCompletedOnboarding !== 'true') {
+            router.replace('/onboarding');
+          } else if (!loggedIn) {
+            router.replace('/login');
+          } else {
+            router.replace('/(tabs)');
+          }
+        }, 1500);
+      } catch (error) {
+        console.error('Error checking auth state:', error);
+        router.replace('/onboarding');
+      }
+    };
 
-                setTimeout(() => {
-                    // just for debugging: Force navigation to onboarding
-                    // if (hasCompletedOnboarding === 'true') {
-                    //     router.replace('/(tabs)');
-                    // } else {
-                    router.replace('/onboarding');
-                    // }
-                }, 2000);
-            } catch (error) {
-                console.error('Error checking onboarding status:', error);
-                router.replace('/onboarding');
-            }
-        };
+    checkAndNavigate();
+  }, []);
 
-        checkOnboarding();
-    }, []);
-
-    return (
-        <View style={styles.container}>
-            <Animated.View entering={FadeIn.duration(800)}>
-                <Image
-                    source={require('../assets/images/logo.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-            </Animated.View>
-        </View>
-    );
+  return (
+    <View style={styles.container}>
+      <Animated.View entering={FadeIn.duration(800)}>
+        <Image
+          source={require('../assets/images/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </Animated.View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: tailwindColors['aura-red'],
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    logo: {
-        width: 128,
-        height: 128,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: tailwindColors['aura-red'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 128,
+    height: 128,
+  },
 });

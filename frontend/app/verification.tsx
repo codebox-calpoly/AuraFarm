@@ -12,6 +12,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
+import { setAuthenticated } from "@/lib/auth";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -26,7 +27,8 @@ export default function VerificationScreen() {
   };
 
   const handleContinue = async () => {
-    // logic for continuing
+    await setAuthenticated(true);
+    router.replace("/(tabs)");
   };
 
   return (

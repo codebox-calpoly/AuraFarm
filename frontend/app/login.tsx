@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
+import { setAuthenticated } from "@/lib/auth";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -42,7 +43,8 @@ export default function LogInScreen() {
       return;
     }
 
-    // logic to handle login
+    await setAuthenticated(true);
+    router.replace("/(tabs)");
   };
 
   const handleForgotPassword = async () => {

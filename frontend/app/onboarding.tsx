@@ -17,17 +17,17 @@ const onboardingData = [
   {
     id: 1,
     title: "Welcome to Aura Farm",
-    description: "Discover the future of sustainable farming AURA",
+    description: "Discover challenges, earn points, and grow your sustainable journey on campus.",
   },
   {
     id: 2,
-    title: "!!!",
-    description: "RAHHHH",
+    title: "Complete Challenges",
+    description: "Find challenges near you, complete them, and earn Aura points to climb the leaderboard.",
   },
   {
     id: 3,
     title: "Get Started",
-    description: "AURAAAAAAAA",
+    description: "Create an account to start your journey and track your progress.",
   },
 ];
 
@@ -35,17 +35,29 @@ export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const router = useRouter();
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (currentIndex < onboardingData.length - 1) {
       setCurrentIndex(currentIndex + 1);
-    } else {
-      try {
-        await AsyncStorage.setItem("hasCompletedOnboarding", "true");
-        router.replace("/signup");
-      } catch (error) {
-        console.error("Error saving onboarding status:", error);
-        router.replace("/signup");
-      }
+    }
+  };
+
+  const handleSignUp = async () => {
+    try {
+      await AsyncStorage.setItem("hasCompletedOnboarding", "true");
+      router.replace("/signup");
+    } catch (error) {
+      console.error("Error saving onboarding status:", error);
+      router.replace("/signup");
+    }
+  };
+
+  const handleLogIn = async () => {
+    try {
+      await AsyncStorage.setItem("hasCompletedOnboarding", "true");
+      router.replace("/login");
+    } catch (error) {
+      console.error("Error saving onboarding status:", error);
+      router.replace("/login");
     }
   };
 
@@ -92,24 +104,30 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        {/* Continue Button */}
-        <TouchableOpacity
-          onPress={handleContinue}
-          style={[
-            styles.button,
-            isLastScreen ? styles.buttonPrimary : styles.buttonSecondary,
-          ]}
-        >
-          <Text
-            style={
-              isLastScreen ?
-                styles.buttonTextPrimary
-              : styles.buttonTextSecondary
-            }
+        {/* Buttons */}
+        {isLastScreen ? (
+          <View style={styles.lastScreenButtons}>
+            <TouchableOpacity
+              onPress={handleSignUp}
+              style={[styles.button, styles.buttonPrimary]}
+            >
+              <Text style={styles.buttonTextPrimary}>Sign Up</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleLogIn}
+              style={[styles.button, styles.buttonSecondary]}
+            >
+              <Text style={styles.buttonTextSecondary}>Log In</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            onPress={handleContinue}
+            style={[styles.button, styles.buttonSecondary]}
           >
-            {isLastScreen ? "Start" : "Continue"}
-          </Text>
-        </TouchableOpacity>
+            <Text style={styles.buttonTextSecondary}>Continue</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -176,6 +194,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     marginBottom: 32,
     gap: 8,
+  },
+  lastScreenButtons: {
+    width: "100%",
+    gap: 12,
   },
   dot: {
     height: 8,
