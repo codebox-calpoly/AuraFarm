@@ -1,2 +1,6 @@
-// do NOT delete this file.
-// i do not know why it is needed, but the app won't run without it
+const { getDefaultConfig } = require("expo/metro-config");
+const { withNativeWind } = require("nativewind/metro");
+
+const config = getDefaultConfig(__dirname);
+
+module.exports = withNativeWind(config, { input: "./global.css" });

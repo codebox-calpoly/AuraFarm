@@ -6,8 +6,6 @@
     "ts-jest": "^29.4.6"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.1.18",
-    "expo": "^54.0.32",
-    "tailwindcss": "^4.1.18"
+    "expo": "^54.0.32"
   }
 }
