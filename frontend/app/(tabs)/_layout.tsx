@@ -98,12 +98,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null, // Hide explore tab as requested by the footer design
-        }}
-      />
+      <Tabs.Screen name="home" options={{ href: null }} />
     </Tabs>
   );
 }

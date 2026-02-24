@@ -1,8 +1,9 @@
 {
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": false,
   "prisma.validate": true,
   "prisma.fileWatcher": true,
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma"
   }
 }
-
