@@ -12,10 +12,13 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { setAuthenticated } from "@/lib/auth";
 
 const BASE_WIDTH = 414;
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const [username, setUsername] = useState("jeffbob");
   const [email, setEmail] = useState("bob@calpoly.edu");
   const [password, setPassword] = useState("password123");
@@ -25,6 +28,11 @@ export default function SettingsScreen() {
   const { width } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
   const scale = width / BASE_WIDTH;
+
+  const handleLogOut = async () => {
+    await setAuthenticated(false);
+    router.replace("/login");
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -110,7 +118,10 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.footer, { paddingBottom: tabBarHeight + 18 * scale }]}>
-          <Pressable style={[styles.logoutButton, { height: 63 * scale, borderRadius: 18 * scale }]}>
+          <Pressable
+            style={[styles.logoutButton, { height: 63 * scale, borderRadius: 18 * scale }]}
+            onPress={handleLogOut}
+          >
             <Text style={[styles.logoutText, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
               Log out
             </Text>
