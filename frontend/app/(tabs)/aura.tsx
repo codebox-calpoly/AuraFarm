@@ -20,20 +20,32 @@ export default function AuraScreen() {
       const uri = await auraRef.current.capture?.();
       if (!uri) throw new Error("Failed to capture aura view");
 
+      try {
+        await Share.share(
+          {
+            title: "My AuraFarm creation",
+            message: "Check out my Aura 🔥🔥",
+            url: uri,
+          },
+          {
+            dialogTitle: "Share your AuraFarm creation",
+          },
+        );
+        return;
+      } catch {
+        // Fall through to file-only sharing path.
+      }
+
       const canUseNativeShareSheet = await Sharing.isAvailableAsync();
       if (canUseNativeShareSheet) {
         await Sharing.shareAsync(uri, {
-          mimeType: "image/png",
+          mimeType: "image/jpeg",
           dialogTitle: "Share your AuraFarm creation",
         });
         return;
       }
 
-      await Share.share({
-        title: "My AuraFarm creation",
-        message: "Check out my AuraFarm creation",
-        url: uri,
-      });
+      throw new Error("No sharing method available on this device");
     } catch (error) {
       console.error("Error sharing screenshot:", error);
       Alert.alert("Share failed", "Couldn't open share sheet. Please try again.");
@@ -50,7 +62,7 @@ export default function AuraScreen() {
           options={{ format: "jpg", quality: 0.95, result: "tmpfile" }}
         >
           <AuraFarmHeader width={153} height={27} />
-          <AuraDiamond width={270} height={426} />
+          <AuraDiamond width={270} height={426} style={{ marginTop: 24 }} />
           <Auratext width={194} height={49} />
         </ViewShot>
 
