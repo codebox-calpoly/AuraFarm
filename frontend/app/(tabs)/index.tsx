@@ -217,7 +217,9 @@ export default function HomeScreen() {
                     caption={post.caption}
                     date={post.date}
                     likes={post.likes}
-                    onPress={() => router.push(`/post/${post.id}`)}
+                    onPress={() => router.push(
+                      `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`
+                    )}
                     onOptionsPress={() => handleOpenReportModal(post.id)}
                     onLikePress={() => console.log('Like post', post.id)}
                   />

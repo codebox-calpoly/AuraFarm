@@ -10,7 +10,14 @@ export default function AuraScreen() {
       <View style={styles.container}>
         <AuraFarmHeader width={153} height={27} />
 
-        <AuraDiamond width={270} height={426} />
+        <View style={styles.diamondOuter}>
+          {/* Shape-following shadow — duplicate star in dark color, shifted below */}
+          <View style={styles.diamondShadow}>
+            <AuraDiamond width={270} height={426} style={{ opacity: 0.18 }} />
+          </View>
+          {/* Real star on top */}
+          <AuraDiamond width={270} height={426} />
+        </View>
 
         <Auratext width={194} height={49} />
 
@@ -31,5 +38,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingTop: 28,
     paddingBottom: 46,
+  },
+  diamondOuter: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  diamondShadow: {
+    position: 'absolute',
+    bottom: -18,
   },
 });
