@@ -14,7 +14,6 @@ export default function AuraScreen() {
     try {
       if (!auraRef.current) return;
 
-      // wait a tiny bit to ensure layout is ready
       await new Promise(res => setTimeout(res, 100));
 
       const uri = await auraRef.current.capture?.();
