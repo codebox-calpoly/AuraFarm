@@ -66,7 +66,7 @@ export default function SettingsScreen() {
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err) {
+    } catch {
       setError("Failed to update password");
     }
   };
@@ -244,6 +244,9 @@ const styles = StyleSheet.create({
   },
   profileWrap: {
     alignItems: "center",
+  },
+  fieldsBlock: {
+    width: "100%",
   },
   fieldRow: {
     flexDirection: "row",
