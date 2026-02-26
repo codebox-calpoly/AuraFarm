@@ -42,6 +42,19 @@ function AuraIcon({ color }: { color: string }) {
   );
 }
 
+function AuraShadowIcon() {
+  return (
+    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
+      <Path
+        d="M17 3.5C19.2 11.1 22.4 14.3 30 17C22.4 19.7 19.2 22.9 17 30.5C14.8 22.9 11.6 19.7 4 17C11.6 14.3 14.8 11.1 17 3.5Z"
+        fill="rgba(0,0,0,0.18)"
+        stroke="rgba(0,0,0,0.18)"
+        strokeWidth={2.8}
+      />
+    </Svg>
+  );
+}
+
 export default function RanksScreen() {
   const [activeSectionId, setActiveSectionId] = useState("red");
 
@@ -90,16 +103,21 @@ export default function RanksScreen() {
           {SECTIONS.map((section) => {
             const isActive = section.id === activeSectionId;
             return (
-              <Pressable
-                key={section.id}
-                onPress={() => setActiveSectionId(section.id)}
-                style={[
-                  styles.iconPressable,
-                  isActive ? { backgroundColor: hexToRgba(section.color, 0.22) } : null,
-                ]}
-              >
-                <AuraIcon color={section.color} />
-              </Pressable>
+              <View key={section.id} style={styles.iconOuter}>
+                {/* Shape-following shadow */}
+                <View style={styles.iconShadow}>
+                  <AuraShadowIcon />
+                </View>
+                <Pressable
+                  onPress={() => setActiveSectionId(section.id)}
+                  style={[
+                    styles.iconPressable,
+                    isActive ? { backgroundColor: hexToRgba(section.color, 0.2) } : null,
+                  ]}
+                >
+                  <AuraIcon color={section.color} />
+                </Pressable>
+              </View>
             );
           })}
         </View>
@@ -151,6 +169,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 38,
     marginBottom: 22,
+  },
+  iconOuter: {
+    position: 'relative',
+    width: 46,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconShadow: {
+    position: 'absolute',
+    bottom: -7,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconPressable: {
     width: 46,
