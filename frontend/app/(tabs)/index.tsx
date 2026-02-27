@@ -12,8 +12,45 @@ import { ChallengeDetailModal } from "@/components/home/ChallengeDetailModal";
 import { FeedCard } from "@/components/home/FeedCard";
 import { ReportPostModal } from "@/components/home/ReportPostModal";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
+import { useFeedCache } from "@/stores/feedCache";
+
+const STATIC_FEED_POSTS: Array<{
+  id: number;
+  challengeTitle: string;
+  points: number;
+  userName: string;
+  userImage?: string;
+  caption: string;
+  date: string;
+  likes: number;
+  postImage?: string;
+}> = [
+  {
+    id: 1,
+    challengeTitle: "Hike the P",
+    points: 300,
+    userName: "Marc Rober",
+    caption: "I DID IT!!!!!!!",
+    date: "Jan 9th, 2026",
+    likes: 123,
+    userImage: undefined,
+  },
+  {
+    id: 2,
+    challengeTitle: "Find a cool rock",
+    points: 30,
+    userName: "Marc Rober",
+    caption: "Found this awesome rock on my hike!",
+    date: "Jan 8th, 2026",
+    likes: 45,
+    userImage: undefined,
+  },
+];
 
 export default function HomeScreen() {
+  const cachedPosts = useFeedCache((s) => s.cachedPosts);
+  const addPostToFeed = useFeedCache((s) => s.addPost);
+  const feedPosts = [...cachedPosts, ...STATIC_FEED_POSTS];
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
     "my-challenges",
@@ -53,30 +90,6 @@ export default function HomeScreen() {
       likes: number;
     }>
   >([]);
-
-  // Mock feed data - in production, this would come from the API
-  const [feedPosts] = useState([
-    {
-      id: 1,
-      challengeTitle: "Hike the P",
-      points: 300,
-      userName: "Marc Rober",
-      caption: "I DID IT!!!!!!!",
-      date: "Jan 9th, 2026",
-      likes: 123,
-      userImage: undefined, // Will use placeholder for now
-    },
-    {
-      id: 2,
-      challengeTitle: "Find a cool rock",
-      points: 30,
-      userName: "Marc Rober",
-      caption: "Found this awesome rock on my hike!",
-      date: "Jan 8th, 2026",
-      likes: 45,
-      userImage: undefined,
-    },
-  ]);
 
   // Helper function to format date like "Jan 9th, 2026"
   const formatFeedDate = (date: Date): string => {
@@ -150,6 +163,16 @@ export default function HomeScreen() {
           },
           ...prev,
         ]);
+
+        addPostToFeed({
+          challengeTitle: challengeToComplete.title,
+          points: challengeToComplete.points,
+          userName: "You",
+          caption,
+          date: formattedDate,
+          likes: 0,
+          postImage: imageUri,
+        });
       }
     }
     handleCloseModal();
@@ -231,25 +254,32 @@ export default function HomeScreen() {
             </>
           : <>
               {feedPosts.length > 0 ?
-                feedPosts.map((post) => (
-                  <FeedCard
-                    key={post.id}
-                    challengeTitle={post.challengeTitle}
-                    points={post.points}
-                    userName={post.userName}
-                    userImage={post.userImage}
-                    caption={post.caption}
-                    date={post.date}
-                    likes={post.likes}
-                    onPress={() =>
-                      router.push(
-                        `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`,
-                      )
-                    }
-                    onOptionsPress={() => handleOpenReportModal(post.id)}
-                    onLikePress={() => console.log("Like post", post.id)}
-                  />
-                ))
+                feedPosts.map((post) => {
+                  const isOwnPost = post.postImage != null;
+                  return (
+                    <FeedCard
+                      key={post.id}
+                      challengeTitle={post.challengeTitle}
+                      points={post.points}
+                      userName={post.userName}
+                      userImage={post.userImage}
+                      caption={post.caption}
+                      date={post.date}
+                      likes={post.likes}
+                      onPress={() =>
+                        isOwnPost
+                          ? router.push(
+                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage!)}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&isOwnPost=true`,
+                            )
+                          : router.push(
+                              `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`,
+                            )
+                      }
+                      onOptionsPress={() => handleOpenReportModal(post.id)}
+                      onLikePress={() => console.log("Like post", post.id)}
+                    />
+                  );
+                })
               : <ThemedView style={styles.feedPlaceholder}>
                   <ThemedText>No posts yet</ThemedText>
                 </ThemedView>
