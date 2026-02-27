@@ -186,7 +186,7 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedText style={styles.emptyState}>No incoming challenges </ThemedText>
+                <ThemedText style={styles.emptyState}>No incoming challenges</ThemedText>
               )}
 
               {/* Completed Section */}

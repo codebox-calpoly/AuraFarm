@@ -1,4 +1,5 @@
 import { View, Image, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -36,22 +37,27 @@ export default function SplashScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Animated.View entering={FadeIn.duration(800)}>
-        <Image
-          source={require('../assets/images/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </Animated.View>
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <Animated.View entering={FadeIn.duration(800)}>
+          <Image
+            source={require('../assets/images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: tailwindColors['aura-red'],
+  },
+  container: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

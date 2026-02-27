@@ -1,7 +1,8 @@
 import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
 import { useMemo, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
 type LeaderboardSection = {

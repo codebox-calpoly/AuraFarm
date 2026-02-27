@@ -5,6 +5,7 @@ import {
   Dimensions,
   StyleSheet,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
@@ -64,79 +65,84 @@ export default function OnboardingScreen() {
   const isLastScreen = currentIndex === onboardingData.length - 1;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Aura Farm</Text>
-      </View>
-
-      {/* Content Area */}
-      <Animated.View
-        key={currentIndex}
-        entering={FadeInRight.duration(400)}
-        exiting={FadeOutLeft.duration(400)}
-        style={styles.contentContainer}
-      >
-        {/* Image Placeholder */}
-        <View style={styles.imagePlaceholder} />
-
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{onboardingData[currentIndex].title}</Text>
-          <Text style={styles.description}>
-            {onboardingData[currentIndex].description}
-          </Text>
-        </View>
-      </Animated.View>
-
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
-        {/* Pagination Dots */}
-        <View style={styles.pagination}>
-          {onboardingData.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.dot,
-                index === currentIndex ? styles.dotActive : styles.dotInactive,
-              ]}
-            />
-          ))}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerText}>Aura Farm</Text>
         </View>
 
-        {/* Buttons */}
-        {isLastScreen ? (
-          <View style={styles.lastScreenButtons}>
+        {/* Content Area */}
+        <Animated.View
+          key={currentIndex}
+          entering={FadeInRight.duration(400)}
+          exiting={FadeOutLeft.duration(400)}
+          style={styles.contentContainer}
+        >
+          {/* Image Placeholder */}
+          <View style={styles.imagePlaceholder} />
+
+          {/* Text Content */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>{onboardingData[currentIndex].title}</Text>
+            <Text style={styles.description}>
+              {onboardingData[currentIndex].description}
+            </Text>
+          </View>
+        </Animated.View>
+
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          {/* Pagination Dots */}
+          <View style={styles.pagination}>
+            {onboardingData.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  index === currentIndex ? styles.dotActive : styles.dotInactive,
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Buttons */}
+          {isLastScreen ? (
+            <View style={styles.lastScreenButtons}>
+              <TouchableOpacity
+                onPress={handleSignUp}
+                style={[styles.button, styles.buttonPrimary]}
+              >
+                <Text style={styles.buttonTextPrimary}>Sign Up</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleLogIn}
+                style={[styles.button, styles.buttonSecondary]}
+              >
+                <Text style={styles.buttonTextSecondary}>Log In</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
             <TouchableOpacity
-              onPress={handleSignUp}
-              style={[styles.button, styles.buttonPrimary]}
-            >
-              <Text style={styles.buttonTextPrimary}>Sign Up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleLogIn}
+              onPress={handleContinue}
               style={[styles.button, styles.buttonSecondary]}
             >
-              <Text style={styles.buttonTextSecondary}>Log In</Text>
+              <Text style={styles.buttonTextSecondary}>Continue</Text>
             </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={handleContinue}
-            style={[styles.button, styles.buttonSecondary]}
-          >
-            <Text style={styles.buttonTextSecondary}>Continue</Text>
-          </TouchableOpacity>
-        )}
+          )}
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  container: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
