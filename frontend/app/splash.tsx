@@ -22,7 +22,7 @@ export default function SplashScreen() {
           if (hasCompletedOnboarding !== "true") {
             router.replace("/onboarding");
           } else if (!loggedIn) {
-            router.replace("/onboarding");
+            router.replace("/login");
           } else {
             router.replace("/(tabs)");
           }
