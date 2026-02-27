@@ -1,5 +1,7 @@
 import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
+import { Header } from "@/components/home/Header";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -30,9 +32,9 @@ function hexToRgba(hex: string, alpha: number) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function AuraIcon({ color }: { color: string }) {
+function AuraIcon({ color, style }: { color: string; style?: any }) {
   return (
-    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
+    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none" style={style}>
       <Path
         d="M17 3.5C19.2 11.1 22.4 14.3 30 17C22.4 19.7 19.2 22.9 17 30.5C14.8 22.9 11.6 19.7 4 17C11.6 14.3 14.8 11.1 17 3.5Z"
         fill="#FFFFFF"
@@ -43,23 +45,11 @@ function AuraIcon({ color }: { color: string }) {
   );
 }
 
-function AuraShadowIcon() {
-  return (
-    <Svg width={34} height={34} viewBox="0 0 34 34" fill="none">
-      <Path
-        d="M17 3.5C19.2 11.1 22.4 14.3 30 17C22.4 19.7 19.2 22.9 17 30.5C14.8 22.9 11.6 19.7 4 17C11.6 14.3 14.8 11.1 17 3.5Z"
-        fill="rgba(0,0,0,0.18)"
-        stroke="rgba(0,0,0,0.18)"
-        strokeWidth={2.8}
-      />
-    </Svg>
-  );
-}
-
 export default function RanksScreen() {
   const [activeSectionId, setActiveSectionId] = useState("red");
 
-  const activeSection = SECTIONS.find((section) => section.id === activeSectionId) ?? SECTIONS[0];
+  const activeSection =
+    SECTIONS.find((section) => section.id === activeSectionId) ?? SECTIONS[0];
 
   const leaderboardData = useMemo(() => {
     const baseNames = [
@@ -94,43 +84,49 @@ export default function RanksScreen() {
   }, [activeSection.id]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <View style={styles.headerWrap}>
-          <AuraFarmHeader width={153} height={27} />
-        </View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Header */}
+      <Header />
 
+      <View style={styles.container}>
         <View style={styles.diamondsWrap}>
           {SECTIONS.map((section) => {
             const isActive = section.id === activeSectionId;
             return (
               <View key={section.id} style={styles.iconOuter}>
-                {/* Shape-following shadow */}
-                <View style={styles.iconShadow}>
-                  <AuraShadowIcon />
-                </View>
                 <Pressable
                   onPress={() => setActiveSectionId(section.id)}
                   style={[
                     styles.iconPressable,
-                    isActive ? { backgroundColor: hexToRgba(section.color, 0.2) } : null,
+                    isActive ?
+                      { backgroundColor: hexToRgba(section.color, 0.2) }
+                    : null,
                   ]}
                 >
-                  <AuraIcon color={section.color} />
+                  <AuraIcon
+                    color={section.color}
+                    style={{
+                      filter: `drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06))`,
+                    }}
+                  />
                 </Pressable>
               </View>
             );
           })}
         </View>
 
-        <Text style={[styles.title, { color: activeSection.color }]}>Leaderboard</Text>
+        <Text style={[styles.title, { color: activeSection.color }]}>
+          Leaderboard
+        </Text>
 
         <ScrollView
           style={styles.listScroll}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.topLine, { borderTopColor: activeSection.color }]} />
+          <View
+            style={[styles.topLine, { borderTopColor: activeSection.color }]}
+          />
           {leaderboardData.map((entry) => (
             <View key={entry.name}>
               <View style={styles.row}>
@@ -142,7 +138,12 @@ export default function RanksScreen() {
                   <Text style={styles.points}>{entry.points} pts</Text>
                 </View>
               </View>
-              <View style={[styles.separator, { borderTopColor: activeSection.color }]} />
+              <View
+                style={[
+                  styles.separator,
+                  { borderTopColor: activeSection.color },
+                ]}
+              />
             </View>
           ))}
         </ScrollView>
@@ -154,35 +155,29 @@ export default function RanksScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#e8e8e8",
+    backgroundColor: tailwindColors["aura-white"],
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 28,
-  },
-  headerWrap: {
-    alignItems: "center",
-    marginTop: 8,
   },
   diamondsWrap: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 38,
     marginBottom: 22,
   },
   iconOuter: {
-    position: 'relative',
+    position: "relative",
     width: 46,
     height: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconShadow: {
-    position: 'absolute',
+    position: "absolute",
     bottom: -7,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconPressable: {
     width: 46,
@@ -193,9 +188,9 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: "center",
-    fontSize: 52 / 2,
-    lineHeight: 60 / 2,
-    fontWeight: "800",
+    fontSize: 26,
+    lineHeight: 30,
+    fontFamily: tailwindFonts["semibold"],
     marginBottom: 8,
   },
   listScroll: {
@@ -208,7 +203,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 3,
   },
   row: {
-    minHeight: 102,
+    minHeight: 90,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 10,
@@ -224,7 +219,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 56 / 2,
     lineHeight: 62 / 2,
-    fontWeight: "400",
+    fontFamily: tailwindFonts["regular"],
     color: "#1e1e30",
   },
   pointsWrap: {
@@ -237,7 +232,7 @@ const styles = StyleSheet.create({
     textAlign: "right",
     fontSize: 52 / 2,
     lineHeight: 58 / 2,
-    fontWeight: "700",
+    fontFamily: tailwindFonts["semibold"],
     color: "#1e1e30",
   },
   separator: {

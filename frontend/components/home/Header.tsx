@@ -1,24 +1,22 @@
-import { StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { ThemedView } from '@/components/themed-view';
+import { StyleSheet } from "react-native";
+import { ThemedView } from "@/components/themed-view";
+import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 
 export function Header() {
   return (
     <ThemedView style={styles.container} lightColor="transparent">
-      <Image
-        source={require('@/assets/images/home-header.png')}
-        style={styles.logo}
-        contentFit="contain"
-      />
+      <AuraFarmHeader width={153} height={27} />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    paddingVertical: 16,
-    backgroundColor: 'transparent',
+    alignItems: "center",
+    paddingTop: 16,
+    paddingBottom: 32,
+    backgroundColor: "transparent",
+    marginTop: 8,
   },
   logo: {
     width: 200,

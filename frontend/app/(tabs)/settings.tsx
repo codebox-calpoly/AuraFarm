@@ -1,4 +1,3 @@
-import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 import EditIcon from "@/assets/EditIcon.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -15,6 +14,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { setAuthenticated } from "@/lib/auth";
+import { Header } from "@/components/home/Header";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 const BASE_WIDTH = 414;
 
@@ -80,36 +81,44 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.container, { paddingHorizontal: 30 * scale }]}>
-        {/* Header */}
-        <View style={styles.headerWrap}>
-  <AuraFarmHeader width={153} height={27} />
-</View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Header */}
+      <Header />
 
+      <View style={[styles.container, { paddingHorizontal: 30 * scale }]}>
         {/* Title */}
         <Text
           style={[
             styles.title,
             {
               marginTop: 44 * scale,
-              fontSize: 24 * scale,
-              lineHeight: 30 * scale,
+              fontSize: 28 * scale,
+              lineHeight: 36 * scale,
             },
           ]}
         >
           Settings
         </Text>
 
-        <View style={[styles.profileWrap, { marginTop: 66 * scale, marginBottom: 58 * scale }]}>
+        <View
+          style={[
+            styles.profileWrap,
+            { marginTop: 66 * scale, marginBottom: 58 * scale },
+          ]}
+        >
           <ProfileImage width={72 * scale} height={72 * scale} />
         </View>
 
         <View style={[styles.fieldsBlock, { gap: 30 * scale }]}>
           <View style={styles.fieldRow}>
             <View style={styles.fieldTextWrap}>
-              <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
-                username:
+              <Text
+                style={[
+                  styles.label,
+                  { fontSize: 22 * scale, lineHeight: 30 * scale },
+                ]}
+              >
+                Username:
               </Text>
               <TextInput
                 ref={usernameInputRef}
@@ -118,7 +127,10 @@ export default function SettingsScreen() {
                 style={[styles.valueInput, { fontSize: 24 * scale }]}
               />
             </View>
-            <Pressable onPress={() => usernameInputRef.current?.focus()} hitSlop={8}>
+            <Pressable
+              onPress={() => usernameInputRef.current?.focus()}
+              hitSlop={8}
+            >
               <EditIcon width={26 * scale} height={26 * scale} />
             </Pressable>
           </View>
@@ -126,13 +138,21 @@ export default function SettingsScreen() {
           {/* Email */}
           <View style={styles.fieldRow}>
             <View style={styles.fieldTextWrap}>
-              <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
-                email:
+              <Text
+                style={[
+                  styles.label,
+                  { fontSize: 22 * scale, lineHeight: 30 * scale },
+                ]}
+              >
+                Email:
               </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
-                style={[styles.valueInput, { fontSize: 24 * scale, lineHeight: 30 * scale }]}
+                style={[
+                  styles.valueInput,
+                  { fontSize: 24 * scale, lineHeight: 30 * scale },
+                ]}
                 placeholder="email"
                 placeholderTextColor="#70707f"
                 keyboardType="email-address"
@@ -142,11 +162,11 @@ export default function SettingsScreen() {
           </View>
 
           {/* Password Section */}
-          {!showPasswordEditor ? (
+          {!showPasswordEditor ?
             <View style={styles.fieldRow}>
               <View style={styles.fieldTextWrap}>
-                <Text style={[styles.label, { fontSize: 24 * scale }]}>
-                  password:
+                <Text style={[styles.label, { fontSize: 22 * scale }]}>
+                  Password:
                 </Text>
                 <Text style={[styles.valueInput, { fontSize: 24 * scale }]}>
                   ••••••••
@@ -156,8 +176,7 @@ export default function SettingsScreen() {
                 <EditIcon width={26 * scale} height={26 * scale} />
               </Pressable>
             </View>
-          ) : (
-            <View style={{ gap: 12 }}>
+          : <View style={{ gap: 12 }}>
               <TextInput
                 placeholder="Current password"
                 secureTextEntry
@@ -180,9 +199,9 @@ export default function SettingsScreen() {
                 style={styles.passwordInput}
               />
 
-              {error ? (
+              {error ?
                 <Text style={{ color: "red", fontSize: 14 }}>{error}</Text>
-              ) : null}
+              : null}
 
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Pressable
@@ -200,7 +219,7 @@ export default function SettingsScreen() {
                 </Pressable>
               </View>
             </View>
-          )}
+          }
         </View>
 
         {/* Logout (hidden while editing password) */}
@@ -227,20 +246,15 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#e8e8e8",
+    backgroundColor: tailwindColors["aura-white"],
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24, 
-    paddingTop: 28, 
-  },
-  headerWrap: {
-    alignItems: "center",
-    marginTop: 8,
+    paddingHorizontal: 24,
   },
   title: {
     textAlign: "center",
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   profileWrap: {
     alignItems: "center",
@@ -260,16 +274,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   label: {
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   valueInput: {
     flex: 1,
+    fontFamily: tailwindFonts["regular"],
   },
   passwordInput: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 12,
     borderRadius: 10,
+    fontFamily: tailwindFonts["regular"],
   },
   saveButton: {
     backgroundColor: "#4CAF50",
@@ -289,12 +305,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
+    fontSize: 20,
     color: "#fff",
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   cancelText: {
     color: "#333",
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   footer: {
     flex: 1,

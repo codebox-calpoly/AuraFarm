@@ -30,9 +30,9 @@ module.exports = {
         "aura-green-tint": "#A7F3D0",
       },
       fontFamily: {
-        sans: ['Poppins_400Regular', 'system-ui', 'sans-serif'],
-        semibold: ['Poppins_600SemiBold', 'system-ui', 'sans-serif'],
-        bold: ['Poppins_700Bold', 'system-ui', 'sans-serif'],
+        "regular": "Poppins_400Regular",
+        "semibold": "Poppins_600SemiBold",
+        "bold": "Poppins_700Bold",
       },
     },
   },
