@@ -140,7 +140,6 @@ export default function PostDetailScreen() {
           {/* Likes */}
           <View style={styles.likesSection}>
             <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-              <ThemedText style={styles.likesCount}>{likes}</ThemedText>
               <Ionicons
                 name={isLiked ? "heart" : "heart-outline"}
                 size={28}
@@ -150,6 +149,7 @@ export default function PostDetailScreen() {
                   : tailwindColors["aura-black"]
                 }
               />
+              <ThemedText style={styles.likesCount}>{likes}</ThemedText>
             </TouchableOpacity>
           </View>
 
