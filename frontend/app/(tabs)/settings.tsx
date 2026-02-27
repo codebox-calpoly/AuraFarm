@@ -234,7 +234,7 @@ export default function SettingsScreen() {
               style={[styles.logoutButton, { borderRadius: 18 * scale }]}
               onPress={handleLogOut}
             >
-              <Text style={styles.buttonText}>Log out</Text>
+              <Text style={styles.buttonText}>Log Out</Text>
             </Pressable>
           </View>
         )}
