@@ -13,7 +13,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -223,12 +223,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 48,
   },
   header: {
     width: "100%",
     alignItems: "center",
-    paddingTop: 32,
+    paddingTop: 48,
+    paddingBottom: 0,
   },
   contentContainer: {
     flex: 1,
@@ -240,14 +240,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
     textAlign: "left",
-    marginBottom: 12,
+    fontFamily: tailwindFonts["semibold"],
   },
   description: {
     fontSize: 16,
     color: "#6B7280",
     textAlign: "left",
+    fontFamily: tailwindFonts["regular"],
   },
   bottomSection: {
     width: "100%",
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
     color: "#ffffff",
   },
   logo: {
@@ -286,8 +286,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   bottomText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontFamily: tailwindFonts["semibold"],
   },
   bottomTextButton: {
     color: tailwindColors["aura-green"],
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280",
     marginBottom: 8,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   inputContainer: {
     display: "flex",
@@ -311,6 +311,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     height: 48,
+    fontFamily: tailwindFonts["regular"],
   },
   passwordToggle: {},
   passwordToggleIcon: {},
@@ -319,15 +320,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
   invalidUsernameText: {
     marginTop: 4,
     fontSize: 12,
     color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
   invalidPasswordText: {
     marginTop: 4,
     fontSize: 12,
     color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
 });

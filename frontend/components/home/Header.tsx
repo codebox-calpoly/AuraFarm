@@ -13,10 +13,9 @@ export function Header() {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-    paddingTop: 16,
-    paddingBottom: 32,
+    paddingTop: 24,
+    paddingBottom: 24,
     backgroundColor: "transparent",
-    marginTop: 8,
   },
   logo: {
     width: 200,

@@ -8,7 +8,7 @@ import { useFocusEffect } from "expo-router";
 
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { Header } from "@/components/home/Header";
 import { postStore } from "@/stores/postStore";
 
@@ -100,7 +100,7 @@ export default function PostDetailScreen() {
               {post.challengeTitle}
             </ThemedText>
             <ThemedText style={styles.pointsText}>
-              +{post.points} points
+              +{post.points} Aura
             </ThemedText>
           </View>
 
@@ -154,10 +154,12 @@ export default function PostDetailScreen() {
           </View>
 
           {/* Caption */}
-          <View style={styles.captionSection}>
-            <ThemedText style={styles.captionLabel}>Caption</ThemedText>
-            <ThemedText style={styles.captionText}>{caption}</ThemedText>
-          </View>
+          {caption ?
+            <View style={styles.captionSection}>
+              <ThemedText style={styles.captionLabel}>Caption</ThemedText>
+              <ThemedText style={styles.captionText}>{caption}</ThemedText>
+            </View>
+          : null}
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -192,13 +194,13 @@ const styles = StyleSheet.create({
   },
   challengeTitle: {
     fontSize: 20,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: tailwindFonts["bold"],
     color: tailwindColors["aura-black"],
     marginBottom: 4,
   },
   pointsText: {
     fontSize: 14,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-orange"],
   },
   editButton: {
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
   },
   likesCount: {
     fontSize: 20,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-black"],
   },
   captionSection: {
@@ -250,13 +252,13 @@ const styles = StyleSheet.create({
   },
   captionLabel: {
     fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-black"],
     marginBottom: 12,
   },
   captionText: {
     fontSize: 14,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: tailwindFonts["regular"],
     color: tailwindColors["aura-black"],
     lineHeight: 20,
   },

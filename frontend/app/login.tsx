@@ -13,7 +13,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { setAuthenticated } from "@/lib/auth";
 
 export default function LogInScreen() {
@@ -82,7 +82,9 @@ export default function LogInScreen() {
           {/* Text Content */}
           <View style={styles.textContainer}>
             <Text style={styles.title}>Log In</Text>
-            <Text style={styles.description}>Enter your email and password</Text>
+            <Text style={styles.description}>
+              Enter your email and password
+            </Text>
           </View>
 
           {/* Email Input */}
@@ -146,7 +148,7 @@ export default function LogInScreen() {
               onPress={handleLogin}
               style={[styles.button, styles.buttonPrimary]}
             >
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonTextPrimary}>Log In</Text>
             </TouchableOpacity>
 
             <View style={styles.bottomTextContainer}>
@@ -172,12 +174,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 48,
   },
   header: {
     width: "100%",
     alignItems: "center",
-    paddingTop: 32,
+    paddingTop: 48,
+    paddingBottom: 0,
   },
   contentContainer: {
     flex: 1,
@@ -189,14 +191,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
     textAlign: "left",
-    marginBottom: 12,
+    fontFamily: tailwindFonts["semibold"],
   },
   description: {
     fontSize: 16,
     color: "#6B7280",
     textAlign: "left",
+    fontFamily: tailwindFonts["regular"],
   },
   bottomSection: {
     width: "100%",
@@ -211,18 +213,12 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors["aura-green"],
   },
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  buttonText: {
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
     color: "#ffffff",
   },
   logo: {
@@ -241,17 +237,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   bottomText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontFamily: tailwindFonts["semibold"],
   },
   bottomTextButton: {
-    color: tailwindColors['aura-green'],
+    color: tailwindColors["aura-green"],
   },
   inputLabel: {
     fontSize: 14,
     color: "#6B7280",
     marginBottom: 8,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   inputContainer: {
     display: "flex",
@@ -266,6 +262,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     height: 48,
+    fontFamily: tailwindFonts["regular"],
   },
   passwordToggle: {},
   passwordToggleIcon: {},
@@ -274,15 +271,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#181725",
     textAlign: "right",
+    fontFamily: tailwindFonts["regular"],
   },
   invalidEmailText: {
     marginTop: 4,
     fontSize: 12,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
   invalidPasswordText: {
     marginTop: 4,
     fontSize: 12,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
 });

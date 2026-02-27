@@ -11,7 +11,7 @@ import { ChallengeCard } from "@/components/home/ChallengeCard";
 import { ChallengeDetailModal } from "@/components/home/ChallengeDetailModal";
 import { FeedCard } from "@/components/home/FeedCard";
 import { ReportPostModal } from "@/components/home/ReportPostModal";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -299,14 +299,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: tailwindFonts["bold"],
     color: tailwindColors["aura-black"],
     marginBottom: 12,
     marginTop: 8,
   },
   emptyState: {
     fontSize: 16,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: tailwindFonts["regular"],
     color: tailwindColors["aura-gray-400"],
     textAlign: "center",
     marginVertical: 32,

@@ -15,7 +15,7 @@ import { useState } from "react";
 
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { Header } from "@/components/home/Header";
 import { postStore } from "@/stores/postStore";
 
@@ -164,13 +164,13 @@ const styles = StyleSheet.create({
   },
   challengeTitle: {
     fontSize: 20,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: tailwindFonts["bold"],
     color: tailwindColors["aura-black"],
     marginBottom: 4,
   },
   pointsText: {
     fontSize: 14,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-orange"],
   },
   scrollView: {
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontFamily: "Poppins_600SemiBold",
+    fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-black"],
     marginBottom: 12,
   },
@@ -212,7 +212,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     fontSize: 14,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: tailwindFonts["regular"],
     color: tailwindColors["aura-black"],
     textAlignVertical: "top",
     backgroundColor: tailwindColors["aura-white"],
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 18,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: tailwindFonts["bold"],
     color: tailwindColors["aura-white"],
   },
 });

@@ -12,7 +12,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { setAuthenticated } from "@/lib/auth";
 
 export default function VerificationScreen() {
@@ -95,7 +95,7 @@ export default function VerificationScreen() {
               <IconSymbol
                 size={35}
                 name="chevron.right"
-                color={tailwindColors['aura-green']}
+                color={tailwindColors["aura-green"]}
                 style={styles.continueIcon}
               />
             </TouchableOpacity>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingBottom: 32,
   },
   header: {
     width: "100%",
@@ -137,13 +137,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 400,
+    fontFamily: tailwindFonts["regular"],
     color: "#1F2937",
     textAlign: "left",
     marginBottom: 12,
   },
   bold: {
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   description: {
     fontSize: 16,
@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors["aura-green"],
   },
   buttonCircle: {
     width: 64,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
     color: "#ffffff",
   },
   credentialsContainer: {
@@ -189,15 +189,16 @@ const styles = StyleSheet.create({
   bottomText: {
     marginTop: 24,
     fontSize: 18,
+    fontFamily: tailwindFonts["regular"],
   },
   bottomButtonText: {
-    color: tailwindColors['aura-green'],
+    color: tailwindColors["aura-green"],
   },
   inputLabel: {
     fontSize: 14,
     color: "#6B7280",
     marginBottom: 8,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   inputContainer: {
     display: "flex",
@@ -211,8 +212,10 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    fontSize: 16,
-    height: 48,
+    fontSize: 32,
+    height: 64,
+    letterSpacing: 5,
+    fontFamily: tailwindFonts["regular"],
   },
   passwordToggle: {},
   passwordToggleIcon: {},
@@ -222,6 +225,6 @@ const styles = StyleSheet.create({
   invalidEmailText: {
     marginTop: 4,
     fontSize: 12,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
   },
 });

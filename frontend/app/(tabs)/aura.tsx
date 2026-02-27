@@ -6,7 +6,7 @@ import { useRef } from "react";
 import ViewShot from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { Header } from "@/components/home/Header";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { ThemedText } from "@/components/themed-text";
 
 export default function AuraScreen() {
@@ -99,14 +99,14 @@ const styles = StyleSheet.create({
   },
   auraText: {
     fontSize: 32,
-    fontFamily: "Poppins_400Regular",
+    fontFamily: tailwindFonts["regular"],
     color: tailwindColors["aura-black"],
     marginTop: 16,
     textAlign: "center",
   },
   rarityText: {
     fontSize: 24,
-    fontFamily: "Poppins_700Bold",
+    fontFamily: tailwindFonts["bold"],
     color: tailwindColors["aura-red"],
     textAlign: "center",
   },
