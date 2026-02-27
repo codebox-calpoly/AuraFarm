@@ -14,7 +14,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingTop: 24,
-    paddingBottom: 24,
+    paddingBottom: 32,
     backgroundColor: "transparent",
   },
   logo: {
