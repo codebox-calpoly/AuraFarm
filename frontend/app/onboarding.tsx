@@ -1,33 +1,30 @@
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Dimensions,
-  StyleSheet,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { tailwindColors } from "@/constants/tailwind-colors";
-
-const { width } = Dimensions.get("window");
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
+import { Header } from "@/components/home/Header";
 
 const onboardingData = [
   {
     id: 1,
     title: "Welcome to Aura Farm",
-    description: "Discover challenges, earn points, and grow your sustainable journey on campus.",
+    description:
+      "Discover challenges, earn points, and grow your sustainable journey on campus.",
   },
   {
     id: 2,
     title: "Complete Challenges",
-    description: "Find challenges near you, complete them, and earn Aura points to climb the leaderboard.",
+    description:
+      "Find challenges near you, complete them, and earn Aura points to climb the leaderboard.",
   },
   {
     id: 3,
     title: "Get Started",
-    description: "Create an account to start your journey and track your progress.",
+    description:
+      "Create an account to start your journey and track your progress.",
   },
 ];
 
@@ -64,33 +61,32 @@ export default function OnboardingScreen() {
   const isLastScreen = currentIndex === onboardingData.length - 1;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Aura Farm</Text>
-      </View>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        {/* Header */}
+        <Header />
 
-      {/* Content Area */}
-      <Animated.View
-        key={currentIndex}
-        entering={FadeInRight.duration(400)}
-        exiting={FadeOutLeft.duration(400)}
-        style={styles.contentContainer}
-      >
-        {/* Image Placeholder */}
-        <View style={styles.imagePlaceholder} />
+        {/* Content Area */}
+        <Animated.View
+          key={currentIndex}
+          entering={FadeInRight.duration(400)}
+          exiting={FadeOutLeft.duration(400)}
+          style={styles.contentContainer}
+        >
+          {/* Image Placeholder */}
+          <View style={styles.imagePlaceholder} />
 
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>{onboardingData[currentIndex].title}</Text>
-          <Text style={styles.description}>
-            {onboardingData[currentIndex].description}
-          </Text>
-        </View>
-      </Animated.View>
+          {/* Text Content */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>
+              {onboardingData[currentIndex].title}
+            </Text>
+            <Text style={styles.description}>
+              {onboardingData[currentIndex].description}
+            </Text>
+          </View>
+        </Animated.View>
 
-      {/* Bottom Section */}
-      <View style={styles.bottomSection}>
         {/* Pagination Dots */}
         <View style={styles.pagination}>
           {onboardingData.map((_, index) => (
@@ -104,43 +100,40 @@ export default function OnboardingScreen() {
           ))}
         </View>
 
-        {/* Buttons */}
-        {isLastScreen ? (
-          <View style={styles.lastScreenButtons}>
-            <TouchableOpacity
-              onPress={handleSignUp}
-              style={[styles.button, styles.buttonPrimary]}
-            >
-              <Text style={styles.buttonTextPrimary}>Sign Up</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleLogIn}
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          {/* Buttons */}
+          {isLastScreen ?
+            <View style={styles.lastScreenButtons}>
+              <TouchableOpacity
+                onPress={handleSignUp}
+                style={[styles.button, styles.buttonPrimary]}
+              >
+                <Text style={styles.buttonTextPrimary}>Start</Text>
+              </TouchableOpacity>
+            </View>
+          : <TouchableOpacity
+              onPress={handleContinue}
               style={[styles.button, styles.buttonSecondary]}
             >
-              <Text style={styles.buttonTextSecondary}>Log In</Text>
+              <Text style={styles.buttonTextSecondary}>Continue</Text>
             </TouchableOpacity>
-          </View>
-        ) : (
-          <TouchableOpacity
-            onPress={handleContinue}
-            style={[styles.button, styles.buttonSecondary]}
-          >
-            <Text style={styles.buttonTextSecondary}>Continue</Text>
-          </TouchableOpacity>
-        )}
+          }
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: tailwindColors["aura-white"],
+  },
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingVertical: 32,
   },
   header: {
     width: "100%",
@@ -149,8 +142,8 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 30,
-    fontWeight: "bold",
-    color: tailwindColors['aura-red'],
+    fontFamily: tailwindFonts["bold"],
+    color: tailwindColors["aura-red"],
     textShadowColor: "rgba(220, 38, 38, 0.3)",
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 4,
@@ -166,17 +159,17 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     backgroundColor: "#000000",
     borderRadius: 16,
-    marginBottom: 32,
     maxWidth: 384,
   },
   textContainer: {
     width: "100%",
     alignItems: "center",
     paddingHorizontal: 16,
+    marginTop: 32,
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
+    fontFamily: tailwindFonts["semibold"],
     color: "#1F2937",
     textAlign: "center",
     marginBottom: 12,
@@ -191,6 +184,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pagination: {
+    display: "flex",
+    justifyContent: "center",
     flexDirection: "row",
     marginBottom: 32,
     gap: 8,
@@ -223,18 +218,18 @@ const styles = StyleSheet.create({
     borderColor: "#030303",
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors["aura-green"],
   },
   buttonTextSecondary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
     color: "#030303",
   },
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-white"],
   },
 });
