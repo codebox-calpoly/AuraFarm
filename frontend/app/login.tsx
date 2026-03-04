@@ -7,23 +7,29 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { setAuthenticated } from "@/lib/auth";
+import { storeSession } from "@/lib/auth";
+
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export default function LogInScreen() {
   const router = useRouter();
 
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
   const [showInputErrors, setShowInputErrors] = useState(false);
 
   const [email, setEmail] = useState("");
   const onChangeEmail = (text: string) => {
     setEmail(text);
     setShowInputErrors(false);
+    setServerError(null);
   };
 
   const [password, setPassword] = useState("");
@@ -31,6 +37,7 @@ export default function LogInScreen() {
   const onChangePassword = (text: string) => {
     setPassword(text);
     setShowInputErrors(false);
+    setServerError(null);
   };
 
   const handleSignup = async () => {
@@ -43,8 +50,36 @@ export default function LogInScreen() {
       return;
     }
 
-    await setAuthenticated(true);
-    router.replace("/(tabs)");
+    setLoading(true);
+    setServerError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const json = await response.json();
+
+      if (!response.ok) {
+        setServerError(json.error ?? json.message ?? "Invalid email or password.");
+        return;
+      }
+
+      // Persist session tokens
+      await storeSession({
+        accessToken: json.data.accessToken,
+        refreshToken: json.data.refreshToken,
+        userId: json.data.user.id,
+      });
+
+      router.replace("/(tabs)");
+    } catch (err) {
+      setServerError("Network error. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -83,6 +118,13 @@ export default function LogInScreen() {
           <Text style={styles.description}>Enter your email and password</Text>
         </View>
 
+        {/* Server Error */}
+        {serverError ? (
+          <View style={styles.serverErrorContainer}>
+            <Text style={styles.serverErrorText}>{serverError}</Text>
+          </View>
+        ) : null}
+
         {/* Email Input */}
         <View style={styles.credentialsContainer}>
           <Text style={styles.inputLabel}>Email</Text>
@@ -95,10 +137,13 @@ export default function LogInScreen() {
               placeholder="mmustang@calpoly.edu"
               placeholderTextColor="#c2c2c2"
               textContentType="emailAddress"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!loading}
             />
           </View>
           {showInputErrors && email === "" ?
-            <Text style={styles.invalidEmailText}>Invalid email</Text>
+            <Text style={styles.invalidEmailText}>Email is required</Text>
           : null}
         </View>
 
@@ -115,6 +160,7 @@ export default function LogInScreen() {
               placeholderTextColor="#c2c2c2"
               secureTextEntry={passwordHidden}
               textContentType="password"
+              editable={!loading}
             />
             <TouchableOpacity
               onPress={() => setPasswordHidden(!passwordHidden)}
@@ -129,7 +175,7 @@ export default function LogInScreen() {
             </TouchableOpacity>
           </View>
           {showInputErrors && password === "" ?
-            <Text style={styles.invalidPasswordText}>Invalid password</Text>
+            <Text style={styles.invalidPasswordText}>Password is required</Text>
           : null}
 
           <TouchableOpacity onPress={handleForgotPassword}>
@@ -142,14 +188,19 @@ export default function LogInScreen() {
           {/* Log In Button */}
           <TouchableOpacity
             onPress={handleLogin}
-            style={[styles.button, styles.buttonPrimary]}
+            style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
+            disabled={loading}
           >
-            <Text style={styles.buttonText}>Log In</Text>
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.buttonText}>Log In</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.bottomTextContainer}>
             <Text style={styles.bottomText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={handleSignup}>
+            <TouchableOpacity onPress={handleSignup} disabled={loading}>
               <Text style={[styles.bottomText, styles.bottomTextButton]}>
                 Sign Up
               </Text>
@@ -192,6 +243,20 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "left",
   },
+  serverErrorContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: tailwindColors['aura-red'],
+  },
+  serverErrorText: {
+    fontSize: 13,
+    color: tailwindColors['aura-red'],
+    textAlign: "center",
+  },
   bottomSection: {
     width: "100%",
     alignItems: "center",
@@ -206,6 +271,9 @@ const styles = StyleSheet.create({
   },
   buttonPrimary: {
     backgroundColor: tailwindColors['aura-green'],
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonTextPrimary: {
     textAlign: "center",

@@ -10,6 +10,7 @@ import rateLimiter from './middleware/rateLimiter';
 
 
 // Import routes
+import authRoutes from './routes/auth.routes';
 import challengesRoutes from './routes/challenges.routes';
 import completionsRoutes from './routes/completions.routes';
 import flagsRoutes from './routes/flags.routes';
@@ -34,6 +35,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 
 // API Routes
+app.use('/api/auth', rateLimiter.authLimiter, authRoutes);
 app.use('/api/challenges', rateLimiter.publicLimiter, challengesRoutes);
 app.use('/api/completions', completionsRoutes);
 app.use('/api/flags', flagsRoutes);
