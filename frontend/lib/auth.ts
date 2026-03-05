@@ -7,13 +7,13 @@ const USER_ID_KEY = 'session_user_id';
 export interface StoredSession {
   accessToken: string;
   refreshToken: string;
-  userId: number;
+  userId: string | number;
 }
 
 export async function storeSession(session: {
   accessToken: string;
   refreshToken: string;
-  userId: number;
+  userId: string |number;
 }): Promise<void> {
   try {
     await AsyncStorage.multiSet([

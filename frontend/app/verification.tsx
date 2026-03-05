@@ -60,6 +60,11 @@ export default function VerificationScreen() {
   };
 
   const handleContinue = async () => {
+    if (!email) {
+      setServerError("Missing email. Please try signing up again.");
+      return;
+    }
+
     if (code.length < 4) {
       setServerError("Please enter the full verification code.");
       return;
@@ -69,29 +74,35 @@ export default function VerificationScreen() {
     setServerError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, token: code }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "signup", // use "email" if using magic link login
       });
-
-      const json = await response.json();
-
-      if (!response.ok) {
-        setServerError(json.error ?? json.message ?? "Invalid or expired code.");
+      console.log("Verification session:", data?.session);
+      console.log("User ID:", data?.session?.user?.id);
+      console.log("User ID type:", typeof data?.session?.user?.id);
+      if (error) {
+        setServerError(error.message ?? "Invalid or expired code.");
         return;
       }
 
-      // Store session and navigate into the app
+      if (!data.session) {
+        setServerError("Verification failed. No session returned.");
+        return;
+      }
+
+      // Store Supabase session
       await storeSession({
-        accessToken: json.data.accessToken,
-        refreshToken: json.data.refreshToken,
-        userId: json.data.user.id,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        userId: data.session.user.id,
       });
 
       router.replace("/(tabs)");
-    } catch {
-      setServerError("Network error. Please check your connection and try again.");
+    } catch (err) {
+      console.error("Verification error:", err);
+      setServerError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
