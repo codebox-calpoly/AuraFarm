@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
+import { supabase } from "@/lib/supabase";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -61,6 +62,21 @@ export default function SignUpScreen() {
   const handleSignup = async () => {
     if (!validUsername || !validEmail || !validPassword) {
       setShowInputErrors(true);
+      return;
+    }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+        },
+      },
+    });
+
+    if (error) {
+      alert(`Signup failed: ${error.message}`);
       return;
     }
 

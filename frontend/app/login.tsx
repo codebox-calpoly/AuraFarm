@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { setAuthenticated } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -43,7 +43,16 @@ export default function LogInScreen() {
       return;
     }
 
-    await setAuthenticated(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(`Login failed: ${error.message}`);
+      return;
+    }
+
     router.replace("/(tabs)");
   };
 

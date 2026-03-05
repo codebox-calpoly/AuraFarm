@@ -12,7 +12,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { setAuthenticated } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -27,7 +27,18 @@ export default function VerificationScreen() {
   };
 
   const handleContinue = async () => {
-    await setAuthenticated(true);
+    // In a full implementation, you'd pass the email from the previous screen
+    const { error } = await supabase.auth.verifyOtp({
+      email: "mmustang@calpoly.edu", // Hardcoded for the UI mockup
+      token: code,
+      type: "signup",
+    });
+
+    if (error) {
+      alert(`Verification failed: ${error.message}`);
+      return;
+    }
+
     router.replace("/(tabs)");
   };
 

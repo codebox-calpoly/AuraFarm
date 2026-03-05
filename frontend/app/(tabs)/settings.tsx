@@ -14,7 +14,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { setAuthenticated } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 
 const BASE_WIDTH = 414;
 
@@ -37,8 +37,13 @@ export default function SettingsScreen() {
   const scale = width / BASE_WIDTH;
 
   const handleLogOut = async () => {
-    await setAuthenticated(false);
-    router.replace("/login");
+    try {
+      await supabase.auth.signOut();
+      router.replace("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out. Please try again.");
+    }
   };
 
   const handleChangePassword = async () => {
