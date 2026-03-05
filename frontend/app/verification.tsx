@@ -8,11 +8,12 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { storeSession } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
@@ -109,110 +110,115 @@ export default function VerificationScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-    >
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          {/* Back Button */}
-          <TouchableOpacity onPress={() => router.replace("/signup")}>
-            <IconSymbol name="chevron.left" size={35} color="#000000" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Content Area */}
-        <Animated.View
-          entering={FadeInRight.duration(400)}
-          exiting={FadeOutLeft.duration(400)}
-          style={styles.contentContainer}
-        >
-          {/* Text Content */}
-          <View style={styles.textContainer}>
-            <Text style={styles.title}>
-              Enter 4-digit code sent to{" "}
-              <Text style={styles.bold}>{email ?? "your email"}</Text>
-            </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      >
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.header}>
+            {/* Back Button */}
+            <TouchableOpacity onPress={() => router.replace("/signup")}>
+              <IconSymbol name="chevron.left" size={35} color="#000000" />
+            </TouchableOpacity>
           </View>
 
-          {/* Server Error */}
-          {serverError ? (
-            <View style={styles.messageContainer}>
-              <Text style={styles.errorText}>{serverError}</Text>
-            </View>
-          ) : null}
-
-          {/* Resend success */}
-          {resendMessage ? (
-            <View style={[styles.messageContainer, styles.successContainer]}>
-              <Text style={styles.successText}>{resendMessage}</Text>
-            </View>
-          ) : null}
-
-          {/* Code Input */}
-          <View style={styles.credentialsContainer}>
-            <Text style={styles.inputLabel}>Code</Text>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                onChangeText={onChangeCode}
-                value={code}
-                placeholder="- - - -"
-                placeholderTextColor="#c2c2c2"
-                keyboardType="numeric"
-                maxLength={4}
-                editable={!loading}
-              />
-            </View>
-          </View>
-        </Animated.View>
-
-        {/* Bottom Section */}
-        <View style={styles.bottomSection}>
-          <TouchableOpacity onPress={handleResendCode} disabled={resendLoading || loading}>
-            {resendLoading ? (
-              <ActivityIndicator color={tailwindColors['aura-green']} />
-            ) : (
-              <Text style={[styles.bottomText, styles.bottomButtonText]}>
-                Resend Code
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            onPress={handleContinue}
-            style={[styles.buttonCircle, styles.buttonPrimary, loading && styles.buttonDisabled]}
-            disabled={loading}
+          {/* Content Area */}
+          <Animated.View
+            entering={FadeInRight.duration(400)}
+            exiting={FadeOutLeft.duration(400)}
+            style={styles.contentContainer}
           >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" size="small" />
-            ) : (
-              <IconSymbol
-                size={35}
-                name="chevron.right"
-                color="#ffffff"
-                style={styles.continueIcon}
-              />
-            )}
-          </TouchableOpacity>
+            {/* Text Content */}
+            <View style={styles.textContainer}>
+              <Text style={styles.title}>
+                Enter 4-digit code sent to{" "}
+                <Text style={styles.bold}>{email ?? "your email"}</Text>
+              </Text>
+            </View>
+
+            {/* Server Error */}
+            {serverError ? (
+              <View style={styles.messageContainer}>
+                <Text style={styles.errorText}>{serverError}</Text>
+              </View>
+            ) : null}
+
+            {/* Resend success */}
+            {resendMessage ? (
+              <View style={[styles.messageContainer, styles.successContainer]}>
+                <Text style={styles.successText}>{resendMessage}</Text>
+              </View>
+            ) : null}
+
+            {/* Code Input */}
+            <View style={styles.credentialsContainer}>
+              <Text style={styles.inputLabel}>Code</Text>
+
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  onChangeText={onChangeCode}
+                  value={code}
+                  placeholder="- - - -"
+                  placeholderTextColor="#c2c2c2"
+                  keyboardType="numeric"
+                  maxLength={4}
+                  editable={!loading}
+                />
+              </View>
+            </View>
+          </Animated.View>
+
+          {/* Bottom Section */}
+          <View style={styles.bottomSection}>
+            <TouchableOpacity onPress={handleResendCode} disabled={resendLoading || loading}>
+              {resendLoading ? (
+                <ActivityIndicator color={tailwindColors['aura-green']} />
+              ) : (
+                <Text style={[styles.bottomText, styles.bottomButtonText]}>
+                  Resend Code
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Continue Button */}
+            <TouchableOpacity
+              onPress={handleContinue}
+              style={[styles.buttonCircle, styles.buttonPrimary, loading && styles.buttonDisabled]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" size="small" />
+              ) : (
+                <IconSymbol
+                  size={35}
+                  name="chevron.right"
+                  color="#ffffff"
+                  style={styles.continueIcon}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  container: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingVertical: 48,
+    paddingBottom: 32,
   },
   header: {
     width: "100%",
@@ -233,14 +239,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "400",
+    fontFamily: tailwindFonts["regular"],
     color: "#1F2937",
     textAlign: "left",
     marginBottom: 12,
     flexShrink: 1,
   },
   bold: {
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   messageContainer: {
     width: "100%",
@@ -274,7 +280,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors["aura-green"],
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -295,15 +301,16 @@ const styles = StyleSheet.create({
   bottomText: {
     marginTop: 24,
     fontSize: 18,
+    fontFamily: tailwindFonts["regular"],
   },
   bottomButtonText: {
-    color: tailwindColors['aura-green'],
+    color: tailwindColors["aura-green"],
   },
   inputLabel: {
     fontSize: 14,
     color: "#6B7280",
     marginBottom: 8,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   inputContainer: {
     display: "flex",
@@ -317,8 +324,10 @@ const styles = StyleSheet.create({
   },
   input: {
     width: "100%",
-    fontSize: 16,
-    height: 48,
+    fontSize: 32,
+    height: 64,
+    letterSpacing: 5,
+    fontFamily: tailwindFonts["regular"],
   },
   continueIcon: {
     color: "#ffffff",

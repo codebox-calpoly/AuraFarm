@@ -9,11 +9,12 @@ import {
   Platform,
   ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { storeSession } from "@/lib/auth";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -87,35 +88,19 @@ export default function LogInScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
-      style={styles.container}
-    >
-      {/* Logo */}
-      <View style={styles.header}>
-        <Image
-          style={styles.logo}
-          source={require("../assets/images/red-logo.png")}
-          resizeMode="contain"
-        />
-      </View>
-
-      {/* Content Area */}
-      <Animated.ScrollView
-        entering={FadeInRight.duration(400)}
-        exiting={FadeOutLeft.duration(400)}
-        style={styles.contentContainer}
-        contentContainerStyle={{
-          paddingBottom: 48,
-        }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
+        style={styles.container}
       >
-        {/* Text Content */}
-        <View style={styles.textContainer}>
-          <Text style={styles.title}>Log In</Text>
-          <Text style={styles.description}>Enter your email and password</Text>
+        {/* Logo */}
+        <View style={styles.header}>
+          <Image
+            style={styles.logo}
+            source={require("../assets/images/red-logo.png")}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Server Error */}
@@ -125,104 +110,128 @@ export default function LogInScreen() {
           </View>
         ) : null}
 
-        {/* Email Input */}
-        <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Email</Text>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onChangeText={onChangeEmail}
-              value={email}
-              placeholder="mmustang@calpoly.edu"
-              placeholderTextColor="#c2c2c2"
-              textContentType="emailAddress"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
+        {/* Content Area */}
+        <Animated.ScrollView
+          entering={FadeInRight.duration(400)}
+          exiting={FadeOutLeft.duration(400)}
+          style={styles.contentContainer}
+          contentContainerStyle={{
+            paddingBottom: 48,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Text Content */}
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>Log In</Text>
+            <Text style={styles.description}>
+              Enter your email and password
+            </Text>
           </View>
-          {showInputErrors && email === "" ?
-            <Text style={styles.invalidEmailText}>Email is required</Text>
-          : null}
-        </View>
 
-        {/* Password Input */}
-        <View style={styles.credentialsContainer}>
-          <Text style={styles.inputLabel}>Password</Text>
+          {/* Email Input */}
+          <View style={styles.credentialsContainer}>
+            <Text style={styles.inputLabel}>Email</Text>
 
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              onChangeText={onChangePassword}
-              value={password}
-              placeholder="••••••••••••••"
-              placeholderTextColor="#c2c2c2"
-              secureTextEntry={passwordHidden}
-              textContentType="password"
-              editable={!loading}
-            />
-            <TouchableOpacity
-              onPress={() => setPasswordHidden(!passwordHidden)}
-              style={styles.passwordToggle}
-            >
-              <IconSymbol
-                size={25}
-                name={passwordHidden ? "eye.slash" : "eye"}
-                color="#8c8c8c"
-                style={styles.passwordToggleIcon}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                onChangeText={onChangeEmail}
+                value={email}
+                placeholder="mmustang@calpoly.edu"
+                placeholderTextColor="#c2c2c2"
+                textContentType="emailAddress"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!loading}
               />
+            </View>
+            {
+              showInputErrors && email === "" ?
+                <Text style={styles.invalidEmailText}>Invalid email</Text>
+                : null
+            }
+          </View>
+          {/* Password Input */}
+          <View style={styles.credentialsContainer}>
+            <Text style={styles.inputLabel}>Password</Text>
+
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                onChangeText={onChangePassword}
+                value={password}
+                placeholder="••••••••••••••"
+                placeholderTextColor="#c2c2c2"
+                secureTextEntry={passwordHidden}
+                textContentType="password"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                onPress={() => setPasswordHidden(!passwordHidden)}
+                style={styles.passwordToggle}
+              >
+                <IconSymbol
+                  size={25}
+                  name={passwordHidden ? "eye.slash" : "eye"}
+                  color="#8c8c8c"
+                  style={styles.passwordToggleIcon}
+                />
+              </TouchableOpacity>
+            </View>
+            {showInputErrors && password === "" ?
+              <Text style={styles.invalidPasswordText}>Password is required</Text>
+              : null}
+
+            <TouchableOpacity onPress={handleForgotPassword}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
-          {showInputErrors && password === "" ?
-            <Text style={styles.invalidPasswordText}>Password is required</Text>
-          : null}
 
-          <TouchableOpacity onPress={handleForgotPassword}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Bottom Section */}
-        <View style={styles.bottomSection}>
-          {/* Log In Button */}
-          <TouchableOpacity
-            onPress={handleLogin}
-            style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>Log In</Text>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.bottomTextContainer}>
-            <Text style={styles.bottomText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={handleSignup} disabled={loading}>
-              <Text style={[styles.bottomText, styles.bottomTextButton]}>
-                Sign Up
-              </Text>
+          {/* Bottom Section */}
+          <View style={styles.bottomSection}>
+            {/* Log In Button */}
+            <TouchableOpacity
+              onPress={handleLogin}
+              style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.buttonTextPrimary}>Log In</Text>
+              )}
             </TouchableOpacity>
+
+            <View style={styles.bottomTextContainer}>
+              <Text style={styles.bottomText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={handleSignup} disabled={loading}>
+                <Text style={[styles.bottomText, styles.bottomTextButton]}>
+                  Sign Up
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Animated.ScrollView>
-    </KeyboardAvoidingView>
+        </Animated.ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView >
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: "#ffffff",
+  },
+  container: {
+    flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 48,
   },
   header: {
     width: "100%",
     alignItems: "center",
-    paddingTop: 32,
+    paddingTop: 48,
+    paddingBottom: 0,
   },
   contentContainer: {
     flex: 1,
@@ -234,14 +243,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
     textAlign: "left",
-    marginBottom: 12,
+    fontFamily: tailwindFonts["semibold"],
   },
   description: {
     fontSize: 16,
     color: "#6B7280",
     textAlign: "left",
+    fontFamily: tailwindFonts["regular"],
   },
   serverErrorContainer: {
     marginHorizontal: 16,
@@ -270,7 +279,7 @@ const styles = StyleSheet.create({
     borderColor: "transparent",
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors['aura-green'],
+    backgroundColor: tailwindColors["aura-green"],
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -278,13 +287,7 @@ const styles = StyleSheet.create({
   buttonTextPrimary: {
     textAlign: "center",
     fontSize: 18,
-    fontWeight: "600",
-    color: "#ffffff",
-  },
-  buttonText: {
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
     color: "#ffffff",
   },
   logo: {
@@ -303,17 +306,17 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   bottomText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontFamily: tailwindFonts["semibold"],
   },
   bottomTextButton: {
-    color: tailwindColors['aura-green'],
+    color: tailwindColors["aura-green"],
   },
   inputLabel: {
     fontSize: 14,
     color: "#6B7280",
     marginBottom: 8,
-    fontWeight: "600",
+    fontFamily: tailwindFonts["semibold"],
   },
   inputContainer: {
     display: "flex",
@@ -328,6 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     height: 48,
+    fontFamily: tailwindFonts["regular"],
   },
   passwordToggle: {},
   passwordToggleIcon: {},
@@ -336,15 +340,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#181725",
     textAlign: "right",
+    fontFamily: tailwindFonts["regular"],
   },
   invalidEmailText: {
     marginTop: 4,
     fontSize: 12,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
   invalidPasswordText: {
     marginTop: 4,
     fontSize: 12,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
   },
 });
