@@ -163,7 +163,7 @@ export default function VerificationScreen() {
                 placeholder="- - - -"
                 placeholderTextColor="#c2c2c2"
                 keyboardType="numeric"
-                maxLength={6}
+                maxLength={4}
                 editable={!loading}
               />
             </View>
