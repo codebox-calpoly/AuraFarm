@@ -4,6 +4,7 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const tailwindConfig = require('../tailwind.config.js');
+const tailwindConfig = require("../tailwind.config.js");
 
 export const tailwindColors = tailwindConfig.theme.extend.colors;
+export const tailwindFonts = tailwindConfig.theme.extend.fontFamily;

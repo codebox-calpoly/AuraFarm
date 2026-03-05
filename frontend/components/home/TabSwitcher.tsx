@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   tab: {
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 2,
   },
   tabText: {
     fontSize: 16,
