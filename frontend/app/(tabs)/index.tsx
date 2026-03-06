@@ -12,6 +12,8 @@ import { ChallengeDetailModal } from '@/components/home/ChallengeDetailModal';
 import { FeedCard } from '@/components/home/FeedCard';
 import { ReportPostModal } from '@/components/home/ReportPostModal';
 import { tailwindColors } from '@/constants/tailwind-colors';
+import { useFeed, FeedPost } from '@/hooks/useFeed';
+import api from '@/lib/api';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -49,37 +51,13 @@ export default function HomeScreen() {
     likes: number;
   }>>([]);
 
-  // Mock feed data - in production, this would come from the API
-  const [feedPosts] = useState([
-    {
-      id: 1,
-      challengeTitle: 'Hike the P',
-      points: 300,
-      userName: 'Marc Rober',
-      caption: 'I DID IT!!!!!!!',
-      date: 'Jan 9th, 2026',
-      likes: 123,
-      userImage: undefined, // Will use placeholder for now
-    },
-    {
-      id: 2,
-      challengeTitle: 'Find a cool rock',
-      points: 30,
-      userName: 'Marc Rober',
-      caption: 'Found this awesome rock on my hike!',
-      date: 'Jan 8th, 2026',
-      likes: 45,
-      userImage: undefined,
-    },
-  ]);
+  const { data: feedPosts = [] } = useFeed();
 
-  // Helper function to format date like "Jan 9th, 2026"
   const formatFeedDate = (date: Date): string => {
     const month = date.toLocaleDateString('en-US', { month: 'short' });
     const day = date.getDate();
     const year = date.getFullYear();
     
-    // Add ordinal suffix (st, nd, rd, th)
     const getOrdinalSuffix = (n: number): string => {
       if (n > 3 && n < 21) return 'th';
       switch (n % 10) {
@@ -147,15 +125,13 @@ export default function HomeScreen() {
     setSelectedPostId(null);
   };
 
-  const handleSubmitReport = (reason: string) => {
-    // In production, this would call the API to report the post
-    console.log('Reporting post', selectedPostId, 'with reason:', reason);
-    // You could also hide the post from the feed here
-    // Note: Don't close the modal here - let it show the confirmation screen
-    
-    // Mark this post as reported
-    if (selectedPostId !== null) {
+  const handleSubmitReport = async (reason: string) => {
+    if (selectedPostId === null) return;
+    try {
+      await api.post('/flags', { completionId: selectedPostId, reason });
       setReportedPosts(prev => new Set(prev).add(selectedPostId));
+    } catch (error) {
+      console.error('Failed to report post:', error);
     }
   };
 
@@ -207,7 +183,7 @@ export default function HomeScreen() {
           ) : (
             <>
               {feedPosts.length > 0 ? (
-                feedPosts.map((post) => (
+                feedPosts.map((post: FeedPost) => (
                   <FeedCard
                     key={post.id}
                     challengeTitle={post.challengeTitle}
@@ -215,10 +191,10 @@ export default function HomeScreen() {
                     userName={post.userName}
                     userImage={post.userImage}
                     caption={post.caption}
-                    date={post.date}
+                    date={formatFeedDate(new Date(post.date))}
                     likes={post.likes}
                     onPress={() => router.push(
-                      `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`
+                      `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption ?? '')}&likes=${post.likes}&isOwnPost=false`
                     )}
                     onOptionsPress={() => handleOpenReportModal(post.id)}
                     onLikePress={() => console.log('Like post', post.id)}

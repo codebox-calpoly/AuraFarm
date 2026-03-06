@@ -4,7 +4,7 @@ import {
   getCompletionById,
   getCompletions,
 } from '../controllers/completions.controller';
-import { validateBody, validate } from '../middleware/validate';
+import { validateBody, validate, validateQuery } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
 import {
   createCompletionSchema,
@@ -92,7 +92,7 @@ router.post(
  */
 router.get(
   '/',
-  validate(completionsListQuerySchema),
+  validateQuery(completionsListQuerySchema),
   getCompletions
 );
 
