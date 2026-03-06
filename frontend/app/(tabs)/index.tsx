@@ -1,7 +1,8 @@
-import { StyleSheet, ScrollView } from "react-native";
-import { useState } from "react";
+import { Alert, StyleSheet, ScrollView } from "react-native";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import * as Location from "expo-location";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Header } from "@/components/home/Header";
@@ -13,6 +14,8 @@ import { FeedCard } from "@/components/home/FeedCard";
 import { ReportPostModal } from "@/components/home/ReportPostModal";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { useFeedCache } from "@/stores/feedCache";
+import { getChallenges, submitCompletion } from "@/lib/api";
+import { uploadCompletionImage } from "@/lib/storage";
 
 const STATIC_FEED_POSTS: Array<{
   id: number;
@@ -57,6 +60,7 @@ export default function HomeScreen() {
   );
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<{
+    id: number;
     title: string;
     points: number;
     timeLeft: string;
@@ -67,16 +71,53 @@ export default function HomeScreen() {
   const [reportedPosts, setReportedPosts] = useState<Set<number>>(new Set());
 
   // State for challenges
-  const [incomingChallenges, setIncomingChallenges] = useState([
-    {
-      id: 1,
-      title: "Hike the P",
-      points: 300,
-      timeLeft: "3 days 2 hrs 3 min",
-      description:
-        "Go to the top of the P and take a smiling picture with a friend.",
-    },
-  ]);
+  const [incomingChallenges, setIncomingChallenges] = useState<
+    Array<{
+      id: number;
+      title: string;
+      points: number;
+      timeLeft: string;
+      description: string;
+    }>
+  >([]);
+  const [challengesLoading, setChallengesLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await getChallenges();
+        if (res.success) {
+          setIncomingChallenges(
+            res.data.map((c) => ({
+              id: c.id,
+              title: c.title,
+              points: c.pointsReward,
+              // TODO: add a real deadline in the DB; for now keep static display
+              timeLeft: "3 days 2 hrs 3 min",
+              description: c.description,
+            })),
+          );
+          return;
+        }
+      } catch {
+        // ignore; fallback below
+      }
+
+      // Fallback (dev/offline)
+      setIncomingChallenges([
+        {
+          id: 1,
+          title: "Hike the P",
+          points: 300,
+          timeLeft: "3 days 2 hrs 3 min",
+          description:
+            "Go to the top of the P and take a smiling picture with a friend.",
+        },
+      ]);
+    }
+
+    load().finally(() => setChallengesLoading(false));
+  }, []);
 
   const [completedChallenges, setCompletedChallenges] = useState<
     Array<{
@@ -116,6 +157,7 @@ export default function HomeScreen() {
   };
 
   const handleViewChallenge = (challenge: {
+    id: number;
     title: string;
     points: number;
     timeLeft: string;
@@ -130,52 +172,99 @@ export default function HomeScreen() {
     setSelectedChallenge(null);
   };
 
-  const handleSubmit = (imageUri: string, caption: string) => {
-    if (selectedChallenge) {
-      const challengeToComplete = incomingChallenges.find(
-        (c) => c.title === selectedChallenge.title,
+  const handleSubmit = async (imageUri: string, caption: string) => {
+    if (!selectedChallenge) return false;
+
+    const challengeToComplete = incomingChallenges.find(
+      (c) => c.id === selectedChallenge.id,
+    );
+    if (!challengeToComplete) return false;
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(
+          "Location required",
+          "We verify challenge completion using your location. Please enable location access.",
+        );
+        return false;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      const { latitude, longitude } = loc.coords;
+
+      // Upload image first → get a URL to store in DB
+      const imageUrl = await uploadCompletionImage(imageUri);
+      if (!imageUrl) {
+        Alert.alert(
+          "Upload failed",
+          "Could not upload your image. Make sure you're logged in and try again.",
+        );
+        return false;
+      }
+
+      const res = await submitCompletion({
+        challengeId: selectedChallenge.id,
+        latitude,
+        longitude,
+        imageUrl,
+        caption: caption || undefined,
+      });
+
+      if (!res.success) {
+        Alert.alert(
+          "Submission failed",
+          res.error ||
+            "Could not submit. Make sure you are near the challenge location (~100m).",
+        );
+        return false;
+      }
+
+      setIncomingChallenges((prev) =>
+        prev.filter((c) => c.id !== challengeToComplete.id),
       );
 
-      if (challengeToComplete) {
-        setIncomingChallenges((prev) =>
-          prev.filter((c) => c.id !== challengeToComplete.id),
-        );
+      const today = new Date();
+      const formattedDate = today
+        .toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+        .replace(",", "th,");
 
-        const today = new Date();
-        const formattedDate = today
-          .toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })
-          .replace(",", "th,");
-
-        setCompletedChallenges((prev) => [
-          {
-            id: challengeToComplete.id,
-            title: challengeToComplete.title,
-            points: challengeToComplete.points,
-            date: formattedDate,
-            description: challengeToComplete.description,
-            postImage: imageUri,
-            caption: caption,
-            likes: 0,
-          },
-          ...prev,
-        ]);
-
-        addPostToFeed({
-          challengeTitle: challengeToComplete.title,
+      setCompletedChallenges((prev) => [
+        {
+          id: challengeToComplete.id,
+          title: challengeToComplete.title,
           points: challengeToComplete.points,
-          userName: "You",
-          caption,
           date: formattedDate,
-          likes: 0,
+          description: challengeToComplete.description,
           postImage: imageUri,
-        });
-      }
+          caption,
+          likes: 0,
+        },
+        ...prev,
+      ]);
+
+      addPostToFeed({
+        challengeTitle: challengeToComplete.title,
+        points: challengeToComplete.points,
+        userName: "You",
+        caption,
+        date: formattedDate,
+        likes: 0,
+        postImage: imageUri,
+      });
+
+      handleCloseModal();
+      return true;
+    } catch {
+      Alert.alert("Error", "Failed to submit. Please try again.");
+      return false;
     }
-    handleCloseModal();
   };
 
   const handleOpenReportModal = (postId: number) => {
@@ -219,7 +308,11 @@ export default function HomeScreen() {
 
               {/* Incoming Section */}
               <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
-              {incomingChallenges.length > 0 ?
+              {challengesLoading ? (
+                <ThemedText style={styles.emptyState}>
+                  Loading challenges…
+                </ThemedText>
+              ) : incomingChallenges.length > 0 ?
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
                     key={challenge.id}
