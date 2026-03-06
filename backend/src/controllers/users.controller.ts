@@ -74,8 +74,10 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
  * Get current user's profile
  */
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
-  // TODO: Get userId from authentication middleware
-  const userId = 1; // Placeholder
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
+  const userId = req.user.id;
 
 
   const user = await prisma.user.findUnique({

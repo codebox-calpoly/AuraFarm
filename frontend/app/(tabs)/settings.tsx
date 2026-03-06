@@ -2,8 +2,9 @@ import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 import EditIcon from "@/assets/EditIcon.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   SafeAreaView,
   StyleSheet,
@@ -15,14 +16,18 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import Constants from "expo-constants";
 
 const BASE_WIDTH = 414;
+const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000";
 
 export default function SettingsScreen() {
   const router = useRouter();
 
-  const [username, setUsername] = useState("jeffbob");
-  const [email, setEmail] = useState("bob@calpoly.edu");
+  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+  const [email, setEmail] = useState("");
 
   // Password editing state
   const [showPasswordEditor, setShowPasswordEditor] = useState(false);
@@ -35,6 +40,63 @@ export default function SettingsScreen() {
   const { width } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
   const scale = width / BASE_WIDTH;
+
+  // Helper: get Bearer token from current Supabase session
+  const getToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
+
+  // Load user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setUsername(json.data.name ?? "");
+          setOriginalUsername(json.data.name ?? "");
+          setEmail(json.data.email ?? "");
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSaveUsername = async () => {
+    if (username === originalUsername) return;
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/users/me`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: username }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setOriginalUsername(username);
+        Alert.alert("Success", "Username updated!");
+      } else {
+        Alert.alert("Error", json.message ?? "Failed to update username.");
+      }
+    } catch (err) {
+      Alert.alert("Error", "Network error. Please try again.");
+    }
+  };
 
   const handleLogOut = async () => {
     try {
@@ -64,16 +126,20 @@ export default function SettingsScreen() {
       return;
     }
 
-    try {
-      Alert.alert("Success", "Password updated successfully");
+    const { error: supabaseError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
 
-      setShowPasswordEditor(false);
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch {
-      setError("Failed to update password");
+    if (supabaseError) {
+      setError(supabaseError.message);
+      return;
     }
+
+    Alert.alert("Success", "Password updated successfully");
+    setShowPasswordEditor(false);
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   const handleCancelPasswordEdit = () => {
@@ -83,6 +149,15 @@ export default function SettingsScreen() {
     setConfirmPassword("");
     setError("");
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -111,24 +186,43 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.fieldsBlock, { gap: 30 * scale }]}>
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldTextWrap}>
-              <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
-                username:
-              </Text>
-              <TextInput
-                ref={usernameInputRef}
-                value={username}
-                onChangeText={setUsername}
-                style={[styles.valueInput, { fontSize: 24 * scale }]}
-              />
+          {/* Username */}
+          <View>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldTextWrap}>
+                <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
+                  username:
+                </Text>
+                <TextInput
+                  ref={usernameInputRef}
+                  value={username}
+                  onChangeText={setUsername}
+                  style={[styles.valueInput, { fontSize: 24 * scale }]}
+                />
+              </View>
+              <Pressable onPress={() => usernameInputRef.current?.focus()} hitSlop={8}>
+                <EditIcon width={26 * scale} height={26 * scale} />
+              </Pressable>
             </View>
-            <Pressable onPress={() => usernameInputRef.current?.focus()} hitSlop={8}>
-              <EditIcon width={26 * scale} height={26 * scale} />
-            </Pressable>
+            {username !== originalUsername && (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                <Pressable
+                  style={[styles.saveButton, { flex: 1 }]}
+                  onPress={handleSaveUsername}
+                >
+                  <Text style={styles.buttonText}>Save</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.cancelButton, { flex: 1 }]}
+                  onPress={() => setUsername(originalUsername)}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
-          {/* Email */}
+          {/* Email (read-only — managed by Supabase) */}
           <View style={styles.fieldRow}>
             <View style={styles.fieldTextWrap}>
               <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
