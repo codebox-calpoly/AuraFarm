@@ -12,7 +12,7 @@ import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
  * Submit a challenge completion
  */
 export const completeChallenge = asyncHandler(async (req: Request, res: Response) => {
-  const { challengeId, latitude, longitude } = req.body;
+  const { challengeId, latitude, longitude, imageUrl, caption } = req.body;
 
   if (!challengeId || isNaN(Number(challengeId))) {
     throw new AppError('Invalid challenge ID', 400);
@@ -68,6 +68,8 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
         challengeId: Number(challengeId),
         latitude,
         longitude,
+        imageUrl,
+        caption,
       },
     });
 
@@ -213,12 +215,14 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         challengeId: true,
         latitude: true,
         longitude: true,
+        imageUrl: true,
+        caption: true,
         completedAt: true,
         user: {
           select: { id: true, name: true },
         },
         challenge: {
-          select: { id: true, title: true },
+          select: { id: true, title: true, pointsReward: true },
         },
       },
     }),
@@ -239,4 +243,3 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
 
   res.json(response);
 });
-
