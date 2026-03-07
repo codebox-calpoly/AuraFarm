@@ -14,7 +14,13 @@ import { FeedCard } from "@/components/home/FeedCard";
 import { ReportPostModal } from "@/components/home/ReportPostModal";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { useFeedCache } from "@/stores/feedCache";
-import { getChallenges, submitCompletion } from "@/lib/api";
+import {
+  getChallenges,
+  submitCompletion,
+  getUserProfileFromApi,
+  getUserCompletionsFromApi,
+  getFeedCompletionsFromApi,
+} from "@/lib/api";
 import { uploadCompletionImage } from "@/lib/storage";
 
 const STATIC_FEED_POSTS: Array<{
@@ -53,7 +59,11 @@ const STATIC_FEED_POSTS: Array<{
 export default function HomeScreen() {
   const cachedPosts = useFeedCache((s) => s.cachedPosts);
   const addPostToFeed = useFeedCache((s) => s.addPost);
-  const feedPosts = [...cachedPosts, ...STATIC_FEED_POSTS];
+  const [remoteFeedPosts, setRemoteFeedPosts] = useState<typeof STATIC_FEED_POSTS>([]);
+  const feedPosts =
+    remoteFeedPosts.length > 0
+      ? [...cachedPosts, ...remoteFeedPosts]
+      : [...cachedPosts, ...STATIC_FEED_POSTS];
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
     "my-challenges",
@@ -81,14 +91,23 @@ export default function HomeScreen() {
     }>
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
+  const [auraCurrent, setAuraCurrent] = useState(0);
+  const AURA_MAX = 100;
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await getChallenges();
-        if (res.success) {
+        const [challengesRes, profileRes, myCompletionsRes, feedRes] =
+          await Promise.all([
+            getChallenges(),
+            getUserProfileFromApi(),
+            getUserCompletionsFromApi(),
+            getFeedCompletionsFromApi(),
+          ]);
+
+        if (challengesRes.success) {
           setIncomingChallenges(
-            res.data.map((c) => ({
+            challengesRes.data.map((c) => ({
               id: c.id,
               title: c.title,
               points: c.pointsReward,
@@ -97,26 +116,62 @@ export default function HomeScreen() {
               description: c.description,
             })),
           );
-          return;
+        } else {
+          // Fallback (dev/offline)
+          setIncomingChallenges([
+            {
+              id: 1,
+              title: "Hike the P",
+              points: 300,
+              timeLeft: "3 days 2 hrs 3 min",
+              description:
+                "Go to the top of the P and take a smiling picture with a friend.",
+            },
+          ]);
+        }
+
+        if (profileRes.success) {
+          setAuraCurrent(profileRes.data.auraPoints);
+        }
+
+        if (myCompletionsRes.success) {
+          setCompletedChallenges(
+            myCompletionsRes.data.map((c) => ({
+              id: c.id,
+              title: c.challenge.title,
+              points: c.challenge.pointsReward,
+              date: formatFeedDate(new Date(c.completedAt)),
+              description: c.challenge.description,
+              postImage: c.imageUrl ?? "",
+              caption: c.caption ?? "",
+              likes: 0,
+            })),
+          );
+        }
+
+        if (feedRes.success) {
+          setRemoteFeedPosts(
+            feedRes.data.map((c) => ({
+              id: c.id,
+              challengeTitle: c.challenge.title,
+              points: c.challenge.pointsReward,
+              userName: c.user.name ?? "Auranaut",
+              userImage: undefined,
+              caption: c.caption ?? "",
+              date: formatFeedDate(new Date(c.completedAt)),
+              likes: 0,
+              postImage: c.imageUrl ?? undefined,
+            })),
+          );
         }
       } catch {
-        // ignore; fallback below
+        // Ignore; fallbacks already handled above
+      } finally {
+        setChallengesLoading(false);
       }
-
-      // Fallback (dev/offline)
-      setIncomingChallenges([
-        {
-          id: 1,
-          title: "Hike the P",
-          points: 300,
-          timeLeft: "3 days 2 hrs 3 min",
-          description:
-            "Go to the top of the P and take a smiling picture with a friend.",
-        },
-      ]);
     }
 
-    load().finally(() => setChallengesLoading(false));
+    load();
   }, []);
 
   const [completedChallenges, setCompletedChallenges] = useState<
@@ -259,6 +314,10 @@ export default function HomeScreen() {
         postImage: imageUri,
       });
 
+      // Refresh Aura so the progress bar updates without leaving the screen
+      const profileRes = await getUserProfileFromApi();
+      if (profileRes.success) setAuraCurrent(profileRes.data.auraPoints);
+
       handleCloseModal();
       return true;
     } catch {
@@ -304,7 +363,10 @@ export default function HomeScreen() {
           {activeTab === "my-challenges" ?
             <>
               {/* Progress Bar */}
-              <AuraProgressBar current={75} max={100} />
+              <AuraProgressBar
+                current={Math.min(auraCurrent, AURA_MAX)}
+                max={AURA_MAX}
+              />
 
               {/* Incoming Section */}
               <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
