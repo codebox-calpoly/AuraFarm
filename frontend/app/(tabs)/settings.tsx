@@ -28,6 +28,7 @@ export default function SettingsScreen() {
   const [username, setUsername] = useState("");
   const [originalUsername, setOriginalUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [originalEmail, setOriginalEmail] = useState("");
 
   // Password editing state
   const [showPasswordEditor, setShowPasswordEditor] = useState(false);
@@ -37,6 +38,7 @@ export default function SettingsScreen() {
   const [error, setError] = useState("");
 
   const usernameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const { width } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
   const scale = width / BASE_WIDTH;
@@ -64,6 +66,7 @@ export default function SettingsScreen() {
           setUsername(json.data.name ?? "");
           setOriginalUsername(json.data.name ?? "");
           setEmail(json.data.email ?? "");
+          setOriginalEmail((json.data.email ?? "").toLowerCase());
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
@@ -93,7 +96,7 @@ export default function SettingsScreen() {
       } else {
         Alert.alert("Error", json.message ?? "Failed to update username.");
       }
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Network error. Please try again.");
     }
   };
@@ -105,6 +108,62 @@ export default function SettingsScreen() {
     } catch (error) {
       console.error("Error signing out:", error);
       Alert.alert("Error", "Failed to sign out. Please try again.");
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (normalizedEmail === originalEmail) return;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
+
+    const { error: supabaseError } = await supabase.auth.updateUser({
+      email: normalizedEmail,
+    });
+
+    if (supabaseError) {
+      Alert.alert("Error", supabaseError.message);
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert("Error", "You are not authenticated.");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/users/me`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        Alert.alert("Error", json.message ?? "Failed to update email in app profile.");
+        return;
+      }
+
+      setEmail(normalizedEmail);
+      setOriginalEmail(normalizedEmail);
+      await supabase.auth.signOut();
+      Alert.alert("Success", "Email updated. Check your inbox if confirmation is required, then log in again.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/login"),
+        },
+      ]);
+    } catch {
+      Alert.alert("Error", "Network error. Please try again.");
     }
   };
 
@@ -123,6 +182,28 @@ export default function SettingsScreen() {
 
     if (newPassword.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (newPassword === oldPassword) {
+      setError("New password must be different from current password");
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) {
+      setError("Unable to verify current user");
+      return;
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: oldPassword,
+    });
+    if (reauthError) {
+      setError("Current password is incorrect");
       return;
     }
 
@@ -222,22 +303,44 @@ export default function SettingsScreen() {
             )}
           </View>
 
-          {/* Email (read-only — managed by Supabase) */}
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldTextWrap}>
-              <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
-                email:
-              </Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                style={[styles.valueInput, { fontSize: 24 * scale, lineHeight: 30 * scale }]}
-                placeholder="email"
-                placeholderTextColor="#70707f"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+          {/* Email */}
+          <View>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldTextWrap}>
+                <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
+                  email:
+                </Text>
+                <TextInput
+                  ref={emailInputRef}
+                  value={email}
+                  onChangeText={setEmail}
+                  style={[styles.valueInput, { fontSize: 24 * scale, lineHeight: 30 * scale }]}
+                  placeholder="email"
+                  placeholderTextColor="#70707f"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              <Pressable onPress={() => emailInputRef.current?.focus()} hitSlop={8}>
+                <EditIcon width={26 * scale} height={26 * scale} />
+              </Pressable>
             </View>
+            {email.trim().toLowerCase() !== originalEmail && (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                <Pressable
+                  style={[styles.saveButton, { flex: 1 }]}
+                  onPress={handleSaveEmail}
+                >
+                  <Text style={styles.buttonText}>Save</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.cancelButton, { flex: 1 }]}
+                  onPress={() => setEmail(originalEmail)}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* Password Section */}
