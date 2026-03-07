@@ -12,9 +12,11 @@ export interface FeedCardProps {
     points: number;
     userName: string;
     userImage?: string; // URL or require() path
+    postImage?: string; // URL for the completion photo
     caption?: string;
     date: string;
     likes: number;
+    isLiked?: boolean;
     onPress?: () => void;
     onOptionsPress?: () => void;
     onLikePress?: () => void;
@@ -25,9 +27,11 @@ export function FeedCard({
     points,
     userName,
     userImage,
+    postImage,
     caption,
     date,
     likes,
+    isLiked = false,
     onPress,
     onOptionsPress,
     onLikePress,
@@ -59,9 +63,9 @@ export function FeedCard({
 
                 {/* Image */}
                 <View style={styles.imageContainer}>
-                    {userImage ? (
+                    {(postImage || userImage) ? (
                         <Image
-                            source={{ uri: userImage }}
+                            source={{ uri: postImage ?? userImage }}
                             style={styles.image}
                             contentFit="cover"
                         />
@@ -96,7 +100,11 @@ export function FeedCard({
                         }} 
                         style={styles.likeButton}
                     >
-                        <Ionicons name="heart-outline" size={20} color={tailwindColors['aura-black']} />
+                        <Ionicons
+                            name={isLiked ? 'heart' : 'heart-outline'}
+                            size={20}
+                            color={isLiked ? tailwindColors['aura-red'] : tailwindColors['aura-black']}
+                        />
                         <ThemedText style={styles.likesText}>
                             {likes}
                         </ThemedText>

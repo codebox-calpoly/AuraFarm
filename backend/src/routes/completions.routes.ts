@@ -3,14 +3,19 @@ import {
   completeChallenge,
   getCompletionById,
   getCompletions,
+  updateCompletion,
+  likeCompletion,
+  unlikeCompletion,
 } from '../controllers/completions.controller';
 import { validateBody, validate, validateQuery } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
 import {
   createCompletionSchema,
+  updateCompletionSchema,
   completionIdParamSchema,
   completionsListQuerySchema,
 } from '../types';
+import { authenticate } from '../middleware/auth';
 import rateLimiter from '../middleware/rateLimiter';
 
 const router = Router();
@@ -100,6 +105,28 @@ router.get(
   '/:id',
   validateParams(completionIdParamSchema),
   getCompletionById
+);
+
+router.patch(
+  '/:id',
+  authenticate,
+  validateParams(completionIdParamSchema),
+  validateBody(updateCompletionSchema),
+  updateCompletion
+);
+
+router.post(
+  '/:id/like',
+  authenticate,
+  validateParams(completionIdParamSchema),
+  likeCompletion
+);
+
+router.delete(
+  '/:id/like',
+  authenticate,
+  validateParams(completionIdParamSchema),
+  unlikeCompletion
 );
 
 export default router;

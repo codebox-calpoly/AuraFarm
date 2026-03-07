@@ -13,7 +13,40 @@ import { FeedCard } from '@/components/home/FeedCard';
 import { ReportPostModal } from '@/components/home/ReportPostModal';
 import { tailwindColors } from '@/constants/tailwind-colors';
 import { useFeed, FeedPost } from '@/hooks/useFeed';
+import { useLikeCompletion } from '@/hooks/useCompletion';
 import api from '@/lib/api';
+
+function FeedCardWithLike({ post, onPress, onOptionsPress }: {
+  post: FeedPost;
+  onPress: () => void;
+  onOptionsPress: () => void;
+}) {
+  const [isLiked, setIsLiked] = useState(false);
+  const likeMutation = useLikeCompletion(post.id);
+  const likes = likeMutation.data?.likes ?? post.likes;
+
+  const handleLike = () => {
+    const nowLiked = !isLiked;
+    setIsLiked(nowLiked);
+    likeMutation.mutate(nowLiked);
+  };
+
+  return (
+    <FeedCard
+      challengeTitle={post.challengeTitle}
+      points={post.points}
+      userName={post.userName}
+      postImage={post.imageUri}
+      caption={post.caption}
+      date={post.date}
+      likes={likes}
+      isLiked={isLiked}
+      onPress={onPress}
+      onOptionsPress={onOptionsPress}
+      onLikePress={handleLike}
+    />
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -184,20 +217,11 @@ export default function HomeScreen() {
             <>
               {feedPosts.length > 0 ? (
                 feedPosts.map((post: FeedPost) => (
-                  <FeedCard
+                  <FeedCardWithLike
                     key={post.id}
-                    challengeTitle={post.challengeTitle}
-                    points={post.points}
-                    userName={post.userName}
-                    userImage={post.userImage}
-                    caption={post.caption}
-                    date={formatFeedDate(new Date(post.date))}
-                    likes={post.likes}
-                    onPress={() => router.push(
-                      `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption ?? '')}&likes=${post.likes}&isOwnPost=false`
-                    )}
+                    post={{ ...post, date: formatFeedDate(new Date(post.date)) }}
+                    onPress={() => router.push(`/post/${post.id}?isOwnPost=false`)}
                     onOptionsPress={() => handleOpenReportModal(post.id)}
-                    onLikePress={() => console.log('Like post', post.id)}
                   />
                 ))
               ) : (

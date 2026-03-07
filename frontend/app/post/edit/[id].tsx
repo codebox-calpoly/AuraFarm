@@ -9,7 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { tailwindColors } from '@/constants/tailwind-colors';
 import { Header } from '@/components/home/Header';
-import { postStore } from '@/stores/postStore';
+import { useUpdateCaption } from '@/hooks/useCompletion';
 
 export default function EditPostScreen() {
   const { id, imageUri, caption: captionParam, points } = useLocalSearchParams<{
@@ -21,22 +21,18 @@ export default function EditPostScreen() {
   }>();
   const router = useRouter();
 
-  // TODO: When backend is ready, replace params with:
-  // const { data: post } = await fetch(`/api/posts/${id}`).then(r => r.json());
   const post = {
-    id: Number(id),
     points: Number(points ?? 0),
     postImage: imageUri ?? null,
   };
 
   const [caption, setCaption] = useState(captionParam ?? '');
+  const updateCaption = useUpdateCaption(Number(id));
 
   const handleBack = () => router.back();
 
-  const handleSave = () => {
-    // Write updated caption to store so the view page picks it up on focus.
-    // TODO: Replace with PATCH /api/posts/:id when backend is ready.
-    postStore.setCaption(String(id), caption);
+  const handleSave = async () => {
+    await updateCaption.mutateAsync(caption);
     router.back();
   };
 

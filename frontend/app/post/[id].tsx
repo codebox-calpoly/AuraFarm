@@ -1,74 +1,59 @@
-import { StyleSheet, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useState, useCallback } from 'react';
-import { useFocusEffect } from 'expo-router';
+import { useState } from 'react';
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
 import { tailwindColors } from '@/constants/tailwind-colors';
 import { Header } from '@/components/home/Header';
-import { postStore } from '@/stores/postStore';
+import { useCompletion, useLikeCompletion } from '@/hooks/useCompletion';
 
 export default function PostDetailScreen() {
-  const { id, imageUri, caption: captionParam, likes: likesParam, title, points, isOwnPost } = useLocalSearchParams<{
+  const { id, isOwnPost } = useLocalSearchParams<{
     id: string;
-    imageUri?: string;
-    caption?: string;
-    likes?: string;
-    title?: string;
-    points?: string;
     isOwnPost?: string;
   }>();
   const router = useRouter();
 
-  // TODO: When backend is ready, replace params with:
-  // const { data: post } = await fetch(`/api/posts/${id}`).then(r => r.json());
-  // All field names below match the expected API response shape.
-  const post = {
-    id: Number(id),
-    challengeTitle: title ?? 'Challenge',
-    points: Number(points ?? 0),
-    postImage: imageUri ?? null,
-    isOwnPost: isOwnPost === 'true',
-  };
-
-  const [likes, setLikes] = useState(Number(likesParam ?? 0));
+  const { data: completion, isLoading } = useCompletion(Number(id));
+  const likeMutation = useLikeCompletion(Number(id));
   const [isLiked, setIsLiked] = useState(false);
-  const [caption, setCaption] = useState(captionParam ?? '');
-
-  // On focus, check if the edit page wrote a new caption to the store.
-  // TODO: Replace with re-fetch from API when backend is ready.
-  useFocusEffect(
-    useCallback(() => {
-      const updated = postStore.getCaption(String(id));
-      if (updated !== undefined) {
-        setCaption(updated);
-        postStore.clear(String(id));
-      }
-    }, [id])
-  );
 
   const handleBack = () => router.back();
 
   const handleEdit = () => {
-    if (post.isOwnPost) {
+    if (isOwnPost === 'true' && completion) {
       router.push(
-        `/post/edit/${id}?imageUri=${encodeURIComponent(post.postImage ?? '')}&caption=${encodeURIComponent(caption)}&points=${post.points}&title=${encodeURIComponent(post.challengeTitle)}`
+        `/post/edit/${id}?imageUri=${encodeURIComponent(completion.imageUri)}&caption=${encodeURIComponent(completion.caption ?? '')}&points=${completion.challenge.pointsReward}&title=${encodeURIComponent(completion.challenge.title)}`
       );
     }
   };
 
   const handleLike = () => {
-    // TODO: When backend is ready, call POST /api/posts/:id/like or DELETE /api/posts/:id/like
-    if (isLiked) {
-      setLikes(prev => prev - 1);
-    } else {
-      setLikes(prev => prev + 1);
-    }
-    setIsLiked(prev => !prev);
+    const nowLiked = !isLiked;
+    setIsLiked(nowLiked);
+    likeMutation.mutate(nowLiked);
+  };
+
+  if (isLoading || !completion) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <ThemedView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={tailwindColors['aura-green']} />
+        </ThemedView>
+      </SafeAreaView>
+    );
+  }
+
+  const post = {
+    challengeTitle: completion.challenge.title,
+    points: completion.challenge.pointsReward,
+    postImage: completion.imageUri,
+    caption: completion.caption,
+    likes: completion.likes,
   };
 
   return (
@@ -86,7 +71,7 @@ export default function PostDetailScreen() {
             <ThemedText style={styles.pointsText}>+{post.points} points</ThemedText>
           </View>
 
-          {post.isOwnPost ? (
+          {isOwnPost === 'true' ? (
             <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
               <Ionicons name="pencil" size={20} color={tailwindColors['aura-black']} />
             </TouchableOpacity>
@@ -114,7 +99,7 @@ export default function PostDetailScreen() {
           {/* Likes */}
           <View style={styles.likesSection}>
             <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-              <ThemedText style={styles.likesCount}>{likes}</ThemedText>
+              <ThemedText style={styles.likesCount}>{likeMutation.data?.likes ?? post.likes}</ThemedText>
               <Ionicons
                 name={isLiked ? 'heart' : 'heart-outline'}
                 size={28}
@@ -126,7 +111,7 @@ export default function PostDetailScreen() {
           {/* Caption */}
           <View style={styles.captionSection}>
             <ThemedText style={styles.captionLabel}>Caption</ThemedText>
-            <ThemedText style={styles.captionText}>{caption}</ThemedText>
+            <ThemedText style={styles.captionText}>{post.caption ?? ''}</ThemedText>
           </View>
         </ScrollView>
       </ThemedView>
