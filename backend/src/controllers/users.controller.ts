@@ -129,16 +129,24 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   }
 
   const userId = req.user.id;
-  const { name } = req.body;
+  const { name, email } = req.body as { name?: string; email?: string };
 
-  if (!name) {
+  const updateData: { name?: string; email?: string } = {};
+  if (typeof name === 'string' && name.trim().length > 0) {
+    updateData.name = name.trim();
+  }
+  if (typeof email === 'string' && email.trim().length > 0) {
+    updateData.email = email.trim().toLowerCase();
+  }
+
+  if (Object.keys(updateData).length === 0) {
     throw new AppError('Nothing to update', 400);
   }
 
   try {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { name },
+      data: updateData,
     });
 
     const response: ApiResponse<PrismaUser> = {
@@ -149,6 +157,9 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
 
     res.json(response);
   } catch (err: any) {
+    if (err?.code === 'P2002' && Array.isArray(err?.meta?.target) && err.meta.target.includes('email')) {
+      throw new AppError('Email already in use', 409);
+    }
     // If Prisma cannot find the user, it throws
     throw new AppError('User not found', 404);
   }
