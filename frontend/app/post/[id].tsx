@@ -3,44 +3,97 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from "expo-router";
 
 import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
-import { tailwindColors } from '@/constants/tailwind-colors';
+import { tailwindColors, tailwindFonts } from '@/constants/tailwind-colors';
 import { Header } from '@/components/home/Header';
 import { useCompletion, useLikeCompletion } from '@/hooks/useCompletion';
+import { postStore } from "@/stores/postStore";
 
 export default function PostDetailScreen() {
-  const { id, isOwnPost } = useLocalSearchParams<{
+  const {
+    id,
+    imageUri: paramImageUri,
+    caption: paramCaption,
+    likes: paramLikes,
+    title: paramTitle,
+    points: paramPoints,
+    isOwnPost: paramIsOwnPost,
+  } = useLocalSearchParams<{
     id: string;
+    imageUri?: string;
+    caption?: string;
+    likes?: string;
+    title?: string;
+    points?: string;
     isOwnPost?: string;
   }>();
+
   const router = useRouter();
 
-  const { data: completion, isLoading } = useCompletion(Number(id));
-  const likeMutation = useLikeCompletion(Number(id));
+  // Prefer backend data if ID > 0
+  const completionId = Number(id);
+  const { data: completion, isLoading, refetch } = useCompletion(completionId > 0 ? completionId : 0);
+  const likeMutation = useLikeCompletion(completionId > 0 ? completionId : 0);
+
   const [isLiked, setIsLiked] = useState(false);
+  const [caption, setCaption] = useState(paramCaption ?? "");
+  const [likes, setLikes] = useState(Number(paramLikes ?? 0));
+
+  // Sync state if backend data arrives
+  useFocusEffect(
+    useCallback(() => {
+      if (completionId > 0) {
+        refetch();
+      }
+
+      const updated = postStore.getCaption(String(id));
+      if (updated !== undefined) {
+        setCaption(updated);
+        postStore.clear(String(id));
+      }
+    }, [id, completionId, refetch]),
+  );
 
   const handleBack = () => router.back();
 
   const handleEdit = () => {
-    if (isOwnPost === 'true' && completion) {
+    if (paramIsOwnPost === 'true') {
+      const currentImage = completion?.imageUri || paramImageUri || "";
+      const currentCaption = completion?.caption || caption || "";
+      const currentPoints = completion?.challenge?.pointsReward || Number(paramPoints || 0);
+      const currentTitle = completion?.challenge?.title || paramTitle || "Challenge";
+
       router.push(
-        `/post/edit/${id}?imageUri=${encodeURIComponent(completion.imageUri)}&caption=${encodeURIComponent(completion.caption ?? '')}&points=${completion.challenge.pointsReward}&title=${encodeURIComponent(completion.challenge.title)}`
+        `/post/edit/${id}?imageUri=${encodeURIComponent(currentImage)}&caption=${encodeURIComponent(currentCaption)}&points=${currentPoints}&title=${encodeURIComponent(currentTitle)}`
       );
     }
   };
 
   const handleLike = () => {
+    if (completionId <= 0) {
+      // Fallback for non-backend posts
+      if (isLiked) {
+        setLikes((prev) => prev - 1);
+      } else {
+        setLikes((prev) => prev + 1);
+      }
+      setIsLiked((prev) => !prev);
+      return;
+    }
+
     const nowLiked = !isLiked;
     setIsLiked(nowLiked);
     likeMutation.mutate(nowLiked);
   };
 
-  if (isLoading || !completion) {
+  if (completionId > 0 && isLoading && !completion) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <Header />
         <ThemedView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
           <ActivityIndicator size="large" color={tailwindColors['aura-green']} />
         </ThemedView>
@@ -48,39 +101,58 @@ export default function PostDetailScreen() {
     );
   }
 
+  // Final data derived from backend or parameters
   const post = {
-    challengeTitle: completion.challenge.title,
-    points: completion.challenge.pointsReward,
-    postImage: completion.imageUri,
-    caption: completion.caption,
-    likes: completion.likes,
+    challengeTitle: completion?.challenge.title || paramTitle || "Challenge",
+    points: completion?.challenge.pointsReward || Number(paramPoints || 0),
+    postImage: completion?.imageUri || paramImageUri || null,
+    caption: completion?.caption || caption || "",
+    likes: completion?.likes ?? (likeMutation.data?.likes ?? likes),
+    isOwnPost: paramIsOwnPost === 'true'
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Header */}
+      <Header />
+
       <ThemedView style={styles.container}>
-        <Header />
         {/* Nav bar */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={tailwindColors['aura-black']} />
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={tailwindColors["aura-black"]}
+            />
           </TouchableOpacity>
 
           <View style={styles.titleSection}>
-            <ThemedText style={styles.challengeTitle}>{post.challengeTitle}</ThemedText>
-            <ThemedText style={styles.pointsText}>+{post.points} points</ThemedText>
+            <ThemedText style={styles.challengeTitle}>
+              {post.challengeTitle}
+            </ThemedText>
+            <ThemedText style={styles.pointsText}>
+              +{post.points} Aura
+            </ThemedText>
           </View>
 
-          {isOwnPost === 'true' ? (
+          {post.isOwnPost ? (
             <TouchableOpacity onPress={handleEdit} style={styles.editButton}>
-              <Ionicons name="pencil" size={20} color={tailwindColors['aura-black']} />
+              <Ionicons
+                name="pencil"
+                size={20}
+                color={tailwindColors["aura-black"]}
+              />
             </TouchableOpacity>
           ) : (
             <View style={styles.editButton} />
           )}
         </View>
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Post Image */}
           <View style={styles.imageContainer}>
             {post.postImage ? (
@@ -91,7 +163,11 @@ export default function PostDetailScreen() {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Ionicons name="image-outline" size={80} color={tailwindColors['aura-gray-400']} />
+                <Ionicons
+                  name="image-outline"
+                  size={80}
+                  color={tailwindColors["aura-gray-400"]}
+                />
               </View>
             )}
           </View>
@@ -99,20 +175,26 @@ export default function PostDetailScreen() {
           {/* Likes */}
           <View style={styles.likesSection}>
             <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-              <ThemedText style={styles.likesCount}>{likeMutation.data?.likes ?? post.likes}</ThemedText>
               <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
+                name={isLiked ? "heart" : "heart-outline"}
                 size={28}
-                color={isLiked ? tailwindColors['aura-red'] : tailwindColors['aura-black']}
+                color={
+                  isLiked ?
+                    tailwindColors["aura-red"]
+                    : tailwindColors["aura-black"]
+                }
               />
+              <ThemedText style={styles.likesCount}>{post.likes}</ThemedText>
             </TouchableOpacity>
           </View>
 
           {/* Caption */}
-          <View style={styles.captionSection}>
-            <ThemedText style={styles.captionLabel}>Caption</ThemedText>
-            <ThemedText style={styles.captionText}>{post.caption ?? ''}</ThemedText>
-          </View>
+          {post.caption ? (
+            <View style={styles.captionSection}>
+              <ThemedText style={styles.captionLabel}>Caption</ThemedText>
+              <ThemedText style={styles.captionText}>{post.caption}</ThemedText>
+            </View>
+          ) : null}
         </ScrollView>
       </ThemedView>
     </SafeAreaView>
@@ -122,20 +204,20 @@ export default function PostDetailScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors['aura-white'],
+    backgroundColor: tailwindColors["aura-white"],
   },
   container: {
     flex: 1,
-    backgroundColor: tailwindColors['aura-white'],
+    backgroundColor: tailwindColors["aura-white"],
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: tailwindColors['aura-gray-200'],
+    borderBottomColor: tailwindColors["aura-gray-200"],
   },
   backButton: {
     padding: 4,
@@ -143,61 +225,61 @@ const styles = StyleSheet.create({
   },
   titleSection: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   challengeTitle: {
     fontSize: 20,
-    fontFamily: 'Poppins_700Bold',
-    color: tailwindColors['aura-black'],
+    fontFamily: tailwindFonts["bold"],
+    color: tailwindColors["aura-black"],
     marginBottom: 4,
   },
   pointsText: {
     fontSize: 14,
-    fontFamily: 'Poppins_600SemiBold',
-    color: tailwindColors['aura-orange'],
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-orange"],
   },
   editButton: {
     padding: 4,
     width: 40,
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   scrollView: {
     flex: 1,
   },
   imageContainer: {
-    width: '80%',
+    width: "80%",
     aspectRatio: 1,
-    alignSelf: 'center',
+    alignSelf: "center",
     borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: tailwindColors['aura-gray-100'],
+    overflow: "hidden",
+    backgroundColor: tailwindColors["aura-gray-100"],
     marginTop: 16,
   },
   image: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: tailwindColors['aura-gray-100'],
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: tailwindColors["aura-gray-100"],
   },
   likesSection: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
     paddingHorizontal: 24,
     paddingVertical: 16,
   },
   likeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   likesCount: {
     fontSize: 20,
-    fontFamily: 'Poppins_600SemiBold',
-    color: tailwindColors['aura-black'],
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-black"],
   },
   captionSection: {
     paddingHorizontal: 24,
@@ -205,14 +287,14 @@ const styles = StyleSheet.create({
   },
   captionLabel: {
     fontSize: 16,
-    fontFamily: 'Poppins_600SemiBold',
-    color: tailwindColors['aura-black'],
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-black"],
     marginBottom: 12,
   },
   captionText: {
     fontSize: 14,
-    fontFamily: 'Poppins_400Regular',
-    color: tailwindColors['aura-black'],
+    fontFamily: tailwindFonts["regular"],
+    color: tailwindColors["aura-black"],
     lineHeight: 20,
   },
 });
