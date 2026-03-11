@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "start": "cd frontend && npx expo start -c",
+    "start:web": "cd frontend && npx expo start --web",
+    "dev:backend": "cd backend && npm run dev"
+  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/react": "~19.1.10",

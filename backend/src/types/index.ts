@@ -112,6 +112,10 @@ export const createCompletionSchema = z.object({
   longitude: z.number().min(-180).max(180),
 });
 
+export const updateCompletionSchema = z.object({
+  caption: z.string().max(500).optional(),
+});
+
 export const createFlagSchema = z.object({
   completionId: z.number().int().positive(),
   reason: z.string().optional(),

@@ -9,12 +9,13 @@ export default {
     scheme: 'aurafarmmobile',
     plugins: ['expo-font'],
     extra: {
-      supabaseUrl: process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
       supabaseAnonKey:
-        process.env.SUPABASE_ANON_KEY ||
+        process.env.EXPO_PUBLIC_SUPABASE_KEY ||
         process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.EXPO_PUBLIC_SUPABASE_KEY,
-      apiUrl: process.env.EXPO_PUBLIC_API_URL,
+        process.env.SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_KEY,
+      apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
     },
   },
 };

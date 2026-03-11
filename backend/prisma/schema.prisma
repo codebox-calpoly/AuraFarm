@@ -52,6 +52,9 @@ model ChallengeCompletion {
   user        User      @relation(fields: [userId], references: [id])
   challenge   Challenge @relation(fields: [challengeId], references: [id])
   flags       Flag[] // Flags on this completion
+  caption     String?
+  imageUri    String
+  likes       Int       @default(0)
 
   @@unique([userId, challengeId]) // Prevent duplicate completions
   @@index([userId]) // Index for faster user completion queries

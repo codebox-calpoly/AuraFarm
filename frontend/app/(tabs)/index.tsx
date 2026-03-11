@@ -11,11 +11,95 @@ import { ChallengeCard } from '@/components/home/ChallengeCard';
 import { ChallengeDetailModal } from '@/components/home/ChallengeDetailModal';
 import { FeedCard } from '@/components/home/FeedCard';
 import { ReportPostModal } from '@/components/home/ReportPostModal';
-import { tailwindColors } from '@/constants/tailwind-colors';
+import { tailwindColors, tailwindFonts } from '@/constants/tailwind-colors';
+import { useFeed, FeedPost } from '@/hooks/useFeed';
+import { useLikeCompletion } from '@/hooks/useCompletion';
+import { useFeedCache } from "@/stores/feedCache";
+import api from '@/lib/api';
+
+const STATIC_FEED_POSTS: Array<{
+  id: number;
+  challengeTitle: string;
+  points: number;
+  userName: string;
+  userImage?: string;
+  caption: string;
+  date: string;
+  likes: number;
+  postImage?: string;
+}> = [
+    {
+      id: -1, // Use negative IDs for static/cached posts to avoid collision with backend
+      challengeTitle: "Hike the P",
+      points: 300,
+      userName: "Marc Rober",
+      caption: "I DID IT!!!!!!!",
+      date: "Jan 9th, 2026",
+      likes: 123,
+      userImage: undefined,
+    },
+    {
+      id: -2,
+      challengeTitle: "Find a cool rock",
+      points: 30,
+      userName: "Marc Rober",
+      caption: "Found this awesome rock on my hike!",
+      date: "Jan 8th, 2026",
+      likes: 45,
+      userImage: undefined,
+    },
+  ];
+
+function FeedCardWithLike({ post, onPress, onOptionsPress }: {
+  post: any;
+  onPress: () => void;
+  onOptionsPress: () => void;
+}) {
+  const [isLiked, setIsLiked] = useState(false);
+  // Only use mutation if we have a real ID (> 0)
+  const likeMutation = useLikeCompletion(post.id > 0 ? post.id : 0);
+  const likes = post.id > 0 ? (likeMutation.data?.likes ?? post.likes) : post.likes;
+
+  const handleLike = () => {
+    if (post.id <= 0) {
+      // For static posts, just toggle local state (if we had state for them)
+      setIsLiked(!isLiked);
+      return;
+    }
+    const nowLiked = !isLiked;
+    setIsLiked(nowLiked);
+    likeMutation.mutate(nowLiked);
+  };
+
+  return (
+    <FeedCard
+      challengeTitle={post.challengeTitle}
+      points={post.points}
+      userName={post.userName}
+      postImage={post.imageUri || post.postImage}
+      caption={post.caption}
+      date={post.date}
+      likes={likes}
+      isLiked={isLiked}
+      onPress={onPress}
+      onOptionsPress={onOptionsPress}
+      onLikePress={handleLike}
+    />
+  );
+}
 
 export default function HomeScreen() {
+  const cachedPosts = useFeedCache((s) => s.cachedPosts);
+  const addPostToFeed = useFeedCache((s) => s.addPost);
+  const { data: apiPosts = [] } = useFeed();
+
+  // Combine all posts: cached (newly created), API posts, and static fallback
+  const feedPosts = [...cachedPosts, ...apiPosts, ...STATIC_FEED_POSTS];
+
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'my-challenges' | 'feed'>('my-challenges');
+  const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
+    "my-challenges",
+  );
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<{
     title: string;
@@ -31,69 +115,55 @@ export default function HomeScreen() {
   const [incomingChallenges, setIncomingChallenges] = useState([
     {
       id: 1,
-      title: 'Hike the P',
+      title: "Hike the P",
       points: 300,
-      timeLeft: '3 days 2 hrs 3 min',
-      description: 'Go to the top of the P and take a smiling picture with a friend.',
+      timeLeft: "3 days 2 hrs 3 min",
+      description:
+        "Go to the top of the P and take a smiling picture with a friend.",
     },
   ]);
 
-  const [completedChallenges, setCompletedChallenges] = useState<Array<{
-    id: number;
-    title: string;
-    points: number;
-    date: string;
-    description: string;
-    postImage: string;
-    caption: string;
-    likes: number;
-  }>>([]);
+  const [completedChallenges, setCompletedChallenges] = useState<
+    Array<{
+      id: number;
+      title: string;
+      points: number;
+      date: string;
+      description: string;
+      postImage: string;
+      caption: string;
+      likes: number;
+    }>
+  >([]);
 
-  // Mock feed data - in production, this would come from the API
-  const [feedPosts] = useState([
-    {
-      id: 1,
-      challengeTitle: 'Hike the P',
-      points: 300,
-      userName: 'Marc Rober',
-      caption: 'I DID IT!!!!!!!',
-      date: 'Jan 9th, 2026',
-      likes: 123,
-      userImage: undefined, // Will use placeholder for now
-    },
-    {
-      id: 2,
-      challengeTitle: 'Find a cool rock',
-      points: 30,
-      userName: 'Marc Rober',
-      caption: 'Found this awesome rock on my hike!',
-      date: 'Jan 8th, 2026',
-      likes: 45,
-      userImage: undefined,
-    },
-  ]);
-
-  // Helper function to format date like "Jan 9th, 2026"
   const formatFeedDate = (date: Date): string => {
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const month = date.toLocaleDateString("en-US", { month: "short" });
     const day = date.getDate();
     const year = date.getFullYear();
-    
-    // Add ordinal suffix (st, nd, rd, th)
+
     const getOrdinalSuffix = (n: number): string => {
-      if (n > 3 && n < 21) return 'th';
+      if (n > 3 && n < 21) return "th";
       switch (n % 10) {
-        case 1: return 'st';
-        case 2: return 'nd';
-        case 3: return 'rd';
-        default: return 'th';
+        case 1:
+          return "st";
+        case 2:
+          return "nd";
+        case 3:
+          return "rd";
+        default:
+          return "th";
       }
     };
-    
+
     return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
   };
 
-  const handleViewChallenge = (challenge: { title: string; points: number; timeLeft: string; description: string }) => {
+  const handleViewChallenge = (challenge: {
+    title: string;
+    points: number;
+    timeLeft: string;
+    description: string;
+  }) => {
     setSelectedChallenge(challenge);
     setModalVisible(true);
   };
@@ -106,20 +176,18 @@ export default function HomeScreen() {
   const handleSubmit = (imageUri: string, caption: string) => {
     if (selectedChallenge) {
       const challengeToComplete = incomingChallenges.find(
-        c => c.title === selectedChallenge.title
+        (c) => c.title === selectedChallenge.title,
       );
 
       if (challengeToComplete) {
-        setIncomingChallenges(prev => prev.filter(c => c.id !== challengeToComplete.id));
+        setIncomingChallenges((prev) =>
+          prev.filter((c) => c.id !== challengeToComplete.id),
+        );
 
         const today = new Date();
-        const formattedDate = today.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }).replace(',', 'th,');
+        const formattedDate = formatFeedDate(today);
 
-        setCompletedChallenges(prev => [
+        setCompletedChallenges((prev) => [
           {
             id: challengeToComplete.id,
             title: challengeToComplete.title,
@@ -132,6 +200,16 @@ export default function HomeScreen() {
           },
           ...prev,
         ]);
+
+        addPostToFeed({
+          challengeTitle: challengeToComplete.title,
+          points: challengeToComplete.points,
+          userName: "You",
+          caption,
+          date: formattedDate,
+          likes: 0,
+          postImage: imageUri,
+        });
       }
     }
     handleCloseModal();
@@ -147,27 +225,33 @@ export default function HomeScreen() {
     setSelectedPostId(null);
   };
 
-  const handleSubmitReport = (reason: string) => {
-    // In production, this would call the API to report the post
-    console.log('Reporting post', selectedPostId, 'with reason:', reason);
-    // You could also hide the post from the feed here
-    // Note: Don't close the modal here - let it show the confirmation screen
-    
-    // Mark this post as reported
-    if (selectedPostId !== null) {
+  const handleSubmitReport = async (reason: string) => {
+    if (selectedPostId === null) return;
+    try {
+      if (selectedPostId > 0) {
+        await api.post('/flags', { completionId: selectedPostId, reason });
+      } else {
+        console.log("Reporting static post", selectedPostId, "with reason:", reason);
+      }
       setReportedPosts(prev => new Set(prev).add(selectedPostId));
+    } catch (error) {
+      console.error('Failed to report post:', error);
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* Header */}
+      <Header />
+
       <ThemedView style={styles.container}>
-        <Header />
-        
         <TabSwitcher activeTab={activeTab} onTabChange={setActiveTab} />
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {activeTab === 'my-challenges' ? (
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
+          {activeTab === "my-challenges" ? (
             <>
               {/* Progress Bar */}
               <AuraProgressBar current={75} max={100} />
@@ -186,7 +270,9 @@ export default function HomeScreen() {
                   />
                 ))
               ) : (
-                <ThemedText style={styles.emptyState}>No incoming challenges </ThemedText>
+                <ThemedText style={styles.emptyState}>
+                  No incoming challenges
+                </ThemedText>
               )}
 
               {/* Completed Section */}
@@ -198,30 +284,26 @@ export default function HomeScreen() {
                   title={challenge.title}
                   points={challenge.points}
                   dateCompleted={challenge.date}
-                  onPress={() => router.push(
-                    `/post/${challenge.id}?imageUri=${encodeURIComponent(challenge.postImage)}&caption=${encodeURIComponent(challenge.caption)}&likes=${challenge.likes}&title=${encodeURIComponent(challenge.title)}&points=${challenge.points}&isOwnPost=true`
-                  )}
+                  onPress={() =>
+                    router.push(
+                      `/post/${challenge.id}?imageUri=${encodeURIComponent(challenge.postImage)}&caption=${encodeURIComponent(challenge.caption)}&likes=${challenge.likes}&title=${encodeURIComponent(challenge.title)}&points=${challenge.points}&isOwnPost=true`,
+                    )
+                  }
                 />
               ))}
             </>
           ) : (
             <>
               {feedPosts.length > 0 ? (
-                feedPosts.map((post) => (
-                  <FeedCard
+                feedPosts.map((post: any) => (
+                  <FeedCardWithLike
                     key={post.id}
-                    challengeTitle={post.challengeTitle}
-                    points={post.points}
-                    userName={post.userName}
-                    userImage={post.userImage}
-                    caption={post.caption}
-                    date={post.date}
-                    likes={post.likes}
-                    onPress={() => router.push(
-                      `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`
-                    )}
+                    post={{
+                      ...post,
+                      date: typeof post.date === 'string' && post.date.includes(',') ? post.date : formatFeedDate(new Date(post.date || Date.now()))
+                    }}
+                    onPress={() => router.push(`/post/${post.id}?isOwnPost=${post.userName === 'You'}`)}
                     onOptionsPress={() => handleOpenReportModal(post.id)}
-                    onLikePress={() => console.log('Like post', post.id)}
                   />
                 ))
               ) : (
@@ -251,7 +333,9 @@ export default function HomeScreen() {
           visible={reportModalVisible}
           onClose={handleCloseReportModal}
           onSubmit={handleSubmitReport}
-          alreadyReported={selectedPostId !== null && reportedPosts.has(selectedPostId)}
+          alreadyReported={
+            selectedPostId !== null && reportedPosts.has(selectedPostId)
+          }
         />
       </ThemedView>
     </SafeAreaView>
@@ -261,33 +345,32 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors['aura-white'],
+    backgroundColor: tailwindColors["aura-white"],
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    backgroundColor: tailwindColors['aura-white'],
+    paddingHorizontal: 24,
   },
   scrollView: {
     paddingBottom: 20,
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: 'Poppins_700Bold',
-    color: tailwindColors['aura-black'],
+    fontFamily: tailwindFonts["bold"],
+    color: tailwindColors["aura-black"],
     marginBottom: 12,
     marginTop: 8,
   },
   emptyState: {
     fontSize: 16,
-    fontFamily: 'Poppins_400Regular',
-    color: tailwindColors['aura-gray-400'],
-    textAlign: 'center',
+    fontFamily: tailwindFonts["regular"],
+    color: tailwindColors["aura-gray-400"],
+    textAlign: "center",
     marginVertical: 32,
   },
   feedPlaceholder: {
     padding: 20,
-    alignItems: 'center',
-    backgroundColor: tailwindColors['aura-white'],
+    alignItems: "center",
+    backgroundColor: tailwindColors["aura-white"],
   },
 });

@@ -116,6 +116,7 @@ async function main() {
       latitude: 37.7749,
       longitude: -122.4194,
       completedAt: new Date('2024-01-20'),
+      imageUri: 'https://picsum.photos/401',
     },
   });
 
@@ -126,6 +127,7 @@ async function main() {
       latitude: 37.7750,
       longitude: -122.4195,
       completedAt: new Date('2024-01-19'),
+      imageUri: 'https://picsum.photos/402',
     },
   });
 
@@ -137,6 +139,7 @@ async function main() {
       latitude: 37.7749,
       longitude: -122.4194,
       completedAt: new Date('2024-01-21'),
+      imageUri: 'https://picsum.photos/403',
     },
   });
 
@@ -147,6 +150,7 @@ async function main() {
       latitude: 37.7849,
       longitude: -122.4094,
       completedAt: new Date('2024-01-20'),
+      imageUri: 'https://picsum.photos/404',
     },
   });
 
@@ -157,6 +161,7 @@ async function main() {
       latitude: 37.7850,
       longitude: -122.4095,
       completedAt: new Date('2024-01-18'),
+      imageUri: 'https://picsum.photos/405',
     },
   });
 
@@ -168,6 +173,7 @@ async function main() {
       latitude: 37.7749,
       longitude: -122.4194,
       completedAt: new Date('2024-01-19'),
+      imageUri: 'https://picsum.photos/406',
     },
   });
 
@@ -178,6 +184,7 @@ async function main() {
       latitude: 37.7751,
       longitude: -122.4196,
       completedAt: new Date('2024-01-17'),
+      imageUri: 'https://picsum.photos/407',
     },
   });
 
