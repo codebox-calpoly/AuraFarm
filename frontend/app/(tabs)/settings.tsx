@@ -1,8 +1,9 @@
 import EditIcon from "@/assets/EditIcon.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -13,17 +14,22 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { setAuthenticated } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import Constants from "expo-constants";
 import { Header } from "@/components/home/Header";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 const BASE_WIDTH = 414;
+const API_URL = Constants.expoConfig?.extra?.apiUrl ?? "http://localhost:3000";
 
 export default function SettingsScreen() {
   const router = useRouter();
 
-  const [username, setUsername] = useState("jeffbob");
-  const [email, setEmail] = useState("bob@calpoly.edu");
+  const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [originalEmail, setOriginalEmail] = useState("");
 
   // Password editing state
   const [showPasswordEditor, setShowPasswordEditor] = useState(false);
@@ -33,13 +39,133 @@ export default function SettingsScreen() {
   const [error, setError] = useState("");
 
   const usernameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const { width } = useWindowDimensions();
   const tabBarHeight = useBottomTabBarHeight();
   const scale = width / BASE_WIDTH;
 
+  // Helper: get Bearer token from current Supabase session
+  const getToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  };
+
+  // Load user profile on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          router.replace("/login");
+          return;
+        }
+        const res = await fetch(`${API_URL}/api/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setUsername(json.data.name ?? "");
+          setOriginalUsername(json.data.name ?? "");
+          setEmail(json.data.email ?? "");
+          setOriginalEmail((json.data.email ?? "").toLowerCase());
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleSaveUsername = async () => {
+    if (username === originalUsername) return;
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/users/me`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: username }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setOriginalUsername(username);
+        Alert.alert("Success", "Username updated!");
+      } else {
+        Alert.alert("Error", json.message ?? "Failed to update username.");
+      }
+    } catch {
+      Alert.alert("Error", "Network error. Please try again.");
+    }
+  };
+
   const handleLogOut = async () => {
-    await setAuthenticated(false);
-    router.replace("/login");
+    try {
+      await supabase.auth.signOut();
+      router.replace("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out. Please try again.");
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    const normalizedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (normalizedEmail === originalEmail) return;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      Alert.alert("Error", "Please enter a valid email address.");
+      return;
+    }
+
+    const { error: supabaseError } = await supabase.auth.updateUser({
+      email: normalizedEmail,
+    });
+
+    if (supabaseError) {
+      Alert.alert("Error", supabaseError.message);
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        Alert.alert("Error", "You are not authenticated.");
+        return;
+      }
+
+      const res = await fetch(`${API_URL}/api/users/me`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      const json = await res.json();
+      if (!json.success) {
+        Alert.alert("Error", json.message ?? "Failed to update email in app profile.");
+        return;
+      }
+
+      setEmail(normalizedEmail);
+      setOriginalEmail(normalizedEmail);
+      await supabase.auth.signOut();
+      Alert.alert("Success", "Email updated. Check your inbox if confirmation is required, then log in again.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/login"),
+        },
+      ]);
+    } catch {
+      Alert.alert("Error", "Network error. Please try again.");
+    }
   };
 
   const handleChangePassword = async () => {
@@ -60,16 +186,42 @@ export default function SettingsScreen() {
       return;
     }
 
-    try {
-      Alert.alert("Success", "Password updated successfully");
-
-      setShowPasswordEditor(false);
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch {
-      setError("Failed to update password");
+    if (newPassword === oldPassword) {
+      setError("New password must be different from current password");
+      return;
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) {
+      setError("Unable to verify current user");
+      return;
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: oldPassword,
+    });
+    if (reauthError) {
+      setError("Current password is incorrect");
+      return;
+    }
+
+    const { error: supabaseError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (supabaseError) {
+      setError(supabaseError.message);
+      return;
+    }
+
+    Alert.alert("Success", "Password updated successfully");
+    setShowPasswordEditor(false);
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   const handleCancelPasswordEdit = () => {
@@ -79,6 +231,15 @@ export default function SettingsScreen() {
     setConfirmPassword("");
     setError("");
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -110,55 +271,80 @@ export default function SettingsScreen() {
         </View>
 
         <View style={[styles.fieldsBlock, { gap: 30 * scale }]}>
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldTextWrap}>
-              <Text
-                style={[
-                  styles.label,
-                  { fontSize: 22 * scale, lineHeight: 30 * scale },
-                ]}
-              >
-                Username:
-              </Text>
-              <TextInput
-                ref={usernameInputRef}
-                value={username}
-                onChangeText={setUsername}
-                style={[styles.valueInput, { fontSize: 24 * scale }]}
-              />
+          {/* Username */}
+          <View>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldTextWrap}>
+                <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
+                  username:
+                </Text>
+                <TextInput
+                  ref={usernameInputRef}
+                  value={username}
+                  onChangeText={setUsername}
+                  style={[styles.valueInput, { fontSize: 24 * scale }]}
+                />
+              </View>
+              <Pressable onPress={() => usernameInputRef.current?.focus()} hitSlop={8}>
+                <EditIcon width={26 * scale} height={26 * scale} />
+              </Pressable>
             </View>
-            <Pressable
-              onPress={() => usernameInputRef.current?.focus()}
-              hitSlop={8}
-            >
-              <EditIcon width={26 * scale} height={26 * scale} />
-            </Pressable>
+            {username !== originalUsername && (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                <Pressable
+                  style={[styles.saveButton, { flex: 1 }]}
+                  onPress={handleSaveUsername}
+                >
+                  <Text style={styles.buttonText}>Save</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.cancelButton, { flex: 1 }]}
+                  onPress={() => setUsername(originalUsername)}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* Email */}
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldTextWrap}>
-              <Text
-                style={[
-                  styles.label,
-                  { fontSize: 22 * scale, lineHeight: 30 * scale },
-                ]}
-              >
-                Email:
-              </Text>
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                style={[
-                  styles.valueInput,
-                  { fontSize: 24 * scale, lineHeight: 30 * scale },
-                ]}
-                placeholder="email"
-                placeholderTextColor="#70707f"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+          <View>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldTextWrap}>
+                <Text style={[styles.label, { fontSize: 24 * scale, lineHeight: 30 * scale }]}>
+                  email:
+                </Text>
+                <TextInput
+                  ref={emailInputRef}
+                  value={email}
+                  onChangeText={setEmail}
+                  style={[styles.valueInput, { fontSize: 24 * scale, lineHeight: 30 * scale }]}
+                  placeholder="email"
+                  placeholderTextColor="#70707f"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+              <Pressable onPress={() => emailInputRef.current?.focus()} hitSlop={8}>
+                <EditIcon width={26 * scale} height={26 * scale} />
+              </Pressable>
             </View>
+            {email.trim().toLowerCase() !== originalEmail && (
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
+                <Pressable
+                  style={[styles.saveButton, { flex: 1 }]}
+                  onPress={handleSaveEmail}
+                >
+                  <Text style={styles.buttonText}>Save</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.cancelButton, { flex: 1 }]}
+                  onPress={() => setEmail(originalEmail)}
+                >
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* Password Section */}
@@ -176,7 +362,7 @@ export default function SettingsScreen() {
                 <EditIcon width={26 * scale} height={26 * scale} />
               </Pressable>
             </View>
-          : <View style={{ gap: 12 }}>
+            : <View style={{ gap: 12 }}>
               <TextInput
                 placeholder="Current password"
                 secureTextEntry
@@ -201,7 +387,7 @@ export default function SettingsScreen() {
 
               {error ?
                 <Text style={{ color: "red", fontSize: 14 }}>{error}</Text>
-              : null}
+                : null}
 
               <View style={{ flexDirection: "row", gap: 12 }}>
                 <Pressable

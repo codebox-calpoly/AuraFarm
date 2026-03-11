@@ -1,18 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
-// 优先用 process.env（Metro 从 .env 注入），否则用 app.config 的 extra（Node 启动时 dotenv 已加载）
 const supabaseUrl =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ??
-  (Constants.expoConfig?.extra as Record<string, string> | undefined)?.supabaseUrl;
-const supabaseKey =
-  process.env.EXPO_PUBLIC_SUPABASE_KEY ??
-  (Constants.expoConfig?.extra as Record<string, string> | undefined)?.supabaseAnonKey;
+  Constants.expoConfig?.extra?.supabaseUrl ||
+  process.env.EXPO_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL;
+const supabaseAnonKey =
+  Constants.expoConfig?.extra?.supabaseAnonKey ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_KEY ||
+  process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing Supabase configuration. Ensure EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_KEY are defined in your .env file (in the frontend folder), or SUPABASE_URL and SUPABASE_KEY in the same .env.'
+    'Missing Supabase configuration. Set SUPABASE_URL + SUPABASE_ANON_KEY or EXPO_PUBLIC_SUPABASE_URL + EXPO_PUBLIC_SUPABASE_ANON_KEY.'
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: AsyncStorage,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});

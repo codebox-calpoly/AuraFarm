@@ -14,10 +14,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { storeSession } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -78,11 +75,9 @@ export default function VerificationScreen() {
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: code,
-        type: "signup", // use "email" if using magic link login
+        type: "signup",
       });
-      console.log("Verification session:", data?.session);
-      console.log("User ID:", data?.session?.user?.id);
-      console.log("User ID type:", typeof data?.session?.user?.id);
+
       if (error) {
         setServerError(error.message ?? "Invalid or expired code.");
         return;
@@ -92,13 +87,6 @@ export default function VerificationScreen() {
         setServerError("Verification failed. No session returned.");
         return;
       }
-
-      // Store Supabase session
-      await storeSession({
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-        userId: data.session.user.id,
-      });
 
       router.replace("/(tabs)");
     } catch (err) {

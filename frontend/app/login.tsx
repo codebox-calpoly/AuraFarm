@@ -15,9 +15,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { storeSession } from "@/lib/auth";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+import { supabase } from "@/lib/supabase";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -54,33 +52,18 @@ export default function LogInScreen() {
     setLoading(true);
     setServerError(null);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      const json = await response.json();
-
-      if (!response.ok) {
-        setServerError(json.error ?? json.message ?? "Invalid email or password.");
-        return;
-      }
-
-      // Persist session tokens
-      await storeSession({
-        accessToken: json.data.accessToken,
-        refreshToken: json.data.refreshToken,
-        userId: json.data.user.id,
-      });
-
-      router.replace("/(tabs)");
-    } catch (err) {
-      setServerError("Network error. Please check your connection and try again.");
-    } finally {
+    if (error) {
+      setServerError(error.message);
       setLoading(false);
+      return;
     }
+
+    router.replace("/(tabs)");
   };
 
   const handleForgotPassword = async () => {
