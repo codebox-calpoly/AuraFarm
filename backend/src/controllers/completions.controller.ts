@@ -18,6 +18,10 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     throw new AppError('Invalid challenge ID', 400);
   }
 
+  if (!imageUrl || typeof imageUrl !== 'string') {
+    throw new AppError('imageUrl is required', 400);
+  }
+
   // Get userId from authentication middleware
   if (!req.user) {
     throw new AppError('Authentication required', 401);
@@ -68,8 +72,9 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
         challengeId: Number(challengeId),
         latitude,
         longitude,
-        imageUrl,
-        caption,
+        imageUrl: imageUrl ?? null,
+        imageUri: imageUrl,
+        caption: caption ?? null,
       },
     });
 
@@ -125,6 +130,127 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
   };
 
   res.status(201).json(response);
+});
+
+/**
+ * PATCH /api/completions/:id
+ * Update caption on own completion
+ */
+export const updateCompletion = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const completionId = parseInt(id);
+
+  if (isNaN(completionId)) {
+    throw new AppError('Invalid completion ID', 400);
+  }
+
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
+
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  if (completion.userId !== req.user.id) {
+    throw new AppError('You can only edit your own posts', 403);
+  }
+
+  const updated = await prisma.challengeCompletion.update({
+    where: { id: completionId },
+    data: { caption: req.body.caption ?? null },
+    include: {
+      user: { select: { id: true, name: true } },
+      challenge: { select: { id: true, title: true, pointsReward: true } },
+    },
+  });
+
+  const response: ApiResponse<typeof updated> = {
+    success: true,
+    data: updated,
+  };
+
+  res.json(response);
+});
+
+/**
+ * POST /api/completions/:id/like
+ * Increment like count on a completion
+ */
+export const likeCompletion = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const completionId = parseInt(id);
+
+  if (isNaN(completionId)) {
+    throw new AppError('Invalid completion ID', 400);
+  }
+
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
+
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  const updated = await prisma.challengeCompletion.update({
+    where: { id: completionId },
+    data: { likes: { increment: 1 } },
+    select: { id: true, likes: true },
+  });
+
+  const response: ApiResponse<typeof updated> = {
+    success: true,
+    data: updated,
+  };
+
+  res.json(response);
+});
+
+/**
+ * DELETE /api/completions/:id/like
+ * Decrement like count on a completion
+ */
+export const unlikeCompletion = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const completionId = parseInt(id);
+
+  if (isNaN(completionId)) {
+    throw new AppError('Invalid completion ID', 400);
+  }
+
+  if (!req.user) {
+    throw new AppError('Authentication required', 401);
+  }
+
+  const completion = await prisma.challengeCompletion.findUnique({
+    where: { id: completionId },
+  });
+
+  if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  const updated = await prisma.challengeCompletion.update({
+    where: { id: completionId },
+    data: { likes: { decrement: 1 } },
+    select: { id: true, likes: true },
+  });
+
+  const response: ApiResponse<typeof updated> = {
+    success: true,
+    data: updated,
+  };
+
+  res.json(response);
 });
 
 /**
@@ -216,8 +342,10 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         latitude: true,
         longitude: true,
         imageUrl: true,
+        imageUri: true,
         caption: true,
         completedAt: true,
+        likes: true,
         user: {
           select: { id: true, name: true },
         },

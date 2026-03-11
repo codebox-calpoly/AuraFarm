@@ -15,8 +15,7 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
+import { supabase } from "@/lib/supabase";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -76,30 +75,26 @@ export default function SignUpScreen() {
     setLoading(true);
     setServerError(null);
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username }),
-      });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          username,
+        },
+      },
+    });
 
-      const json = await response.json();
-
-      if (!response.ok) {
-        setServerError(json.error ?? json.message ?? "Sign up failed. Please try again.");
-        return;
-      }
-
-      // Navigate to verification – pass the email so that screen can use it
-      router.replace({
-        pathname: "/verification",
-        params: { email },
-      });
-    } catch (err) {
-      setServerError("Network error. Please check your connection and try again.");
-    } finally {
+    if (error) {
+      setServerError(error.message);
       setLoading(false);
+      return;
     }
+
+    router.replace({
+      pathname: "/verification",
+      params: { email },
+    });
   };
 
   return (

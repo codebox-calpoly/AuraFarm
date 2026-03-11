@@ -118,6 +118,10 @@ export const createCompletionSchema = z.object({
   caption: z.string().max(500).optional(),
 });
 
+export const updateCompletionSchema = z.object({
+  caption: z.string().max(500).optional(),
+});
+
 export const createFlagSchema = z.object({
   completionId: z.number().int().positive(),
   reason: z.string().optional(),
@@ -134,6 +138,7 @@ export const createChallengeSchema = z.object({
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  email: z.string().email().max(255).optional(),
 });
 
 export const queryParamsSchema = z.object({

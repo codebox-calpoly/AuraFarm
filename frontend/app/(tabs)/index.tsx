@@ -34,27 +34,27 @@ const STATIC_FEED_POSTS: Array<{
   likes: number;
   postImage?: string;
 }> = [
-  {
-    id: 1,
-    challengeTitle: "Hike the P",
-    points: 300,
-    userName: "Marc Rober",
-    caption: "I DID IT!!!!!!!",
-    date: "Jan 9th, 2026",
-    likes: 123,
-    userImage: undefined,
-  },
-  {
-    id: 2,
-    challengeTitle: "Find a cool rock",
-    points: 30,
-    userName: "Marc Rober",
-    caption: "Found this awesome rock on my hike!",
-    date: "Jan 8th, 2026",
-    likes: 45,
-    userImage: undefined,
-  },
-];
+    {
+      id: -1, // Use negative IDs for static/cached posts to avoid collision with backend
+      challengeTitle: "Hike the P",
+      points: 300,
+      userName: "Marc Rober",
+      caption: "I DID IT!!!!!!!",
+      date: "Jan 9th, 2026",
+      likes: 123,
+      userImage: undefined,
+    },
+    {
+      id: -2,
+      challengeTitle: "Find a cool rock",
+      points: 30,
+      userName: "Marc Rober",
+      caption: "Found this awesome rock on my hike!",
+      date: "Jan 8th, 2026",
+      likes: 45,
+      userImage: undefined,
+    },
+  ];
 
 export default function HomeScreen() {
   const cachedPosts = useFeedCache((s) => s.cachedPosts);
@@ -187,13 +187,11 @@ export default function HomeScreen() {
     }>
   >([]);
 
-  // Helper function to format date like "Jan 9th, 2026"
   const formatFeedDate = (date: Date): string => {
     const month = date.toLocaleDateString("en-US", { month: "short" });
     const day = date.getDate();
     const year = date.getFullYear();
 
-    // Add ordinal suffix (st, nd, rd, th)
     const getOrdinalSuffix = (n: number): string => {
       if (n > 3 && n < 21) return "th";
       switch (n % 10) {
@@ -337,12 +335,7 @@ export default function HomeScreen() {
   };
 
   const handleSubmitReport = (reason: string) => {
-    // In production, this would call the API to report the post
     console.log("Reporting post", selectedPostId, "with reason:", reason);
-    // You could also hide the post from the feed here
-    // Note: Don't close the modal here - let it show the confirmation screen
-
-    // Mark this post as reported
     if (selectedPostId !== null) {
       setReportedPosts((prev) => new Set(prev).add(selectedPostId));
     }
@@ -360,7 +353,7 @@ export default function HomeScreen() {
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
         >
-          {activeTab === "my-challenges" ?
+          {activeTab === "my-challenges" ? (
             <>
               {/* Progress Bar */}
               <AuraProgressBar
@@ -374,7 +367,7 @@ export default function HomeScreen() {
                 <ThemedText style={styles.emptyState}>
                   Loading challenges…
                 </ThemedText>
-              ) : incomingChallenges.length > 0 ?
+              ) : incomingChallenges.length > 0 ? (
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
                     key={challenge.id}
@@ -385,10 +378,11 @@ export default function HomeScreen() {
                     onPress={() => handleViewChallenge(challenge)}
                   />
                 ))
-              : <ThemedText style={styles.emptyState}>
+              ) : (
+                <ThemedText style={styles.emptyState}>
                   No incoming challenges
                 </ThemedText>
-              }
+              )}
 
               {/* Completed Section */}
               <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
@@ -407,8 +401,9 @@ export default function HomeScreen() {
                 />
               ))}
             </>
-          : <>
-              {feedPosts.length > 0 ?
+          ) : (
+            <>
+              {feedPosts.length > 0 ? (
                 feedPosts.map((post) => {
                   const isOwnPost = post.postImage != null;
                   return (
@@ -424,10 +419,10 @@ export default function HomeScreen() {
                       onPress={() =>
                         isOwnPost
                           ? router.push(
-                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage!)}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&isOwnPost=true`,
+                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&isOwnPost=true`
                             )
                           : router.push(
-                              `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`,
+                              `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`
                             )
                       }
                       onOptionsPress={() => handleOpenReportModal(post.id)}
@@ -435,12 +430,13 @@ export default function HomeScreen() {
                     />
                   );
                 })
-              : <ThemedView style={styles.feedPlaceholder}>
+              ) : (
+                <ThemedView style={styles.feedPlaceholder}>
                   <ThemedText>No posts yet</ThemedText>
                 </ThemedView>
-              }
+              )}
             </>
-          }
+          )}
         </ScrollView>
 
         {/* Challenge Detail Modal */}

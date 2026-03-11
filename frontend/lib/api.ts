@@ -183,3 +183,24 @@ export async function getFeedCompletionsFromApi(): Promise<
   return json;
 }
 
+/** Dev-only: login with email/password and return session for storeSession. */
+export async function devLogin(
+  email: string,
+  password: string
+): Promise<
+  ApiResponse<{ accessToken: string; refreshToken: string; user: { id: number } }>
+> {
+  const res = await fetch(`${apiBaseUrl()}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? "Login failed",
+    };
+  }
+  return json;
+}

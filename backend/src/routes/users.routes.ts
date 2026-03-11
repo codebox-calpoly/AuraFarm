@@ -8,6 +8,7 @@ import {
 } from '../controllers/users.controller';
 import { validateBody } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
+import { authenticate } from '../middleware/auth';
 import {
   updateUserSchema,
   userIdParamSchema,
@@ -39,7 +40,7 @@ const router = Router();
  *       401:
  *         description: Unauthorized
  */
-router.get('/me', getCurrentUser);
+router.get('/me', authenticate, getCurrentUser);
 
 /**
  * @swagger
@@ -79,6 +80,7 @@ router.get('/me', getCurrentUser);
  */
 router.patch(
   '/me',
+  authenticate,
   validateBody(updateUserSchema),
   updateCurrentUser
 );
