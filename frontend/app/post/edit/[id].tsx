@@ -17,6 +17,7 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { Header } from "@/components/home/Header";
+import { useUpdateCaption } from '@/hooks/useCompletion';
 import { postStore } from "@/stores/postStore";
 
 export default function EditPostScreen() {
@@ -34,21 +35,27 @@ export default function EditPostScreen() {
   }>();
   const router = useRouter();
 
-  // TODO: When backend is ready, replace params with:
-  // const { data: post } = await fetch(`/api/posts/${id}`).then(r => r.json());
   const post = {
-    id: Number(id),
     points: Number(points ?? 0),
     postImage: imageUri ?? null,
   };
 
+  const completionId = Number(id);
   const [caption, setCaption] = useState(captionParam ?? "");
+  const updateCaption = useUpdateCaption(completionId > 0 ? completionId : 0);
 
   const handleBack = () => router.back();
 
-  const handleSave = () => {
-    // Write updated caption to store so the view page picks it up on focus.
-    // TODO: Replace with PATCH /api/posts/:id when backend is ready.
+  const handleSave = async () => {
+    if (completionId > 0) {
+      try {
+        await updateCaption.mutateAsync(caption);
+      } catch (error) {
+        console.error("Failed to update caption on backend:", error);
+      }
+    }
+
+    // Always update local store for smooth transition back
     postStore.setCaption(String(id), caption);
     router.back();
   };
@@ -89,20 +96,21 @@ export default function EditPostScreen() {
           >
             {/* Post Image */}
             <View style={styles.imageContainer}>
-              {post.postImage ?
+              {post.postImage ? (
                 <Image
                   source={{ uri: post.postImage }}
                   style={styles.image}
                   contentFit="cover"
                 />
-              : <View style={styles.imagePlaceholder}>
+              ) : (
+                <View style={styles.imagePlaceholder}>
                   <Ionicons
                     name="image-outline"
                     size={80}
                     color={tailwindColors["aura-gray-400"]}
                   />
                 </View>
-              }
+              )}
             </View>
 
             {/* Edit Caption */}
@@ -115,6 +123,7 @@ export default function EditPostScreen() {
                 placeholder="Enter caption..."
                 placeholderTextColor={tailwindColors["aura-gray-400"]}
                 maxLength={500}
+                multiline
               />
             </View>
 
@@ -123,8 +132,11 @@ export default function EditPostScreen() {
               style={styles.saveButton}
               onPress={handleSave}
               activeOpacity={0.8}
+              disabled={updateCaption.isPending}
             >
-              <ThemedText style={styles.saveButtonText}>Save</ThemedText>
+              <ThemedText style={styles.saveButtonText}>
+                {updateCaption.isPending ? "Saving..." : "Save"}
+              </ThemedText>
             </TouchableOpacity>
           </ScrollView>
         </ThemedView>
@@ -216,6 +228,7 @@ const styles = StyleSheet.create({
     color: tailwindColors["aura-black"],
     textAlignVertical: "top",
     backgroundColor: tailwindColors["aura-white"],
+    minHeight: 100,
   },
   saveButton: {
     backgroundColor: tailwindColors["aura-green"],

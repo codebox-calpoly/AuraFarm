@@ -6,15 +6,16 @@ import { ThemedView } from "@/components/themed-view";
 import { tailwindColors } from "@/constants/tailwind-colors";
 import { useState } from "react";
 
-//Test
 export interface FeedCardProps {
   challengeTitle: string;
   points: number;
   userName: string;
   userImage?: string; // URL or require() path
+  postImage?: string; // URL for the completion photo
   caption?: string;
   date: string;
   likes: number;
+  isLiked?: boolean;
   onPress?: () => void;
   onOptionsPress?: () => void;
   onLikePress?: () => void;
@@ -25,15 +26,22 @@ export function FeedCard({
   points,
   userName,
   userImage,
+  postImage,
   caption,
   date,
   likes,
+  isLiked: initialIsLiked = false,
   onPress,
   onOptionsPress,
   onLikePress,
 }: FeedCardProps) {
-  const [isLiked, setIsLiked] = useState(false);
+  const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likesState, setLikesState] = useState(likes);
+
+  // Sync state if props change (optional but good for reactive UI)
+  // Or just use the props if we want the parent to control it.
+  // The HEAD version of index.tsx used a wrapper "FeedCardWithLike" that managed its own state.
+  // Let's stick to the main version's internal state for now but allow external control.
 
   return (
     <TouchableOpacity
@@ -46,9 +54,7 @@ export function FeedCard({
         <View style={styles.header}>
           <View style={styles.optionsButton} />
           <View style={styles.titleSection}>
-            <ThemedText style={styles.challengeTitle}>
-              {challengeTitle}
-            </ThemedText>
+            <ThemedText style={styles.challengeTitle}>{challengeTitle}</ThemedText>
             <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
           </View>
           <TouchableOpacity
@@ -68,20 +74,21 @@ export function FeedCard({
 
         {/* Image */}
         <View style={styles.imageContainer}>
-          {userImage ?
+          {postImage || userImage ? (
             <Image
-              source={{ uri: userImage }}
+              source={{ uri: postImage ?? userImage }}
               style={styles.image}
               contentFit="cover"
             />
-          : <View style={styles.imagePlaceholder}>
+          ) : (
+            <View style={styles.imagePlaceholder}>
               <Ionicons
                 name="image-outline"
                 size={48}
                 color={tailwindColors["aura-gray-400"]}
               />
             </View>
-          }
+          )}
         </View>
 
         {/* User info and caption */}
@@ -97,12 +104,13 @@ export function FeedCard({
             onPress={(e) => {
               e.stopPropagation();
 
-              if (isLiked) {
-                setLikesState((prev) => prev - 1);
-              } else {
+              const newIsLiked = !isLiked;
+              if (newIsLiked) {
                 setLikesState((prev) => prev + 1);
+              } else {
+                setLikesState((prev) => prev - 1);
               }
-              setIsLiked((prev) => !prev);
+              setIsLiked(newIsLiked);
 
               onLikePress?.();
             }}
@@ -111,11 +119,7 @@ export function FeedCard({
             <Ionicons
               name={isLiked ? "heart" : "heart-outline"}
               size={20}
-              color={
-                isLiked ?
-                  tailwindColors["aura-red"]
-                : tailwindColors["aura-black"]
-              }
+              color={isLiked ? tailwindColors["aura-red"] : tailwindColors["aura-black"]}
             />
             <ThemedText style={styles.likesText}>{likesState}</ThemedText>
           </TouchableOpacity>
