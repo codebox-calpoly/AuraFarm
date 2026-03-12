@@ -1,4 +1,9 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
+import * as path from 'path';
+
+// Load .env from project root (one level up from backend/)
+config({ path: path.resolve(__dirname, '..', '.env') });
+
 import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
