@@ -24,7 +24,7 @@ export interface ChallengeDetailModalProps {
   description: string;
   points: number;
   timeLeft: string;
-  onSubmit: (imageUri: string, caption: string) => void;
+  onSubmit: (imageUri: string, caption: string) => void | Promise<boolean | void>;
 }
 
 export function ChallengeDetailModal({
@@ -40,6 +40,7 @@ export function ChallengeDetailModal({
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [showActionSheet, setShowActionSheet] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Reset state when modal closes
   const handleClose = () => {
@@ -88,10 +89,15 @@ export function ChallengeDetailModal({
     }
   };
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!image) return;
-    onSubmit(image, caption);
-    handleClose();
+    setSubmitting(true);
+    try {
+      const result = await onSubmit(image, caption);
+      if (result !== false) handleClose();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -225,11 +231,16 @@ export function ChallengeDetailModal({
 
               {/* Post Button */}
               <TouchableOpacity
-                style={[styles.postButton, !image && styles.disabledButton]}
+                style={[
+                  styles.postButton,
+                  (!image || submitting) && styles.disabledButton,
+                ]} 
                 onPress={handlePost}
-                disabled={!image}
+                disabled={!image || submitting}
               >
-                <ThemedText style={styles.postButtonText}>Post</ThemedText>
+                <ThemedText style={styles.postButtonText}>
+                  {submitting ? "Submitting…" : "Post"}
+                </ThemedText>
               </TouchableOpacity>
 
               {!image && (

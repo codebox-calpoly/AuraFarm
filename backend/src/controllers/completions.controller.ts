@@ -12,14 +12,14 @@ import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
  * Submit a challenge completion
  */
 export const completeChallenge = asyncHandler(async (req: Request, res: Response) => {
-  const { challengeId, latitude, longitude, imageUri, caption } = req.body;
+  const { challengeId, latitude, longitude, imageUrl, caption } = req.body;
 
   if (!challengeId || isNaN(Number(challengeId))) {
     throw new AppError('Invalid challenge ID', 400);
   }
 
-  if (!imageUri || typeof imageUri !== 'string') {
-    throw new AppError('imageUri is required', 400);
+  if (!imageUrl || typeof imageUrl !== 'string') {
+    throw new AppError('imageUrl is required', 400);
   }
 
   // Get userId from authentication middleware
@@ -72,7 +72,8 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
         challengeId: Number(challengeId),
         latitude,
         longitude,
-        imageUri,
+        imageUrl: imageUrl ?? null,
+        imageUri: imageUrl,
         caption: caption ?? null,
       },
     });
@@ -340,9 +341,10 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         challengeId: true,
         latitude: true,
         longitude: true,
-        completedAt: true,
-        caption: true,
+        imageUrl: true,
         imageUri: true,
+        caption: true,
+        completedAt: true,
         likes: true,
         user: {
           select: { id: true, name: true },
@@ -369,4 +371,3 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
 
   res.json(response);
 });
-

@@ -17,11 +17,13 @@ import {
 } from '../types';
 import { authenticate } from '../middleware/auth';
 import rateLimiter from '../middleware/rateLimiter';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
 router.post(
   '/',
+  authenticate,
   rateLimiter.completionLimiter,
   validateBody(createCompletionSchema),
   completeChallenge
