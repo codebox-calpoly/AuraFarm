@@ -8,11 +8,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { supabase } from "@/lib/supabase";
@@ -94,9 +94,7 @@ export default function LogInScreen() {
         ) : null}
 
         {/* Content Area */}
-        <Animated.ScrollView
-          entering={FadeInRight.duration(400)}
-          exiting={FadeOutLeft.duration(400)}
+        <ScrollView
           style={styles.contentContainer}
           contentContainerStyle={{
             paddingBottom: 48,
@@ -195,7 +193,7 @@ export default function LogInScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </Animated.ScrollView>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView >
   );
