@@ -50,6 +50,8 @@ export interface ChallengeCompletion {
   challengeId: number;
   latitude: number;
   longitude: number;
+  imageUrl?: string | null;
+  caption?: string | null;
   completedAt: Date;
   user?: User;
   challenge?: Challenge;
@@ -59,6 +61,8 @@ export interface CreateCompletionRequest {
   challengeId: number;
   latitude: number;
   longitude: number;
+  imageUrl?: string;
+  caption?: string;
 }
 
 // Flag Types
@@ -110,6 +114,8 @@ export const createCompletionSchema = z.object({
   challengeId: z.number().int().positive(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  imageUrl: z.string().url().optional(),
+  caption: z.string().max(500).optional(),
 });
 
 export const updateCompletionSchema = z.object({
@@ -257,6 +263,8 @@ export const challengeCompletionSchema = z.object({
   challengeId: z.number(),
   latitude: z.number(),
   longitude: z.number(),
+  imageUrl: z.string().nullable().optional(),
+  caption: z.string().nullable().optional(),
   completedAt: z.string().transform((str) => new Date(str)),
   user: userSchema.optional(),
   challenge: challengeSchema.optional(),

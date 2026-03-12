@@ -48,6 +48,8 @@ model ChallengeCompletion {
   challengeId Int
   latitude    Float
   longitude   Float
+  imageUrl    String?
+  caption     String?
   completedAt DateTime  @default(now())
   user        User      @relation(fields: [userId], references: [id])
   challenge   Challenge @relation(fields: [challengeId], references: [id])
