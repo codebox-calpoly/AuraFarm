@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { signUp, signIn, verifyOtp } from '../controllers/auth.controller';
+import { signUp, signIn, verifyOtp, resendOtp, changePassword } from '../controllers/auth.controller';
 import { validateBody } from '../middleware/validate';
+import { authenticate } from '../middleware/auth';
 import { z } from 'zod';
 
 const router = Router();
@@ -107,5 +108,16 @@ router.post('/login', validateBody(signInSchema), signIn);
  *         description: Invalid or expired code
  */
 router.post('/verify', validateBody(verifyOtpSchema), verifyOtp);
+
+const resendSchema = z.object({
+    email: z.string().email(),
+});
+router.post('/resend', validateBody(resendSchema), resendOtp);
+
+const changePasswordSchema = z.object({
+    oldPassword: z.string().min(1),
+    newPassword: z.string().min(8).max(30),
+});
+router.post('/change-password', authenticate, validateBody(changePasswordSchema), changePassword);
 
 export default router;

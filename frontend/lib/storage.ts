@@ -1,42 +1,38 @@
-import { supabase } from "@/lib/supabase";
-import { getSession } from "@/lib/auth";
-
-const BUCKET = "completion-images";
-
-async function ensureSupabaseSession(): Promise<boolean> {
-  const stored = await getSession();
-  if (!stored?.accessToken || !stored?.refreshToken) return false;
-
-  const { error } = await supabase.auth.setSession({
-    access_token: stored.accessToken,
-    refresh_token: stored.refreshToken,
-  });
-
-  return !error;
-}
+import { apiBaseUrl } from "@/lib/api";
+import { getValidSession } from "@/lib/auth";
 
 export async function uploadCompletionImage(localUri: string): Promise<string | null> {
-  const ok = await ensureSupabaseSession();
-  if (!ok) return null;
+  const session = await getValidSession();
+  if (!session?.accessToken) {
+    console.warn("[storage] No session – cannot upload image");
+    return null;
+  }
 
   try {
     const response = await fetch(localUri);
     const blob = await response.blob();
 
-    const ext = localUri.split(".").pop()?.toLowerCase() || "jpg";
-    const contentType = ext === "png" ? "image/png" : "image/jpeg";
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const ext = localUri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
+    const formData = new FormData();
+    formData.append("image", blob, `photo.${ext}`);
 
-    const { data, error } = await supabase.storage
-      .from(BUCKET)
-      .upload(fileName, blob, { contentType, upsert: false });
+    const res = await fetch(`${apiBaseUrl()}/api/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+      body: formData,
+    });
 
-    if (error || !data?.path) return null;
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      console.warn("[storage] Upload failed:", json?.error ?? res.status);
+      return null;
+    }
 
-    const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
-    return urlData.publicUrl ?? null;
-  } catch {
+    return json.data.imageUrl;
+  } catch (err) {
+    console.warn("[storage] Upload exception:", err);
     return null;
   }
 }
-

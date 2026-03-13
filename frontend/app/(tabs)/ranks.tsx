@@ -1,9 +1,9 @@
-import AuraFarmHeader from "@/assets/AuraFarmHeader.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
 import { Header } from "@/components/home/Header";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { getLeaderboardFromApi, type LeaderboardEntry } from "@/lib/api";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 
@@ -47,41 +47,22 @@ function AuraIcon({ color, style }: { color: string; style?: any }) {
 
 export default function RanksScreen() {
   const [activeSectionId, setActiveSectionId] = useState("red");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(true);
 
   const activeSection =
     SECTIONS.find((section) => section.id === activeSectionId) ?? SECTIONS[0];
 
-  const leaderboardData = useMemo(() => {
-    const baseNames = [
-      "jeffbob",
-      "kai",
-      "ava",
-      "liam",
-      "nora",
-      "noah",
-      "zoe",
-      "mia",
-      "ethan",
-      "alex",
-      "leo",
-      "luna",
-      "maya",
-      "ryan",
-      "sam",
-      "ella",
-      "sofia",
-      "aria",
-      "jules",
-      "max",
-      "ivy",
-      "adam",
-    ];
-    const names = baseNames.map((name, index) => `${name}${index + 1}`);
-    return names.map((name, index) => ({
-      name,
-      points: Math.max(0, 200 - index),
-    }));
-  }, [activeSection.id]);
+  useEffect(() => {
+    getLeaderboardFromApi(50).then((res) => {
+      if (res.success) setLeaderboard(res.data);
+    }).finally(() => setLoadingLeaderboard(false));
+  }, []);
+
+  const leaderboardData = leaderboard.map((entry) => ({
+    name: entry.userName,
+    points: entry.auraPoints,
+  }));
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -127,6 +108,11 @@ export default function RanksScreen() {
           <View
             style={[styles.topLine, { borderTopColor: activeSection.color }]}
           />
+          {loadingLeaderboard ? (
+            <ActivityIndicator style={{ marginTop: 32 }} color={activeSection.color} />
+          ) : leaderboardData.length === 0 ? (
+            <Text style={[styles.name, { textAlign: "center", marginTop: 32 }]}>No users yet</Text>
+          ) : null}
           {leaderboardData.map((entry) => (
             <View key={entry.name}>
               <View style={styles.row}>

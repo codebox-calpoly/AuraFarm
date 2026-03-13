@@ -15,7 +15,8 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { supabase } from "@/lib/supabase";
+import { apiLogin } from "@/lib/api";
+import { storeSession } from "@/lib/auth";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -52,18 +53,27 @@ export default function LogInScreen() {
     setLoading(true);
     setServerError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await apiLogin({ email, password });
 
-    if (error) {
-      setServerError(error.message);
+      if (!res.success) {
+        setServerError(res.error ?? "Log in failed");
+        return;
+      }
+
+      if (res.success && res.data) {
+        await storeSession({
+          accessToken: res.data.accessToken,
+          refreshToken: res.data.refreshToken,
+          userId: res.data.user.id,
+          user: res.data.user,
+        });
+      }
+
+      router.replace("/(tabs)");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.replace("/(tabs)");
   };
 
   const handleForgotPassword = async () => {

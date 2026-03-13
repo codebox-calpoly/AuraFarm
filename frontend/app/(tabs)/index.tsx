@@ -13,17 +13,18 @@ import { ChallengeDetailModal } from "@/components/home/ChallengeDetailModal";
 import { FeedCard } from "@/components/home/FeedCard";
 import { ReportPostModal } from "@/components/home/ReportPostModal";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { useFeedCache } from "@/stores/feedCache";
 import {
   getChallenges,
   submitCompletion,
   getUserProfileFromApi,
   getUserCompletionsFromApi,
   getFeedCompletionsFromApi,
+  likeCompletion,
+  flagCompletion,
 } from "@/lib/api";
 import { uploadCompletionImage } from "@/lib/storage";
 
-const STATIC_FEED_POSTS: Array<{
+type FeedPost = {
   id: number;
   challengeTitle: string;
   points: number;
@@ -33,37 +34,11 @@ const STATIC_FEED_POSTS: Array<{
   date: string;
   likes: number;
   postImage?: string;
-}> = [
-    {
-      id: -1, // Use negative IDs for static/cached posts to avoid collision with backend
-      challengeTitle: "Hike the P",
-      points: 300,
-      userName: "Marc Rober",
-      caption: "I DID IT!!!!!!!",
-      date: "Jan 9th, 2026",
-      likes: 123,
-      userImage: undefined,
-    },
-    {
-      id: -2,
-      challengeTitle: "Find a cool rock",
-      points: 30,
-      userName: "Marc Rober",
-      caption: "Found this awesome rock on my hike!",
-      date: "Jan 8th, 2026",
-      likes: 45,
-      userImage: undefined,
-    },
-  ];
+};
 
 export default function HomeScreen() {
-  const cachedPosts = useFeedCache((s) => s.cachedPosts);
-  const addPostToFeed = useFeedCache((s) => s.addPost);
-  const [remoteFeedPosts, setRemoteFeedPosts] = useState<typeof STATIC_FEED_POSTS>([]);
-  const feedPosts =
-    remoteFeedPosts.length > 0
-      ? [...cachedPosts, ...remoteFeedPosts]
-      : [...cachedPosts, ...STATIC_FEED_POSTS];
+  const [remoteFeedPosts, setRemoteFeedPosts] = useState<FeedPost[]>([]);
+  const feedPosts = remoteFeedPosts;
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
     "my-challenges",
@@ -92,87 +67,107 @@ export default function HomeScreen() {
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
   const [auraCurrent, setAuraCurrent] = useState(0);
-  const AURA_MAX = 100;
+
+  // Show progress toward the next tier threshold rather than a fixed max
+  const AURA_TIERS_THRESHOLDS = [25, 75, 150, 300, 500];
+  const AURA_MAX = AURA_TIERS_THRESHOLDS.find((t) => t > auraCurrent) ?? 500;
+
+  const formatFeedDate = (date: Date): string => {
+    const month = date.toLocaleDateString("en-US", { month: "short" });
+    const day = date.getDate();
+    const year = date.getFullYear();
+    const getOrdinalSuffix = (n: number): string => {
+      if (n > 3 && n < 21) return "th";
+      switch (n % 10) {
+        case 1: return "st";
+        case 2: return "nd";
+        case 3: return "rd";
+        default: return "th";
+      }
+    };
+    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+  };
+
+  const refetchFeed = async () => {
+    const feedRes = await getFeedCompletionsFromApi();
+    if (feedRes.success) {
+      setRemoteFeedPosts(
+        feedRes.data.map((c) => ({
+          id: c.id,
+          challengeTitle: c.challenge.title,
+          points: c.challenge.pointsReward,
+          userName: c.user.name ?? "Auranaut",
+          userImage: undefined,
+          caption: c.caption ?? "",
+          date: formatFeedDate(new Date(c.completedAt)),
+          likes: c.likes ?? 0,
+          postImage: c.imageUrl ?? undefined,
+        })),
+      );
+    }
+  };
 
   useEffect(() => {
-    async function load() {
-      try {
-        const [challengesRes, profileRes, myCompletionsRes, feedRes] =
-          await Promise.all([
-            getChallenges(),
-            getUserProfileFromApi(),
-            getUserCompletionsFromApi(),
-            getFeedCompletionsFromApi(),
-          ]);
-
-        if (challengesRes.success) {
+    // Fire all requests independently so fast ones render immediately
+    getChallenges().then((res) => {
+      if (res.success) {
+        // We need completions to filter, so fetch those first too
+        getUserCompletionsFromApi().then((compRes) => {
+          const completedIds = new Set(
+            compRes.success ? compRes.data.map((c) => c.challenge.id) : []
+          );
           setIncomingChallenges(
-            challengesRes.data.map((c) => ({
-              id: c.id,
-              title: c.title,
-              points: c.pointsReward,
-              // TODO: add a real deadline in the DB; for now keep static display
-              timeLeft: "3 days 2 hrs 3 min",
-              description: c.description,
-            })),
+            res.data
+              .filter((c) => !completedIds.has(c.id))
+              .map((c) => ({
+                id: c.id,
+                title: c.title,
+                points: c.pointsReward,
+                timeLeft: "3 days 2 hrs 3 min",
+                description: c.description,
+              })),
           );
-        } else {
-          // Fallback (dev/offline)
-          setIncomingChallenges([
-            {
-              id: 1,
-              title: "Hike the P",
-              points: 300,
-              timeLeft: "3 days 2 hrs 3 min",
-              description:
-                "Go to the top of the P and take a smiling picture with a friend.",
-            },
-          ]);
-        }
-
-        if (profileRes.success) {
-          setAuraCurrent(profileRes.data.auraPoints);
-        }
-
-        if (myCompletionsRes.success) {
-          setCompletedChallenges(
-            myCompletionsRes.data.map((c) => ({
-              id: c.id,
-              title: c.challenge.title,
-              points: c.challenge.pointsReward,
-              date: formatFeedDate(new Date(c.completedAt)),
-              description: c.challenge.description,
-              postImage: c.imageUrl ?? "",
-              caption: c.caption ?? "",
-              likes: 0,
-            })),
-          );
-        }
-
-        if (feedRes.success) {
-          setRemoteFeedPosts(
-            feedRes.data.map((c) => ({
-              id: c.id,
-              challengeTitle: c.challenge.title,
-              points: c.challenge.pointsReward,
-              userName: c.user.name ?? "Auranaut",
-              userImage: undefined,
-              caption: c.caption ?? "",
-              date: formatFeedDate(new Date(c.completedAt)),
-              likes: 0,
-              postImage: c.imageUrl ?? undefined,
-            })),
-          );
-        }
-      } catch {
-        // Ignore; fallbacks already handled above
-      } finally {
+          if (compRes.success) {
+            setCompletedChallenges(
+              compRes.data.map((c) => ({
+                id: c.id,
+                title: c.challenge.title,
+                points: c.challenge.pointsReward,
+                date: formatFeedDate(new Date(c.completedAt)),
+                description: c.challenge.description,
+                postImage: c.imageUrl ?? "",
+                caption: c.caption ?? "",
+                likes: 0,
+              })),
+            );
+          }
+          setChallengesLoading(false);
+        });
+      } else {
+        setIncomingChallenges([{
+          id: 1,
+          title: "Hike the P",
+          points: 300,
+          timeLeft: "3 days 2 hrs 3 min",
+          description: "Go to the top of the P and take a smiling picture with a friend.",
+        }]);
         setChallengesLoading(false);
       }
-    }
+    }).catch(() => setChallengesLoading(false));
 
-    load();
+    getUserProfileFromApi().then((res) => {
+      if (res.success) setAuraCurrent(res.data.auraPoints);
+    });
+
+    refetchFeed();
   }, []);
+
+  // Refetch feed when user switches to feed tab so they see fresh posts
+  useEffect(() => {
+    if (activeTab === "feed") {
+      refetchFeed();
+    }
+  }, [activeTab]);
 
   const [completedChallenges, setCompletedChallenges] = useState<
     Array<{
@@ -186,28 +181,6 @@ export default function HomeScreen() {
       likes: number;
     }>
   >([]);
-
-  const formatFeedDate = (date: Date): string => {
-    const month = date.toLocaleDateString("en-US", { month: "short" });
-    const day = date.getDate();
-    const year = date.getFullYear();
-
-    const getOrdinalSuffix = (n: number): string => {
-      if (n > 3 && n < 21) return "th";
-      switch (n % 10) {
-        case 1:
-          return "st";
-        case 2:
-          return "nd";
-        case 3:
-          return "rd";
-        default:
-          return "th";
-      }
-    };
-
-    return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
-  };
 
   const handleViewChallenge = (challenge: {
     id: number;
@@ -248,12 +221,11 @@ export default function HomeScreen() {
       });
       const { latitude, longitude } = loc.coords;
 
-      // Upload image first → get a URL to store in DB
       const imageUrl = await uploadCompletionImage(imageUri);
       if (!imageUrl) {
         Alert.alert(
           "Upload failed",
-          "Could not upload your image. Make sure you're logged in and try again.",
+          "Could not upload your image. Please try again.",
         );
         return false;
       }
@@ -275,42 +247,30 @@ export default function HomeScreen() {
         return false;
       }
 
+      const completionId = res.data?.id;
       setIncomingChallenges((prev) =>
         prev.filter((c) => c.id !== challengeToComplete.id),
       );
 
       const today = new Date();
-      const formattedDate = today
-        .toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })
-        .replace(",", "th,");
+      const formattedDate = formatFeedDate(today);
 
       setCompletedChallenges((prev) => [
         {
-          id: challengeToComplete.id,
+          id: completionId ?? challengeToComplete.id,
           title: challengeToComplete.title,
           points: challengeToComplete.points,
           date: formattedDate,
           description: challengeToComplete.description,
-          postImage: imageUri,
+          postImage: imageUrl || imageUri,
           caption,
           likes: 0,
         },
         ...prev,
       ]);
 
-      addPostToFeed({
-        challengeTitle: challengeToComplete.title,
-        points: challengeToComplete.points,
-        userName: "You",
-        caption,
-        date: formattedDate,
-        likes: 0,
-        postImage: imageUri,
-      });
+      // Refetch feed so the new post appears and persists after reload
+      await refetchFeed();
 
       // Refresh Aura so the progress bar updates without leaving the screen
       const profileRes = await getUserProfileFromApi();
@@ -334,11 +294,22 @@ export default function HomeScreen() {
     setSelectedPostId(null);
   };
 
-  const handleSubmitReport = (reason: string) => {
-    console.log("Reporting post", selectedPostId, "with reason:", reason);
-    if (selectedPostId !== null) {
-      setReportedPosts((prev) => new Set(prev).add(selectedPostId));
+  const handleSubmitReport = async (reason: string) => {
+    if (selectedPostId === null || selectedPostId < 0) return; // skip static/cached posts
+    setReportedPosts((prev) => new Set(prev).add(selectedPostId));
+    const res = await flagCompletion(selectedPostId, reason);
+    if (!res.success && !res.error?.includes("already flagged")) {
+      // Silently ignore duplicate flags; warn on other errors
+      console.warn("Flag failed:", res.error);
     }
+  };
+
+  const handleLikePost = async (postId: number) => {
+    if (postId < 0) return; // skip static/cached posts
+    setRemoteFeedPosts((prev) =>
+      prev.map((p) => (p.id === postId ? { ...p, likes: p.likes + 1 } : p))
+    );
+    await likeCompletion(postId);
   };
 
   return (
@@ -426,7 +397,7 @@ export default function HomeScreen() {
                             )
                       }
                       onOptionsPress={() => handleOpenReportModal(post.id)}
-                      onLikePress={() => console.log("Like post", post.id)}
+                      onLikePress={() => handleLikePost(post.id)}
                     />
                   );
                 })

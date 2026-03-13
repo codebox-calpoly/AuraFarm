@@ -1,4 +1,4 @@
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { StyleSheet, View, TouchableOpacity, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
@@ -37,6 +37,9 @@ export function FeedCard({
 }: FeedCardProps) {
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likesState, setLikesState] = useState(likes);
+  const { width } = useWindowDimensions();
+  // 24px padding on each side from the parent container
+  const imageSize = width - 48;
 
   // Sync state if props change (optional but good for reactive UI)
   // Or just use the props if we want the parent to control it.
@@ -73,23 +76,21 @@ export function FeedCard({
         </View>
 
         {/* Image */}
-        <View style={styles.imageContainer}>
-          {postImage || userImage ? (
-            <Image
-              source={{ uri: postImage ?? userImage }}
-              style={styles.image}
-              contentFit="cover"
+        {postImage || userImage ? (
+          <Image
+            source={{ uri: postImage ?? userImage }}
+            style={[styles.image, { width: imageSize, height: imageSize }]}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={[styles.imagePlaceholder, { width: imageSize, height: imageSize }]}>
+            <Ionicons
+              name="image-outline"
+              size={48}
+              color={tailwindColors["aura-gray-400"]}
             />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Ionicons
-                name="image-outline"
-                size={48}
-                color={tailwindColors["aura-gray-400"]}
-              />
-            </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* User info and caption */}
         <View style={styles.contentSection}>
@@ -173,18 +174,10 @@ const styles = StyleSheet.create({
   optionsButton: {
     padding: 4,
   },
-  imageContainer: {
-    width: "100%",
-    aspectRatio: 1,
+  image: {
     backgroundColor: tailwindColors["aura-gray-100"],
   },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
   imagePlaceholder: {
-    width: "100%",
-    height: "100%",
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: tailwindColors["aura-gray-100"],

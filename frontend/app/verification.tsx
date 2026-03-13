@@ -14,7 +14,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { supabase } from "@/lib/supabase";
+import { apiVerify, apiResend } from "@/lib/api";
+import { storeSession } from "@/lib/auth";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -39,22 +40,13 @@ export default function VerificationScreen() {
     setResendMessage(null);
     setServerError(null);
 
-    try {
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
-
-      if (error) {
-        setServerError("Could not resend code. Please try again.");
-      } else {
-        setResendMessage("A new code has been sent to your email.");
-      }
-    } catch {
-      setServerError("Network error. Please check your connection.");
-    } finally {
-      setResendLoading(false);
+    const res = await apiResend(email);
+    if (res.success) {
+      setResendMessage(res.message ?? "A new code has been sent to your email.");
+    } else {
+      setServerError(res.error ?? "Could not resend code. Please try again.");
     }
+    setResendLoading(false);
   };
 
   const handleContinue = async () => {
@@ -72,26 +64,23 @@ export default function VerificationScreen() {
     setServerError(null);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: "signup",
-      });
+      const res = await apiVerify({ email, token: code });
 
-      if (error) {
-        setServerError(error.message ?? "Invalid or expired code.");
+      if (!res.success) {
+        setServerError(res.error ?? "Invalid or expired code.");
         return;
       }
 
-      if (!data.session) {
-        setServerError("Verification failed. No session returned.");
-        return;
+      if (res.success && res.data) {
+        await storeSession({
+          accessToken: res.data.accessToken,
+          refreshToken: res.data.refreshToken,
+          userId: res.data.user.id,
+          user: res.data.user,
+        });
       }
 
       router.replace("/(tabs)");
-    } catch (err) {
-      console.error("Verification error:", err);
-      setServerError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }

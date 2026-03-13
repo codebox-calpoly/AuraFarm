@@ -12,6 +12,7 @@ declare global {
         id: number;
         email: string;
         role: string;
+        supabaseId: string;
       };
     }
   }
@@ -75,6 +76,7 @@ export const authenticate = asyncHandler(async (
       id: user.id,
       email: user.email,
       role: user.role as string,
+      supabaseId: supabaseUser.id,
     };
 
     // Continue to next middleware/controller

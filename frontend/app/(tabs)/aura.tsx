@@ -1,16 +1,52 @@
-import AuraDiamond from "@/assets/AuraDiamond.svg";
 import ShareButton from "@/assets/ShareButton.svg";
+import { AuraDiamondIcon } from "@/components/AuraDiamondIcon";
 import { StyleSheet, View, Pressable, Alert, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import ViewShot from "react-native-view-shot";
 import * as Sharing from "expo-sharing";
 import { Header } from "@/components/home/Header";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { ThemedText } from "@/components/themed-text";
+import { getValidSession } from "@/lib/auth";
+import { getUserProfileFromApi } from "@/lib/api";
+
+// Aura tiers ordered by minimum points (highest first)
+const AURA_TIERS = [
+  { label: "red",    color: tailwindColors["aura-red"],    bg: tailwindColors["aura-red-tint"],   minPoints: 500 },
+  { label: "orange", color: tailwindColors["aura-orange"], bg: "#FFF8EE",                         minPoints: 300 },
+  { label: "yellow", color: tailwindColors["aura-yellow"], bg: "#FFFDE7",                         minPoints: 150 },
+  { label: "green",  color: tailwindColors["aura-green"],  bg: tailwindColors["aura-green-light"],minPoints: 75  },
+  { label: "blue",   color: tailwindColors["aura-blue"],   bg: "#EEF2FF",                         minPoints: 25  },
+  { label: "purple", color: tailwindColors["aura-purple"], bg: "#F5EEFF",                         minPoints: 0   },
+];
+
+function getTier(points: number) {
+  return AURA_TIERS.find((t) => points >= t.minPoints) ?? AURA_TIERS[AURA_TIERS.length - 1];
+}
 
 export default function AuraScreen() {
   const auraRef = useRef<ViewShot>(null);
+  const [auraPoints, setAuraPoints] = useState<number | null>(null);
+  const [rank, setRank] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Use cached session data first so the screen renders instantly
+    getValidSession().then((session) => {
+      if (session?.user?.auraPoints != null) {
+        setAuraPoints(session.user.auraPoints);
+      }
+    });
+    // Then refresh from API in the background
+    getUserProfileFromApi().then((res) => {
+      if (res.success) {
+        setAuraPoints(res.data.auraPoints);
+        setRank(res.data.rank ?? null);
+      }
+    });
+  }, []);
+
+  const tier = getTier(auraPoints ?? 0);
 
   const handleShare = async () => {
     try {
@@ -58,22 +94,25 @@ export default function AuraScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      {/* Header */}
       <Header />
 
       <View style={styles.container}>
-        {/* Only this container is captured */}
         <ViewShot
           ref={auraRef}
           style={styles.captureContainer}
           options={{ format: "jpg", quality: 0.95, result: "tmpfile" }}
         >
-          <AuraDiamond width={270} height={426} style={{ marginTop: 24 }} />
-          <ThemedText style={styles.auraText}>You have red aura</ThemedText>
-          <ThemedText style={styles.rarityText}>99.99% rarity</ThemedText>
+          <AuraDiamondIcon color={tier.color} points={auraPoints ?? 0} width={270} height={426} style={{ marginTop: 24 }} />
+          <ThemedText style={[styles.auraText, { color: tier.color }]}>
+            You have {tier.label} aura
+          </ThemedText>
+          {rank !== null && (
+            <ThemedText style={[styles.pointsText, { color: tier.color }]}>
+              Rank #{rank}
+            </ThemedText>
+          )}
         </ViewShot>
 
-        {/* Share button outside the capture view */}
         <Pressable
           onPress={handleShare}
           hitSlop={12}
@@ -90,7 +129,7 @@ export default function AuraScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-red-tint"],
+    backgroundColor: tailwindColors["aura-white"],
   },
   container: {
     flex: 1,
@@ -100,15 +139,14 @@ const styles = StyleSheet.create({
   auraText: {
     fontSize: 32,
     fontFamily: tailwindFonts["regular"],
-    color: tailwindColors["aura-black"],
     marginTop: 16,
     textAlign: "center",
   },
-  rarityText: {
-    fontSize: 24,
-    fontFamily: tailwindFonts["bold"],
-    color: tailwindColors["aura-red"],
+  pointsText: {
+    fontSize: 18,
+    fontFamily: tailwindFonts["semibold"],
     textAlign: "center",
+    marginTop: 4,
   },
   captureContainer: {
     alignItems: "center",

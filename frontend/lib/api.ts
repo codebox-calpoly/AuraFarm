@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import { getSession } from "@/lib/auth";
+import { getValidSession, refreshSession } from "@/lib/auth";
 
 type ApiOk<T> = { success: true; data: T; message?: string };
 type ApiErr = { success: false; error?: string; message?: string };
@@ -53,6 +53,7 @@ export type FeedCompletion = {
   imageUrl?: string | null;
   caption?: string | null;
   completedAt: string;
+  likes?: number;
   user: {
     id: number;
     name: string | null;
@@ -64,27 +65,56 @@ export type FeedCompletion = {
   };
 };
 
-function apiBaseUrl(): string {
+export function apiBaseUrl(): string {
   const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
-  return (
-    process.env.EXPO_PUBLIC_API_URL ??
-    extra?.apiUrl ??
-    "http://localhost:3000"
-  );
+  const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl;
+  if (envUrl) return envUrl;
+  // In dev, use the same host as Metro (works on physical device; localhost fails there)
+  const hostUri = Constants.expoConfig?.hostUri ?? Constants.manifest?.debuggerHost;
+  if (hostUri) {
+    const host = hostUri.split(":")[0];
+    return `http://${host}:3000`;
+  }
+  return "http://localhost:3000";
 }
 
 async function authHeader(): Promise<Record<string, string>> {
-  const session = await getSession();
+  const session = await getValidSession();
   if (!session?.accessToken) return {};
   return { Authorization: `Bearer ${session.accessToken}` };
 }
 
 async function getUserIdFromSession(): Promise<number | null> {
-  const session = await getSession();
+  const session = await getValidSession();
   if (!session?.userId) return null;
   return typeof session.userId === "number"
     ? session.userId
     : parseInt(String(session.userId), 10) || null;
+}
+
+async function authedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const headers = await authHeader();
+  const res = await fetch(url, {
+    ...options,
+    headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
+  });
+  // If 401, try refreshing and retry once
+  if (res.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed?.accessToken) {
+      return fetch(url, {
+        ...options,
+        headers: {
+          Authorization: `Bearer ${refreshed.accessToken}`,
+          ...(options.headers as Record<string, string> ?? {}),
+        },
+      });
+    }
+  }
+  return res;
 }
 
 export async function getChallenges(): Promise<ApiResponse<Challenge[]>> {
@@ -106,17 +136,14 @@ export async function submitCompletion(input: {
   imageUrl?: string;
   caption?: string;
 }): Promise<ApiResponse<{ id: number }>> {
-  const headers = await authHeader();
-  if (!headers.Authorization) {
+  const session = await getValidSession();
+  if (!session?.accessToken) {
     return { success: false, error: "Not authenticated" };
   }
 
-  const res = await fetch(`${apiBaseUrl()}/api/completions`, {
+  const res = await authedFetch(`${apiBaseUrl()}/api/completions`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...headers,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 
@@ -183,24 +210,135 @@ export async function getFeedCompletionsFromApi(): Promise<
   return json;
 }
 
-/** Dev-only: login with email/password and return session for storeSession. */
-export async function devLogin(
-  email: string,
-  password: string
-): Promise<
-  ApiResponse<{ accessToken: string; refreshToken: string; user: { id: number } }>
-> {
-  const res = await fetch(`${apiBaseUrl()}/api/auth/login`, {
+export type LeaderboardEntry = {
+  userId: number;
+  userName: string;
+  auraPoints: number;
+  streak: number;
+  completionsCount: number;
+  rank: number;
+};
+
+export async function getLeaderboardFromApi(limit = 50): Promise<ApiResponse<LeaderboardEntry[]>> {
+  const res = await fetch(`${apiBaseUrl()}/api/leaderboard?limit=${limit}`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function likeCompletion(completionId: number): Promise<ApiResponse<{ likes: number }>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/completions/${completionId}/like`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
   });
   const json = await res.json();
   if (!res.ok) {
     return {
       success: false,
-      error: json?.error ?? json?.message ?? "Login failed",
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
     };
   }
   return json;
+}
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<ApiResponse<unknown>> {
+  const session = await getValidSession();
+  if (!session?.accessToken) {
+    return { success: false, error: "Not authenticated" };
+  }
+  const res = await authedFetch(`${apiBaseUrl()}/api/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldPassword, newPassword }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function flagCompletion(completionId: number, reason?: string): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/flags`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completionId, reason: reason ?? null }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export type AuthSession = {
+  accessToken: string;
+  refreshToken: string;
+  user: { id: number; email: string; name: string; auraPoints?: number; streak?: number };
+};
+
+async function authFetch<T>(
+  path: string,
+  body: object
+): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(`${apiBaseUrl()}/api/auth/${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      return {
+        success: false,
+        error: json?.error ?? json?.message ?? "Request failed",
+      };
+    }
+    return json;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Request failed";
+    return {
+      success: false,
+      error: msg.includes("fetch") || msg.includes("network")
+        ? "Cannot reach server. Make sure the backend is running and you're on the same network."
+        : msg,
+    };
+  }
+}
+
+export async function apiSignUp(input: {
+  email: string;
+  password: string;
+  username: string;
+}): Promise<ApiResponse<{ id: number; email: string; name: string }>> {
+  return authFetch("signup", input);
+}
+
+export async function apiLogin(input: {
+  email: string;
+  password: string;
+}): Promise<ApiResponse<AuthSession>> {
+  return authFetch("login", input);
+}
+
+export async function apiVerify(input: {
+  email: string;
+  token: string;
+}): Promise<ApiResponse<AuthSession>> {
+  return authFetch("verify", input);
+}
+
+export async function apiResend(email: string): Promise<ApiResponse<{ message: string }>> {
+  return authFetch("resend", { email });
 }

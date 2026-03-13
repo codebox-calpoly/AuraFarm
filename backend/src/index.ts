@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from project root (one level up from backend/)
+// Load .env from backend/ first, then project root
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import express from 'express';
@@ -21,6 +22,7 @@ import completionsRoutes from './routes/completions.routes';
 import flagsRoutes from './routes/flags.routes';
 import usersRoutes from './routes/users.routes';
 import leaderboardRoutes from './routes/leaderboard.routes';
+import uploadRoutes from './routes/upload.routes';
 
 const app = express();
 
@@ -40,12 +42,13 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 
 // API Routes
-app.use('/api/auth', rateLimiter.authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/challenges', rateLimiter.publicLimiter, challengesRoutes);
 app.use('/api/completions', completionsRoutes);
 app.use('/api/flags', flagsRoutes);
-app.use('/api/users', rateLimiter.authLimiter, usersRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api/leaderboard', rateLimiter.publicLimiter, leaderboardRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // 404 handler for undefined routes
 app.use(notFoundHandler);

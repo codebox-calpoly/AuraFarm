@@ -44,6 +44,7 @@ const router = Router();
  */
 router.post(
   '/',
+  authenticate,
   rateLimiter.flagLimiter,
   validateBody(createFlagSchema),
   flagCompletion

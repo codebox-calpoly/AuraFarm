@@ -15,7 +15,7 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { supabase } from "@/lib/supabase";
+import { apiSignUp } from "@/lib/api";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -75,26 +75,21 @@ export default function SignUpScreen() {
     setLoading(true);
     setServerError(null);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          username,
-        },
-      },
-    });
+    try {
+      const res = await apiSignUp({ email, password, username });
 
-    if (error) {
-      setServerError(error.message);
+      if (!res.success) {
+        setServerError(res.error ?? "Sign up failed");
+        return;
+      }
+
+      router.replace({
+        pathname: "/verification",
+        params: { email },
+      });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.replace({
-      pathname: "/verification",
-      params: { email },
-    });
   };
 
   return (

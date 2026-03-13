@@ -1,3 +1,2 @@
-ALTER TABLE "ChallengeCompletion"
-ADD COLUMN "imageUrl" TEXT,
-ADD COLUMN "caption" TEXT;
+-- caption already exists from add_feed_fields; only add imageUrl
+ALTER TABLE "ChallengeCompletion" ADD COLUMN "imageUrl" TEXT;

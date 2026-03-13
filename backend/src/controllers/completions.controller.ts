@@ -45,7 +45,8 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     challenge.longitude
   );
 
-  if (distance > 100) {
+  const maxDistance = Number(process.env.MAX_COMPLETION_DISTANCE_M) || 100_000;
+  if (distance > maxDistance) {
     throw new AppError(`You are too far from the challenge location (${Math.round(distance)}m away)`, 400);
   }
 
