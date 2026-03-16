@@ -24,7 +24,7 @@ export default {
         process.env.EXPO_PUBLIC_SUPABASE_KEY ??
         process.env.SUPABASE_ANON_KEY ??
         process.env.SUPABASE_KEY,
-      apiUrl: process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000',
+      apiUrl: process.env.EXPO_PUBLIC_API_URL,
     },
   },
 };

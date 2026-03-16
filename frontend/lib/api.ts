@@ -69,8 +69,13 @@ export function apiBaseUrl(): string {
   const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
   const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl;
   if (envUrl) return envUrl;
-  // In dev, use the same host as Metro (works on physical device; localhost fails there)
-  const hostUri = Constants.expoConfig?.hostUri ?? Constants.manifest?.debuggerHost;
+  // In dev, derive the backend host from the Metro bundler URI so physical
+  // devices and emulators on other machines can reach the backend.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const hostUri: string | undefined =
+    (Constants.expoConfig as any)?.hostUri ??
+    (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ??
+    (Constants as any).manifest?.debuggerHost;
   if (hostUri) {
     const host = hostUri.split(":")[0];
     return `http://${host}:3000`;
