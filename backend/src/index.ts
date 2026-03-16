@@ -57,7 +57,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📡 Health check: http://localhost:${PORT}/health`);
   logger.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
