@@ -3,10 +3,10 @@ import { signUp, signIn, verifyOtp, resendOtp, changePassword } from '../control
 import { validateBody } from '../middleware/validate';
 import { authenticate } from '../middleware/auth';
 import { z } from 'zod';
+import rateLimiter from '../middleware/rateLimiter';
 
 const router = Router();
 
-// Validation schemas
 const signUpSchema = z.object({
     email: z.string().email(),
     password: z.string().min(8).max(30),
@@ -23,101 +23,19 @@ const verifyOtpSchema = z.object({
     token: z.string().min(4).max(8),
 });
 
-/**
- * @swagger
- * /auth/signup:
- *   post:
- *     summary: Register a new user
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password, username]
- *             properties:
- *               email:
- *                 type: string
- *                 example: mmustang@calpoly.edu
- *               password:
- *                 type: string
- *                 example: SecurePass123
- *               username:
- *                 type: string
- *                 example: musty_mustang
- *     responses:
- *       201:
- *         description: Account created – verification email sent
- *       400:
- *         description: Validation error
- *       409:
- *         description: Email already registered
- */
-router.post('/signup', validateBody(signUpSchema), signUp);
-
-/**
- * @swagger
- * /auth/login:
- *   post:
- *     summary: Log in with email and password
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Returns session tokens and user info
- *       401:
- *         description: Invalid credentials
- */
-router.post('/login', validateBody(signInSchema), signIn);
-
-/**
- * @swagger
- * /auth/verify:
- *   post:
- *     summary: Verify email OTP code after signup
- *     tags: [Auth]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, token]
- *             properties:
- *               email:
- *                 type: string
- *               token:
- *                 type: string
- *                 description: 6-digit OTP from email
- *     responses:
- *       200:
- *         description: Email verified – returns session tokens
- *       400:
- *         description: Invalid or expired code
- */
-router.post('/verify', validateBody(verifyOtpSchema), verifyOtp);
-
 const resendSchema = z.object({
     email: z.string().email(),
 });
-router.post('/resend', validateBody(resendSchema), resendOtp);
 
 const changePasswordSchema = z.object({
     oldPassword: z.string().min(1),
     newPassword: z.string().min(8).max(30),
 });
-router.post('/change-password', authenticate, validateBody(changePasswordSchema), changePassword);
+
+router.post('/signup', rateLimiter.authLimiter, validateBody(signUpSchema), signUp);
+router.post('/login', rateLimiter.authLimiter, validateBody(signInSchema), signIn);
+router.post('/verify', rateLimiter.authLimiter, validateBody(verifyOtpSchema), verifyOtp);
+router.post('/resend', rateLimiter.authLimiter, validateBody(resendSchema), resendOtp);
+router.post('/change-password', authenticate, rateLimiter.authLimiter, validateBody(changePasswordSchema), changePassword);
 
 export default router;

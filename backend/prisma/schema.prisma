@@ -14,6 +14,7 @@ enum UserRole {
 
 model User {
   id              Int                   @id @default(autoincrement())
+  supabaseId      String?               @unique
   email           String                @unique
   name            String
   role            UserRole              @default(user)
@@ -38,6 +39,7 @@ model Challenge {
   createdAt    DateTime              @default(now())
   completions  ChallengeCompletion[] // Reverse relation
 
+  @@index([latitude, longitude])
   @@index([createdAt])
   @@index([difficulty])
 }
@@ -54,6 +56,7 @@ model ChallengeCompletion {
   user        User      @relation(fields: [userId], references: [id])
   challenge   Challenge @relation(fields: [challengeId], references: [id])
   flags       Flag[] // Flags on this completion
+  likeRecords CompletionLike[]
   imageUri    String
   likes       Int       @default(0)
 
@@ -62,6 +65,19 @@ model ChallengeCompletion {
   @@index([challengeId]) // Index for faster challenge completion queries
   @@index([completedAt])
   @@index([userId, completedAt])
+}
+
+model CompletionLike {
+  id           Int       @id @default(autoincrement())
+  completionId Int
+  userId       Int
+  createdAt    DateTime  @default(now())
+  completion   ChallengeCompletion @relation(fields: [completionId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([completionId, userId])
+  @@index([completionId])
+  @@index([userId])
 }
 
 model Flag {
