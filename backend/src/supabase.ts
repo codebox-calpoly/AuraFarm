@@ -1,16 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey =
-  process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAnonKey =
-  process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error(
     'Missing Supabase configuration. Please check your environment variables:\n' +
       '  - SUPABASE_URL\n' +
-      '  - SUPABASE_SERVICE_KEY (or SUPABASE_SERVICE_ROLE_KEY)'
+      '  - SUPABASE_SERVICE_KEY\n' +
+      '  - SUPABASE_ANON_KEY'
   );
 }
 
