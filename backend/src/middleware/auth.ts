@@ -37,41 +37,49 @@ export const authenticate = asyncHandler(async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // Get the authorization header
     const authHeader = req.headers.authorization;
 
-    // Check if header exists and has correct format
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new AppError('No token provided', 401);
     }
 
-    // Extract the token (remove 'Bearer ' prefix)
     const token = authHeader.substring(7);
 
-    // Verify the token with Supabase
     const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
 
-    // Check if verification failed
     if (error || !supabaseUser) {
       throw new AppError('Invalid or expired token', 401);
     }
 
-    // Get user from database using email
-    const user = await prisma.user.findUnique({
-      where: { email: supabaseUser.email! },
+    const email = supabaseUser.email?.toLowerCase() ?? null;
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { supabaseId: supabaseUser.id },
+          ...(email ? [{ email }] : []),
+        ],
+      },
       select: {
         id: true,
         email: true,
         role: true,
+        supabaseId: true,
       },
     });
 
-    // Check if user exists in database
     if (!user) {
       throw new AppError('User not found in database', 404);
     }
 
-    // Attach user to request
+    if (user.supabaseId !== supabaseUser.id) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { supabaseId: supabaseUser.id },
+      }).catch((syncError) => {
+        logger.warn('Failed to backfill Supabase user id', { error: syncError, userId: user.id });
+      });
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
@@ -79,13 +87,10 @@ export const authenticate = asyncHandler(async (
       supabaseId: supabaseUser.id,
     };
 
-    // Continue to next middleware/controller
     next();
   } catch (error) {
-    // Log auth error
     logger.error('Authentication failed', { error });
 
-    // Handle errors
     if (error instanceof AppError) {
       next(error);
     } else {
@@ -94,32 +99,18 @@ export const authenticate = asyncHandler(async (
   }
 });
 
-/**
- * Authorization middleware - verifies user has admin role
- * 
- * Must be used after authenticate middleware. Checks if req.user exists
- * and has role === 'admin'. Returns 403 Forbidden if user is not admin.
- * 
- * @middleware
- * @throws {AppError} 401 if user not authenticated
- * @throws {AppError} 403 if user is not admin
- */
-
 export const requireAdmin = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  // Check if user is authenticated
   if (!req.user) {
     return next(new AppError('Authentication required', 401));
   }
 
-  // Check if user has admin role
   if (req.user.role !== 'admin') {
     return next(new AppError('Admin access required', 403));
   }
 
-  // User is admin, continue
   next();
 };

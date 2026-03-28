@@ -1,27 +1,30 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-import { User, UserProfile, ApiResponse, ChallengeCompletion } from '../types';
+import { User, UserProfile, PublicUserProfile, ApiResponse } from '../types';
 import { prisma } from '../prisma';
+import { supabase, supabaseAdmin } from '../supabase';
+import logger from '../utils/logger';
 import {
   User as PrismaUser,
-  ChallengeCompletion as PrismaChallengeCompletion,
 } from '@prisma/client';
 
-function toUserProfile(
-  user: PrismaUser & { completions: PrismaChallengeCompletion[] }
-): UserProfile {
+function toPublicUserProfile(
+  user: Pick<PrismaUser, 'id' | 'name' | 'auraPoints' | 'streak' | 'lastCompletedAt' | 'createdAt' | 'role'> & { completionsCount: number; rank?: number }
+): PublicUserProfile {
   return {
-    ...user,
-    role: user.role as any, // Cast to match enum if needed
-    completionsCount: user.completions.length,
+    id: user.id,
+    name: user.name,
+    role: user.role as any,
+    auraPoints: user.auraPoints,
+    streak: user.streak,
+    lastCompletedAt: user.lastCompletedAt,
+    createdAt: user.createdAt,
+    completionsCount: user.completionsCount,
+    rank: user.rank,
   };
 }
 
-/**
- * GET /api/users/:id
- * Get user profile by ID
- */
 export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = parseInt(id);
@@ -30,14 +33,19 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Invalid user ID', 400);
   }
 
-  // TODO: Get userId from authentication middleware and verify access
-  // TODO: Replace with Prisma query: prisma.user.findUnique({ where: { id: userId }, include: { completions: true } })
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      completions: true, // ChallengeCompletion[]
-      // flags: true, // you can include this too if you need it in the profile
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      auraPoints: true,
+      streak: true,
+      lastCompletedAt: true,
+      createdAt: true,
+      _count: {
+        select: { completions: true },
+      },
     },
   });
 
@@ -45,23 +53,18 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('User not found', 404);
   }
 
-  // Calculate rank (simplified for now, ideally cached or optimized query)
-  // For now, we can omit rank or do a simple count query if strictly needed
-  // Let's just return basic profile first
-
-  const userProfile: UserProfile = {
+  const userProfile = toPublicUserProfile({
     id: user.id,
-    email: user.email,
     name: user.name,
-    role: user.role as any, // Cast to match enum if needed
+    role: user.role,
     auraPoints: user.auraPoints,
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
-    completionsCount: user.completions.length,
-  };
+    completionsCount: user._count.completions,
+  });
 
-  const response: ApiResponse<UserProfile> = {
+  const response: ApiResponse<PublicUserProfile> = {
     success: true,
     data: userProfile,
   };
@@ -69,22 +72,26 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   res.json(response);
 });
 
-/**
- * GET /api/users/me
- * Get current user's profile
- */
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new AppError('Not authenticated', 401);
   }
   const userId = req.user.id;
 
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      completions: true,
-      // flags: true,
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      auraPoints: true,
+      streak: true,
+      lastCompletedAt: true,
+      createdAt: true,
+      _count: {
+        select: { completions: true },
+      },
     },
   });
 
@@ -92,7 +99,6 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('User not found', 404);
   }
 
-  // Get rank
   const higherRankedUsers = await prisma.user.count({
     where: { auraPoints: { gt: user.auraPoints } },
   });
@@ -107,7 +113,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
-    completionsCount: user.completions.length,
+    completionsCount: user._count.completions,
     rank,
   };
 
@@ -119,10 +125,6 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
   res.json(response);
 });
 
-/**
- * PATCH /api/users/me
- * Update current user's profile
- */
 export const updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new AppError('Not authenticated', 401);
@@ -143,6 +145,28 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
     throw new AppError('Nothing to update', 400);
   }
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+
+  if (!currentUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  const emailChanged = typeof updateData.email === 'string' && updateData.email !== currentUser.email;
+
+  if (emailChanged) {
+    const { error: supabaseError } = await supabaseAdmin.auth.admin.updateUserById(req.user.supabaseId, {
+      email: updateData.email,
+    });
+
+    if (supabaseError) {
+      logger.error('Failed to update email in Supabase', { error: supabaseError, userId });
+      throw new AppError('Failed to update email. Please try again.', 400);
+    }
+  }
+
   try {
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -157,18 +181,21 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
 
     res.json(response);
   } catch (err: any) {
+    if (emailChanged) {
+      await supabaseAdmin.auth.admin.updateUserById(req.user.supabaseId, {
+        email: currentUser.email,
+      }).catch((rollbackError) => {
+        logger.error('Failed to roll back Supabase email update', { error: rollbackError, userId });
+      });
+    }
+
     if (err?.code === 'P2002' && Array.isArray(err?.meta?.target) && err.meta.target.includes('email')) {
       throw new AppError('Email already in use', 409);
     }
-    // If Prisma cannot find the user, it throws
     throw new AppError('User not found', 404);
   }
 });
 
-/**
- * GET /api/users/:id/completions
- * Get all completions for a specific user
- */
 export const getUserCompletions = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = parseInt(id);
@@ -177,15 +204,6 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
     throw new AppError('Invalid user ID', 400);
   }
 
-  // TODO: Get userId from authentication middleware and verify access
-  // TODO: Replace with Prisma query:
-  // prisma.challengeCompletion.findMany({
-  //   where: { userId },
-  //   include: { challenge: true },
-  //   orderBy: { completedAt: 'desc' }
-  // })
-
-  // Verify user exists
   const userExists = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true },
@@ -198,10 +216,18 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
   const completions = await prisma.challengeCompletion.findMany({
     where: { userId },
     include: {
-      challenge: true,        // Challenge details
+      challenge: true,
       flags: {
-        include: {
-          flaggedBy: true,    // User who flagged it
+        select: {
+          id: true,
+          reason: true,
+          createdAt: true,
+          flaggedBy: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
       },
     },
@@ -213,15 +239,9 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
     data: completions,
   };
 
-
   res.json(response);
 });
 
-
-/**
- * GET /api/users/:id/stats
- * Get comprehensive statistics for a user
- */
 export const getUserStats = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = parseInt(id);
@@ -230,7 +250,6 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
     throw new AppError('Invalid user ID', 400);
   }
 
-  // Check if user exists
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -245,7 +264,6 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
     throw new AppError('User not found', 404);
   }
 
-  // Optimize: Select only necessary fields for statistics
   const completions = await prisma.challengeCompletion.findMany({
     where: { userId },
     select: {
@@ -262,10 +280,8 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
     }
   });
 
-  // Calculate statistics
   const totalCompletions = completions.length;
 
-  // Stats by difficulty
   const difficultyStats = completions.reduce((acc: Record<string, number>, curr: any) => {
     const diff = curr.challenge.difficulty.toLowerCase();
     acc[diff] = (acc[diff] || 0) + 1;
@@ -278,14 +294,13 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
     return acc;
   }, {} as Record<string, number>);
 
-  // Calculate longest streak
   let currentStreakRun = 0;
   let longestStreak = 0;
   let lastDate: Date | null = null;
 
   completions.forEach((c: any) => {
     const date = new Date(c.completedAt);
-    date.setHours(0, 0, 0, 0); // Normalize to day
+    date.setHours(0, 0, 0, 0);
 
     if (!lastDate) {
       currentStreakRun = 1;
@@ -307,7 +322,6 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
     lastDate = date;
   });
 
-  // Weekly/Monthly stats
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -315,7 +329,6 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
   const completedThisWeek = completions.filter((c: any) => c.completedAt >= oneWeekAgo).length;
   const completedThisMonth = completions.filter((c: any) => c.completedAt >= oneMonthAgo).length;
 
-  // Average points
   const avgPointsPerCompletion = totalCompletions > 0
     ? Math.round(user.auraPoints / totalCompletions)
     : 0;

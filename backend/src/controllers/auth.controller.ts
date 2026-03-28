@@ -1,26 +1,20 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-// Use service-role client for auth; anon key can return 401 on some Supabase projects
-import { supabase } from '../supabase';
+import { supabase, supabaseAdmin } from '../supabase';
 import { prisma } from '../prisma';
 import logger from '../utils/logger';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-/**
- * POST /api/auth/signup
- * Registers a new user in Supabase Auth and creates a Prisma User record.
- *
- * Body: { email: string, password: string, username: string }
- */
 export const signUp = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, username } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (!email || !password || !username) {
+    if (!normalizedEmail || !password || !username) {
         throw new AppError('email, password, and username are required', 400);
     }
 
-    // Enforce Cal Poly email domain
-    if (!/.+@calpoly\.edu$/.test(email)) {
+    if (!/.+@calpoly\.edu$/.test(normalizedEmail)) {
         throw new AppError('Email must be a @calpoly.edu address', 400);
     }
 
@@ -32,14 +26,12 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError('Password must be between 8 and 30 characters', 400);
     }
 
-    // Check if email is already registered in Prisma (belt-and-suspenders)
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existingUser) {
         throw new AppError('An account with this email already exists', 409);
     }
 
-    // Register with Supabase – sends OTP verification email automatically
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email: normalizedEmail, password });
 
     if (error) {
         logger.error('Supabase signUp error', { error });
@@ -47,66 +39,91 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError('An account with this email already exists', 409);
         }
         if (error.message.toLowerCase().includes('invalid') && error.message.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_KEY) in backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.', 500);
         }
         throw new AppError(error.message || 'Sign up failed', 400);
     }
 
-    if (!data.user) {
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
         throw new AppError('Sign up failed: no user returned', 500);
     }
 
-    // Create the Prisma User row so the rest of the API can reference it
-    const user = await prisma.user.create({
-        data: {
-            email,
-            name: username,
-        },
-    });
+    try {
+        const user = await prisma.user.create({
+            data: {
+                supabaseId: supabaseUserId,
+                email: normalizedEmail,
+                name: username,
+            },
+        });
 
-    logger.info('New user signed up', { userId: user.id, email });
+        logger.info('New user signed up', { userId: user.id, email: normalizedEmail });
 
-    res.status(201).json({
-        success: true,
-        message: 'Account created. Please check your email for the verification code.',
-        data: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-        },
-    });
+        res.status(201).json({
+            success: true,
+            message: 'Account created. Please check your email for the verification code.',
+            data: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+            },
+        });
+    } catch (dbError) {
+        logger.error('Failed to create Prisma user after Supabase signup', { error: dbError, supabaseUserId, email: normalizedEmail });
+        await supabaseAdmin.auth.admin.deleteUser(supabaseUserId).catch((cleanupError) => {
+            logger.error('Failed to roll back Supabase user after Prisma create failure', { error: cleanupError, supabaseUserId });
+        });
+
+        if (dbError instanceof PrismaClientKnownRequestError && dbError.code === 'P2002') {
+            throw new AppError('An account with this email already exists', 409);
+        }
+
+        throw new AppError('Failed to complete sign up', 500);
+    }
 });
 
-/**
- * POST /api/auth/login
- * Signs in with email + password via Supabase and returns the session tokens.
- *
- * Body: { email: string, password: string }
- */
 export const signIn = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
         throw new AppError('email and password are required', 400);
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
     if (error || !data.session) {
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check SUPABASE_URL and SUPABASE_ANON_KEY in backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.', 500);
         }
         throw new AppError('Invalid email or password', 401);
     }
 
-    // Fetch the Prisma user record for extra profile info
-    const user = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, email: true, name: true, auraPoints: true, streak: true },
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
+        throw new AppError('User not found', 404);
+    }
+
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { supabaseId: supabaseUserId },
+                { email: normalizedEmail },
+            ],
+        },
+        select: { id: true, email: true, name: true, auraPoints: true, streak: true, supabaseId: true },
     });
 
     if (!user) {
         throw new AppError('User not found', 404);
+    }
+
+    if (!user.supabaseId) {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { supabaseId: supabaseUserId },
+        }).catch((syncError) => logger.warn('Failed to backfill Supabase user id during sign in', { error: syncError, userId: user.id }));
     }
 
     logger.info('User logged in', { userId: user.id });
@@ -127,41 +144,52 @@ export const signIn = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
-/**
- * POST /api/auth/verify
- * Verifies the 6-digit OTP code emailed during sign up.
- *
- * Body: { email: string, token: string }
- */
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     const { email, token } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (!email || !token) {
+    if (!normalizedEmail || !token) {
         throw new AppError('email and token are required', 400);
     }
 
     const { data, error } = await supabase.auth.verifyOtp({
-        email,
+        email: normalizedEmail,
         token,
         type: 'signup',
     });
 
     if (error || !data.session) {
-        logger.warn('OTP verification failed', { email, error });
+        logger.warn('OTP verification failed', { email: normalizedEmail, error });
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check your .env file.', 500);
         }
         throw new AppError('Invalid or expired verification code', 400);
     }
 
-    // Fetch the Prisma user now that they are verified
-    const user = await prisma.user.findUnique({
-        where: { email },
-        select: { id: true, email: true, name: true, auraPoints: true, streak: true },
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
+        throw new AppError('User not found after verification', 404);
+    }
+
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { supabaseId: supabaseUserId },
+                { email: normalizedEmail },
+            ],
+        },
+        select: { id: true, email: true, name: true, auraPoints: true, streak: true, supabaseId: true },
     });
 
     if (!user) {
         throw new AppError('User not found after verification', 404);
+    }
+
+    if (!user.supabaseId) {
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { supabaseId: supabaseUserId },
+        }).catch((syncError) => logger.warn('Failed to backfill Supabase user id during verification', { error: syncError, userId: user.id }));
     }
 
     logger.info('User email verified', { userId: user.id });
@@ -183,28 +211,23 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
-/**
- * POST /api/auth/resend
- * Resends the signup verification OTP email.
- *
- * Body: { email: string }
- */
 export const resendOtp = asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (!email) {
+    if (!normalizedEmail) {
         throw new AppError('email is required', 400);
     }
 
     const { error } = await supabase.auth.resend({
         type: 'signup',
-        email,
+        email: normalizedEmail,
     });
 
     if (error) {
-        logger.warn('Resend OTP failed', { email, error });
+        logger.warn('Resend OTP failed', { email: normalizedEmail, error });
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check your .env file.', 500);
         }
         throw new AppError('Could not resend code. Please try again.', 400);
     }
@@ -215,14 +238,6 @@ export const resendOtp = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
-/**
- * POST /api/auth/change-password
- * Changes password for the authenticated user.
- * Uses the access token from the Authorization header to verify current password
- * and then updates via service-role client.
- *
- * Body: { oldPassword: string, newPassword: string }
- */
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
     const { oldPassword, newPassword } = req.body;
 
@@ -243,7 +258,6 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
         throw new AppError('Cannot determine user email', 401);
     }
 
-    // Verify the old password by attempting to sign in
     const { error: verifyError } = await supabase.auth.signInWithPassword({
         email: userEmail,
         password: oldPassword,
@@ -253,8 +267,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
         throw new AppError('Current password is incorrect', 400);
     }
 
-    // Update password via service-role admin API
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         req.user.supabaseId,
         { password: newPassword }
     );

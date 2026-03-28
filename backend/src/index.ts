@@ -1,8 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from backend/ first, then project root
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+// Load .env from the repo root only
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import express from 'express';
@@ -13,7 +12,6 @@ import swaggerUi from 'swagger-ui-express';
 import { specs } from './config/swagger';
 import logger from './utils/logger';
 import rateLimiter from './middleware/rateLimiter';
-
 
 // Import routes
 import authRoutes from './routes/auth.routes';
@@ -31,7 +29,6 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -39,7 +36,6 @@ app.get('/health', (req, res) => {
 
 // Swagger Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
-
 
 // API Routes
 app.use('/api/auth', authRoutes);

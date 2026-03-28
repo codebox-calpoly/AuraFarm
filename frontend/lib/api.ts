@@ -18,7 +18,6 @@ export type Challenge = {
 
 export type UserProfile = {
   id: number;
-  email: string;
   name: string;
   auraPoints: number;
   streak: number;
@@ -69,9 +68,6 @@ export function apiBaseUrl(): string {
   const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
   const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl;
   if (envUrl) return envUrl;
-  // In dev, derive the backend host from the Metro bundler URI so physical
-  // devices and emulators on other machines can reach the backend.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const hostUri: string | undefined =
     (Constants.expoConfig as any)?.hostUri ??
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ??
@@ -106,7 +102,6 @@ async function authedFetch(
     ...options,
     headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
   });
-  // If 401, try refreshing and retry once
   if (res.status === 401) {
     const refreshed = await refreshSession();
     if (refreshed?.accessToken) {

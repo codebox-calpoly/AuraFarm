@@ -1,12 +1,10 @@
 import { z } from 'zod';
 
-// Define UserRole enum locally to match Prisma schema
 export enum UserRole {
   user = 'user',
   admin = 'admin',
 }
 
-// User Types
 export interface User {
   id: number;
   email: string;
@@ -23,7 +21,11 @@ export interface UserProfile extends User {
   rank?: number;
 }
 
-// Challenge Types
+export interface PublicUserProfile extends Omit<User, 'email'> {
+  completionsCount: number;
+  rank?: number;
+}
+
 export interface Challenge {
   id: number;
   title: string;
@@ -40,10 +42,9 @@ export interface ChallengeWithCompletions extends Challenge {
 }
 
 export interface ChallengeWithDistance extends Challenge {
-  distance: number; // Distance in meters from user's location
+  distance: number;
 }
 
-// Challenge Completion Types
 export interface ChallengeCompletion {
   id: number;
   userId: number;
@@ -65,7 +66,6 @@ export interface CreateCompletionRequest {
   caption?: string;
 }
 
-// Flag Types
 export interface Flag {
   id: number;
   completionId: number;
@@ -79,18 +79,15 @@ export interface CreateFlagRequest {
   reason?: string;
 }
 
-// Leaderboard Types
 export interface LeaderboardEntry {
   userId: number;
   userName: string;
-  userEmail: string;
   auraPoints: number;
   streak: number;
   rank: number;
   completionsCount: number;
 }
 
-// API Response Types
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -109,7 +106,6 @@ export interface PaginatedResponse<T> {
   };
 }
 
-// Validation Schemas
 export const createCompletionSchema = z.object({
   challengeId: z.number().int().positive(),
   latitude: z.number().min(-90).max(90),
@@ -145,7 +141,6 @@ export const queryParamsSchema = z.object({
   page: z.string().regex(/^\d+$/).transform(Number).optional(),
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
-  // Search by title or description (max 100 chars)
   search: z.string().min(1).max(100).optional(),
 });
 
@@ -202,8 +197,6 @@ export const completionsListQuerySchema = z
     }
   });
 
-
-// Param validation schemas
 export const idParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
 });
@@ -220,15 +213,13 @@ export const completionIdParamSchema = z.object({
   id: z.string().regex(/^\d+$/).transform(Number),
 }); 
 
-
-// Response Schemas (for Swagger)
 export const userSchema = z.object({
   id: z.number(),
   email: z.string().email(),
   name: z.string(),
   auraPoints: z.number(),
   streak: z.number(),
-  lastCompletedAt: z.string().nullable().transform((str) => str ? new Date(str) : null), // Date comes as string in JSON
+  lastCompletedAt: z.string().nullable().transform((str) => str ? new Date(str) : null),
   createdAt: z.string().transform((str) => new Date(str)),
   role: z.enum(['user', 'admin']),
 });
@@ -281,7 +272,6 @@ export const flagSchema = z.object({
 export const leaderboardEntrySchema = z.object({
   userId: z.number(),
   userName: z.string(),
-  userEmail: z.string(),
   auraPoints: z.number(),
   streak: z.number(),
   rank: z.number(),
