@@ -6,7 +6,6 @@ import { prisma } from '../prisma';
 import { Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
-
 /**
  * GET /api/challenges
  * Get all challenges with optional filtering
@@ -59,6 +58,41 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
   };
 
   res.json(response);
+});
+
+/**
+ * POST /api/challenges
+ * Create a new challenge (admin only)
+ */
+export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
+  const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
+
+  try {
+    const newChallenge = await prisma.challenge.create({
+      data: {
+        title,
+        description,
+        latitude,
+        longitude,
+        difficulty,
+        pointsReward,
+      },
+    });
+
+    const response: ApiResponse<Challenge> = {
+      success: true,
+      data: newChallenge,
+      message: 'Challenge created successfully',
+    };
+
+    res.status(201).json(response);
+  } catch (error) {
+    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new AppError('A challenge with this title already exists', 409);
+    }
+
+    throw error;
+  }
 });
 
 /**
