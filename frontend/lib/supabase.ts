@@ -20,7 +20,7 @@ const key = supabaseAnonKey || 'placeholder-anon-key';
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     '[Supabase] Missing credentials — image uploads will fail.\n' +
-    'Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in backend/.env and restart Expo.'
+    'Ensure SUPABASE_URL and SUPABASE_ANON_KEY are set in the root .env file and restart Expo.'
   );
 }
 
