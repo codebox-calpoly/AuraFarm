@@ -2,11 +2,9 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 import path from 'node:path';
 import { config } from 'dotenv';
 
-// Load .env from project root first, then backend/ (so backend Supabase vars work for frontend too)
+// Load .env from the repo root only
 const rootEnv = path.resolve(__dirname, '..', '.env');
-const backendEnv = path.resolve(__dirname, '..', 'backend', '.env');
 config({ path: rootEnv });
-config({ path: backendEnv });
 
 export default {
   expo: {
