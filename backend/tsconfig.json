@@ -26,6 +26,5 @@
     "prisma",
     "src/**/__tests__/**/*",
     "src/**/*.test.ts"
-  ],
-  "extends": "expo/tsconfig.base"
+  ]
 }

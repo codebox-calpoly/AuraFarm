@@ -42,7 +42,7 @@ const prodFormat = winston.format.combine(
 const logger = winston.createLogger({
      level: level(),
      levels,
-     format: process.env.NODE_ENV === 'development' ? devFormat : prodFormat,
+    format: (process.env.NODE_ENV || 'development') === 'development' ? devFormat : prodFormat,
      defaultMeta: { service: 'aura-farm-backend' },
      transports: [
           new winston.transports.Console(),
