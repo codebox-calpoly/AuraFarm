@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-import { supabase } from '../supabase';
+import { supabase, supabaseAdmin } from '../supabase';
 import { prisma } from '../prisma';
 import logger from '../utils/logger';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
@@ -39,7 +39,7 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
             throw new AppError('An account with this email already exists', 409);
         }
         if (error.message.toLowerCase().includes('invalid') && error.message.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_KEY) in backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.', 500);
         }
         throw new AppError(error.message || 'Sign up failed', 400);
     }
@@ -71,7 +71,7 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
         });
     } catch (dbError) {
         logger.error('Failed to create Prisma user after Supabase signup', { error: dbError, supabaseUserId, email: normalizedEmail });
-        await supabase.auth.admin.deleteUser(supabaseUserId).catch((cleanupError) => {
+        await supabaseAdmin.auth.admin.deleteUser(supabaseUserId).catch((cleanupError) => {
             logger.error('Failed to roll back Supabase user after Prisma create failure', { error: cleanupError, supabaseUserId });
         });
 
@@ -95,7 +95,7 @@ export const signIn = asyncHandler(async (req: Request, res: Response) => {
 
     if (error || !data.session) {
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check SUPABASE_URL and SUPABASE_ANON_KEY in backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check SUPABASE_URL and SUPABASE_ANON_KEY in your .env file.', 500);
         }
         throw new AppError('Invalid email or password', 401);
     }
@@ -161,7 +161,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     if (error || !data.session) {
         logger.warn('OTP verification failed', { email: normalizedEmail, error });
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check your .env file.', 500);
         }
         throw new AppError('Invalid or expired verification code', 400);
     }
@@ -227,7 +227,7 @@ export const resendOtp = asyncHandler(async (req: Request, res: Response) => {
     if (error) {
         logger.warn('Resend OTP failed', { email: normalizedEmail, error });
         if (error?.message?.toLowerCase().includes('invalid') && error?.message?.toLowerCase().includes('api key')) {
-            throw new AppError('Supabase is misconfigured. Check backend/.env.', 500);
+            throw new AppError('Supabase is misconfigured. Please check your .env file.', 500);
         }
         throw new AppError('Could not resend code. Please try again.', 400);
     }
@@ -267,7 +267,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
         throw new AppError('Current password is incorrect', 400);
     }
 
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         req.user.supabaseId,
         { password: newPassword }
     );

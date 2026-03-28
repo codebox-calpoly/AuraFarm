@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { User, UserProfile, PublicUserProfile, ApiResponse } from '../types';
 import { prisma } from '../prisma';
-import { supabase } from '../supabase';
+import { supabase, supabaseAdmin } from '../supabase';
 import logger from '../utils/logger';
 import {
   User as PrismaUser,
@@ -157,7 +157,7 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   const emailChanged = typeof updateData.email === 'string' && updateData.email !== currentUser.email;
 
   if (emailChanged) {
-    const { error: supabaseError } = await supabase.auth.admin.updateUserById(req.user.supabaseId, {
+    const { error: supabaseError } = await supabaseAdmin.auth.admin.updateUserById(req.user.supabaseId, {
       email: updateData.email,
     });
 
@@ -182,7 +182,7 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
     res.json(response);
   } catch (err: any) {
     if (emailChanged) {
-      await supabase.auth.admin.updateUserById(req.user.supabaseId, {
+      await supabaseAdmin.auth.admin.updateUserById(req.user.supabaseId, {
         email: currentUser.email,
       }).catch((rollbackError) => {
         logger.error('Failed to roll back Supabase email update', { error: rollbackError, userId });

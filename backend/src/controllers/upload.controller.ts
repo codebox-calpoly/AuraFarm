@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
-import { supabase } from '../supabase';
+import { supabase, supabaseAdmin } from '../supabase';
 
 const BUCKET = 'completion-images';
 
@@ -25,7 +25,7 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
   const ext = mimeToExt[file.mimetype] || file.originalname.split('.').pop()?.toLowerCase() || 'jpg';
   const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await supabaseAdmin.storage
     .from(BUCKET)
     .upload(fileName, file.buffer, {
       contentType: file.mimetype,
@@ -36,7 +36,7 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError(`Image upload failed: ${error.message}`, 500);
   }
 
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(data.path);
+  const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(data.path);
 
   res.json({
     success: true,

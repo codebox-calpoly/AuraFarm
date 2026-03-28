@@ -28,7 +28,7 @@ export default function VerificationScreen() {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   const onChangeCode = (text: string) => {
-    if (text.length <= 6) {
+    if (text.length <= 8) {
       setCode(text);
       setServerError(null);
     }
@@ -111,7 +111,7 @@ export default function VerificationScreen() {
             {/* Text Content */}
             <View style={styles.textContainer}>
               <Text style={styles.title}>
-                Enter 4-digit code sent to{" "}
+                Enter verification code sent to{" "}
                 <Text style={styles.bold}>{email ?? "your email"}</Text>
               </Text>
             </View>
@@ -139,10 +139,10 @@ export default function VerificationScreen() {
                   style={styles.input}
                   onChangeText={onChangeCode}
                   value={code}
-                  placeholder="- - - -"
+                  placeholder="--------"
                   placeholderTextColor="#c2c2c2"
                   keyboardType="numeric"
-                  maxLength={4}
+                  maxLength={8}
                   editable={!loading}
                 />
               </View>
