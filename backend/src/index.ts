@@ -1,8 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from backend/ first, then project root
-dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+// Load .env from the repo root only
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import express from 'express';
