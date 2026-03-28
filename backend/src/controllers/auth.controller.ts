@@ -44,14 +44,15 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError(error.message || 'Sign up failed', 400);
     }
 
-    if (!data.user) {
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
         throw new AppError('Sign up failed: no user returned', 500);
     }
 
     try {
         const user = await prisma.user.create({
             data: {
-                supabaseId: data.user.id,
+                supabaseId: supabaseUserId,
                 email: normalizedEmail,
                 name: username,
             },
@@ -69,9 +70,9 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
             },
         });
     } catch (dbError) {
-        logger.error('Failed to create Prisma user after Supabase signup', { error: dbError, supabaseUserId: data.user.id, email: normalizedEmail });
-        await supabase.auth.admin.deleteUser(data.user.id).catch((cleanupError) => {
-            logger.error('Failed to roll back Supabase user after Prisma create failure', { error: cleanupError, supabaseUserId: data.user.id });
+        logger.error('Failed to create Prisma user after Supabase signup', { error: dbError, supabaseUserId, email: normalizedEmail });
+        await supabase.auth.admin.deleteUser(supabaseUserId).catch((cleanupError) => {
+            logger.error('Failed to roll back Supabase user after Prisma create failure', { error: cleanupError, supabaseUserId });
         });
 
         if (dbError instanceof PrismaClientKnownRequestError && dbError.code === 'P2002') {
@@ -99,10 +100,15 @@ export const signIn = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError('Invalid email or password', 401);
     }
 
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
+        throw new AppError('User not found', 404);
+    }
+
     const user = await prisma.user.findFirst({
         where: {
             OR: [
-                { supabaseId: data.user.id },
+                { supabaseId: supabaseUserId },
                 { email: normalizedEmail },
             ],
         },
@@ -116,7 +122,7 @@ export const signIn = asyncHandler(async (req: Request, res: Response) => {
     if (!user.supabaseId) {
         await prisma.user.update({
             where: { id: user.id },
-            data: { supabaseId: data.user.id },
+            data: { supabaseId: supabaseUserId },
         }).catch((syncError) => logger.warn('Failed to backfill Supabase user id during sign in', { error: syncError, userId: user.id }));
     }
 
@@ -160,10 +166,15 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
         throw new AppError('Invalid or expired verification code', 400);
     }
 
+    const supabaseUserId = data.user?.id;
+    if (!supabaseUserId) {
+        throw new AppError('User not found after verification', 404);
+    }
+
     const user = await prisma.user.findFirst({
         where: {
             OR: [
-                { supabaseId: data.user.id },
+                { supabaseId: supabaseUserId },
                 { email: normalizedEmail },
             ],
         },
@@ -177,7 +188,7 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
     if (!user.supabaseId) {
         await prisma.user.update({
             where: { id: user.id },
-            data: { supabaseId: data.user.id },
+            data: { supabaseId: supabaseUserId },
         }).catch((syncError) => logger.warn('Failed to backfill Supabase user id during verification', { error: syncError, userId: user.id }));
     }
 
