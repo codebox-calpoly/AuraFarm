@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { supabase } from '../supabase';
 import { prisma } from '../prisma';
 import logger from '../utils/logger';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export const signUp = asyncHandler(async (req: Request, res: Response) => {
     const { email, password, username } = req.body;
@@ -72,7 +73,12 @@ export const signUp = asyncHandler(async (req: Request, res: Response) => {
         await supabase.auth.admin.deleteUser(data.user.id).catch((cleanupError) => {
             logger.error('Failed to roll back Supabase user after Prisma create failure', { error: cleanupError, supabaseUserId: data.user.id });
         });
-        throw dbError;
+
+        if (dbError instanceof PrismaClientKnownRequestError && dbError.code === 'P2002') {
+            throw new AppError('An account with this email already exists', 409);
+        }
+
+        throw new AppError('Failed to complete sign up', 500);
     }
 });
 

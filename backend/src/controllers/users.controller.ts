@@ -4,9 +4,9 @@ import { AppError } from '../middleware/errorHandler';
 import { User, UserProfile, PublicUserProfile, ApiResponse } from '../types';
 import { prisma } from '../prisma';
 import { supabase } from '../supabase';
+import logger from '../utils/logger';
 import {
   User as PrismaUser,
-  ChallengeCompletion as PrismaChallengeCompletion,
 } from '@prisma/client';
 
 function toPublicUserProfile(
@@ -256,7 +256,7 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
       id: true,
       auraPoints: true,
       streak: true,
-      createdAt: true,
+      createdAt: true
     }
   });
 

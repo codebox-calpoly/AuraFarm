@@ -3,7 +3,8 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Challenge, ChallengeWithCompletions, ChallengeWithDistance, ApiResponse, PaginatedResponse } from '../types';
 import { prisma } from '../prisma';
-import { PrismaClientKnownRequestError, Prisma } from '@prisma/client/runtime/library';
+import { Prisma } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 
 /**
