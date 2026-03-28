@@ -38,13 +38,13 @@ cd backend && npm install && cd ..
 cd frontend && npm install && cd ..
 ```
 
-### 2. Configure the backend
+### 2. Configure the root .env file
 
 ```bash
-cp backend/.env.example backend/.env
+cp backend/.env.example .env
 ```
 
-Open `backend/.env` and fill in your values:
+Open `.env` in the repo root and fill in your values:
 
 | Variable | Where to find it |
 |---|---|
@@ -59,15 +59,9 @@ Then run the database migrations:
 cd backend && npx prisma migrate deploy && cd ..
 ```
 
-### 3. Configure the frontend (optional)
+### 3. Frontend environment
 
-The frontend auto-detects the backend URL from Expo's Metro server, so **no `.env` file is required** unless you want to override something.
-
-If you need to override (e.g. point to a remote API), copy the example:
-
-```bash
-cp .env.example .env   # inside the frontend/ folder
-```
+The frontend reads from the root `.env` file through Expo config, so there is no separate frontend `.env` file to maintain.
 
 ### 4. Start the backend
 
