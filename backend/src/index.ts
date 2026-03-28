@@ -14,7 +14,6 @@ import { specs } from './config/swagger';
 import logger from './utils/logger';
 import rateLimiter from './middleware/rateLimiter';
 
-
 // Import routes
 import authRoutes from './routes/auth.routes';
 import challengesRoutes from './routes/challenges.routes';
@@ -31,7 +30,6 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
-
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -39,7 +37,6 @@ app.get('/health', (req, res) => {
 
 // Swagger Documentation
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs));
-
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -56,7 +53,7 @@ app.use(notFoundHandler);
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   logger.info(`🚀 Server running on port ${PORT}`);
   logger.info(`📡 Health check: http://localhost:${PORT}/health`);
