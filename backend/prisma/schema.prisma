@@ -23,6 +23,7 @@ model User {
   lastCompletedAt DateTime? // For streak tracking
   createdAt       DateTime              @default(now())
   completions     ChallengeCompletion[] // Reverse relation
+  likes           CompletionLike[]      // Reverse relation
   flags           Flag[] // Flags they've submitted
 
   @@index([auraPoints])
