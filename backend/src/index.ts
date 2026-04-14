@@ -58,3 +58,5 @@ app.listen(PORT, '0.0.0.0', () => {
   logger.info(`📡 Health check: http://localhost:${PORT}/health`);
   logger.info(`📚 API endpoints available at: http://localhost:${PORT}/api`);
 });
+
+export default app;
