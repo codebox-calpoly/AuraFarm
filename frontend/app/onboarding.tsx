@@ -128,7 +128,7 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-white"],
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,
@@ -157,9 +157,11 @@ const styles = StyleSheet.create({
   imagePlaceholder: {
     width: "100%",
     aspectRatio: 1,
-    backgroundColor: "#000000",
-    borderRadius: 16,
+    backgroundColor: tailwindColors["aura-gray-100"],
+    borderRadius: 20,
     maxWidth: 384,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-border"],
   },
   textContainer: {
     width: "100%",
@@ -200,7 +202,7 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 32,
-    backgroundColor: "#000000",
+    backgroundColor: tailwindColors["aura-green"],
   },
   dotInactive: {
     width: 8,

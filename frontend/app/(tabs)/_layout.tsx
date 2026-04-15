@@ -5,6 +5,7 @@ import {
   View,
   ActivityIndicator,
   useWindowDimensions,
+  StyleSheet,
 } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
@@ -49,11 +50,16 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderTopColor: "#EBEBEB",
-          height: 90 * scale,
-          paddingBottom: 14,
-          paddingTop: 14,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: "#E7E5E4",
+          height: 88 * scale,
+          paddingBottom: 12,
+          paddingTop: 10,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.04,
+          shadowRadius: 8,
+          elevation: 8,
         },
       }}
     >

@@ -4,6 +4,7 @@ const express_1 = require("express");
 const users_controller_1 = require("../controllers/users.controller");
 const validate_1 = require("../middleware/validate");
 const validateParams_1 = require("../middleware/validateParams");
+const auth_1 = require("../middleware/auth");
 const types_1 = require("../types");
 const router = (0, express_1.Router)();
 /**
@@ -30,7 +31,7 @@ const router = (0, express_1.Router)();
  *       401:
  *         description: Unauthorized
  */
-router.get('/me', users_controller_1.getCurrentUser);
+router.get('/me', auth_1.authenticate, users_controller_1.getCurrentUser);
 /**
  * @swagger
  * /users/me:
@@ -67,7 +68,7 @@ router.get('/me', users_controller_1.getCurrentUser);
  *       401:
  *         description: Unauthorized
  */
-router.patch('/me', (0, validate_1.validateBody)(types_1.updateUserSchema), users_controller_1.updateCurrentUser);
+router.patch('/me', auth_1.authenticate, (0, validate_1.validateBody)(types_1.updateUserSchema), users_controller_1.updateCurrentUser);
 /**
  * @swagger
  * /users/{id}/completions:

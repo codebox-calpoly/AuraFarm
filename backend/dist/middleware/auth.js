@@ -23,46 +23,51 @@ const logger_1 = __importDefault(require("../utils/logger"));
  */
 exports.authenticate = (0, asyncHandler_1.asyncHandler)(async (req, res, next) => {
     try {
-        // Get the authorization header
         const authHeader = req.headers.authorization;
-        // Check if header exists and has correct format
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             throw new errorHandler_1.AppError('No token provided', 401);
         }
-        // Extract the token (remove 'Bearer ' prefix)
         const token = authHeader.substring(7);
-        // Verify the token with Supabase
         const { data: { user: supabaseUser }, error } = await supabase_1.supabase.auth.getUser(token);
-        // Check if verification failed
         if (error || !supabaseUser) {
             throw new errorHandler_1.AppError('Invalid or expired token', 401);
         }
-        // Get user from database using email
-        const user = await prisma_1.prisma.user.findUnique({
-            where: { email: supabaseUser.email },
+        const email = supabaseUser.email?.toLowerCase() ?? null;
+        const user = await prisma_1.prisma.user.findFirst({
+            where: {
+                OR: [
+                    { supabaseId: supabaseUser.id },
+                    ...(email ? [{ email }] : []),
+                ],
+            },
             select: {
                 id: true,
                 email: true,
                 role: true,
+                supabaseId: true,
             },
         });
-        // Check if user exists in database
         if (!user) {
             throw new errorHandler_1.AppError('User not found in database', 404);
         }
-        // Attach user to request
+        if (user.supabaseId !== supabaseUser.id) {
+            await prisma_1.prisma.user.update({
+                where: { id: user.id },
+                data: { supabaseId: supabaseUser.id },
+            }).catch((syncError) => {
+                logger_1.default.warn('Failed to backfill Supabase user id', { error: syncError, userId: user.id });
+            });
+        }
         req.user = {
             id: user.id,
             email: user.email,
             role: user.role,
+            supabaseId: supabaseUser.id,
         };
-        // Continue to next middleware/controller
         next();
     }
     catch (error) {
-        // Log auth error
         logger_1.default.error('Authentication failed', { error });
-        // Handle errors
         if (error instanceof errorHandler_1.AppError) {
             next(error);
         }
@@ -71,26 +76,13 @@ exports.authenticate = (0, asyncHandler_1.asyncHandler)(async (req, res, next) =
         }
     }
 });
-/**
- * Authorization middleware - verifies user has admin role
- *
- * Must be used after authenticate middleware. Checks if req.user exists
- * and has role === 'admin'. Returns 403 Forbidden if user is not admin.
- *
- * @middleware
- * @throws {AppError} 401 if user not authenticated
- * @throws {AppError} 403 if user is not admin
- */
 const requireAdmin = (req, res, next) => {
-    // Check if user is authenticated
     if (!req.user) {
         return next(new errorHandler_1.AppError('Authentication required', 401));
     }
-    // Check if user has admin role
     if (req.user.role !== 'admin') {
         return next(new errorHandler_1.AppError('Admin access required', 403));
     }
-    // User is admin, continue
     next();
 };
 exports.requireAdmin = requireAdmin;

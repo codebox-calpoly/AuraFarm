@@ -38,13 +38,14 @@ export const getLeaderboard = asyncHandler(
       LIMIT ${limitNum} OFFSET ${startIndex}
     `);
 
+    // Raw SQL can return bigint for rank/counts — JSON cannot serialize BigInt.
     const data: LeaderboardEntry[] = rows.map((row) => ({
-      userId: row.userId,
+      userId: Number(row.userId),
       userName: row.userName,
-      auraPoints: row.auraPoints,
-      streak: row.streak,
-      completionsCount: row.completionsCount,
-      rank: row.rank,
+      auraPoints: Number(row.auraPoints),
+      streak: Number(row.streak),
+      completionsCount: Number(row.completionsCount),
+      rank: Number(row.rank),
     }));
 
     const response: PaginatedResponse<LeaderboardEntry> = {

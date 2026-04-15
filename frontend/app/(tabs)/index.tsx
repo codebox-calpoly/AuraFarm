@@ -22,10 +22,12 @@ import {
   likeCompletion,
   flagCompletion,
 } from "@/lib/api";
+import { getSession } from "@/lib/auth";
 import { uploadCompletionImage } from "@/lib/storage";
 
 type FeedPost = {
   id: number;
+  userId: number;
   challengeTitle: string;
   points: number;
   userName: string;
@@ -39,6 +41,7 @@ type FeedPost = {
 export default function HomeScreen() {
   const [remoteFeedPosts, setRemoteFeedPosts] = useState<FeedPost[]>([]);
   const feedPosts = remoteFeedPosts;
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
     "my-challenges",
@@ -68,10 +71,6 @@ export default function HomeScreen() {
   const [challengesLoading, setChallengesLoading] = useState(true);
   const [auraCurrent, setAuraCurrent] = useState(0);
 
-  // Show progress toward the next tier threshold rather than a fixed max
-  const AURA_TIERS_THRESHOLDS = [25, 75, 150, 300, 500];
-  const AURA_MAX = AURA_TIERS_THRESHOLDS.find((t) => t > auraCurrent) ?? 500;
-
   const formatFeedDate = (date: Date): string => {
     const month = date.toLocaleDateString("en-US", { month: "short" });
     const day = date.getDate();
@@ -94,6 +93,7 @@ export default function HomeScreen() {
       setRemoteFeedPosts(
         feedRes.data.map((c) => ({
           id: c.id,
+          userId: c.userId,
           challengeTitle: c.challenge.title,
           points: c.challenge.pointsReward,
           userName: c.user.name ?? "Auranaut",
@@ -101,13 +101,17 @@ export default function HomeScreen() {
           caption: c.caption ?? "",
           date: formatFeedDate(new Date(c.completedAt)),
           likes: c.likes ?? 0,
-          postImage: c.imageUrl ?? undefined,
+          postImage: (c.imageUri ?? c.imageUrl) ?? undefined,
         })),
       );
     }
   };
 
   useEffect(() => {
+    getSession().then((session) => {
+      if (session?.userId) setCurrentUserId(session.userId);
+    });
+
     // Fire all requests independently so fast ones render immediately
     getChallenges().then((res) => {
       if (res.success) {
@@ -135,7 +139,7 @@ export default function HomeScreen() {
                 points: c.challenge.pointsReward,
                 date: formatFeedDate(new Date(c.completedAt)),
                 description: c.challenge.description,
-                postImage: c.imageUrl ?? "",
+                postImage: c.imageUri ?? c.imageUrl ?? "",
                 caption: c.caption ?? "",
                 likes: 0,
               })),
@@ -327,10 +331,7 @@ export default function HomeScreen() {
           {activeTab === "my-challenges" ? (
             <>
               {/* Progress Bar */}
-              <AuraProgressBar
-                current={Math.min(auraCurrent, AURA_MAX)}
-                max={AURA_MAX}
-              />
+              <AuraProgressBar points={auraCurrent} />
 
               {/* Incoming Section */}
               <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
@@ -376,7 +377,7 @@ export default function HomeScreen() {
             <>
               {feedPosts.length > 0 ? (
                 feedPosts.map((post) => {
-                  const isOwnPost = post.postImage != null;
+                  const isOwnPost = currentUserId !== null && post.userId === currentUserId;
                   return (
                     <FeedCard
                       key={post.id}
@@ -384,6 +385,7 @@ export default function HomeScreen() {
                       points={post.points}
                       userName={post.userName}
                       userImage={post.userImage}
+                      postImage={post.postImage}
                       caption={post.caption}
                       date={post.date}
                       likes={post.likes}
@@ -393,7 +395,7 @@ export default function HomeScreen() {
                               `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&isOwnPost=true`
                             )
                           : router.push(
-                              `/post/${post.id}?title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`
+                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`,
                             )
                       }
                       onOptionsPress={() => handleOpenReportModal(post.id)}
@@ -440,32 +442,40 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-white"],
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
   },
   scrollView: {
-    paddingBottom: 20,
+    paddingBottom: 28,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 13,
     fontFamily: tailwindFonts["bold"],
-    color: tailwindColors["aura-black"],
-    marginBottom: 12,
-    marginTop: 8,
+    color: tailwindColors["aura-gray-500"],
+    marginBottom: 14,
+    marginTop: 4,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   emptyState: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: tailwindFonts["regular"],
     color: tailwindColors["aura-gray-400"],
     textAlign: "center",
-    marginVertical: 32,
+    marginVertical: 36,
+    lineHeight: 22,
   },
   feedPlaceholder: {
-    padding: 20,
+    paddingVertical: 48,
+    paddingHorizontal: 24,
     alignItems: "center",
-    backgroundColor: tailwindColors["aura-white"],
+    backgroundColor: tailwindColors["aura-surface-muted"],
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-border"],
+    borderStyle: "dashed",
   },
 });

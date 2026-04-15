@@ -322,7 +322,7 @@ export default function LogInScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,

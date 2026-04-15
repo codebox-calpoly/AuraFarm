@@ -8,9 +8,10 @@ const completions_controller_1 = require("../controllers/completions.controller"
 const validate_1 = require("../middleware/validate");
 const validateParams_1 = require("../middleware/validateParams");
 const types_1 = require("../types");
+const auth_1 = require("../middleware/auth");
 const rateLimiter_1 = __importDefault(require("../middleware/rateLimiter"));
 const router = (0, express_1.Router)();
-router.post('/', rateLimiter_1.default.completionLimiter, (0, validate_1.validateBody)(types_1.createCompletionSchema), completions_controller_1.completeChallenge);
+router.post('/', auth_1.authenticate, rateLimiter_1.default.completionLimiter, (0, validate_1.validateBody)(types_1.createCompletionSchema), completions_controller_1.completeChallenge);
 /**
  * @swagger
  * /completions:
@@ -79,6 +80,9 @@ router.post('/', rateLimiter_1.default.completionLimiter, (0, validate_1.validat
  *                     totalPages:
  *                       type: integer
  */
-router.get('/', (0, validate_1.validate)(types_1.completionsListQuerySchema), completions_controller_1.getCompletions);
+router.get('/', (0, validate_1.validateQuery)(types_1.completionsListQuerySchema), completions_controller_1.getCompletions);
 router.get('/:id', (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.getCompletionById);
+router.patch('/:id', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), (0, validate_1.validateBody)(types_1.updateCompletionSchema), completions_controller_1.updateCompletion);
+router.post('/:id/like', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.likeCompletion);
+router.delete('/:id/like', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.unlikeCompletion);
 exports.default = router;

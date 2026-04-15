@@ -26,7 +26,7 @@ export function useFeed() {
         caption: item.caption ?? undefined,
         date: item.completedAt,
         likes: item.likes,
-        imageUri: item.imageUri,
+        imageUri: item.imageUri ?? item.imageUrl ?? "",
         userImage: undefined,
       }));
     },

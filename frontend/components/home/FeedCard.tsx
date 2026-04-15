@@ -5,13 +5,14 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors } from "@/constants/tailwind-colors";
 import { useState } from "react";
+import { cardShadow, radius, spacing } from "@/constants/design";
 
 export interface FeedCardProps {
   challengeTitle: string;
   points: number;
   userName: string;
-  userImage?: string; // URL or require() path
-  postImage?: string; // URL for the completion photo
+  userImage?: string;
+  postImage?: string;
   caption?: string;
   date: string;
   likes: number;
@@ -38,89 +39,99 @@ export function FeedCard({
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likesState, setLikesState] = useState(likes);
   const { width } = useWindowDimensions();
-  // 24px padding on each side from the parent container
   const imageSize = width - 48;
-
-  // Sync state if props change (optional but good for reactive UI)
-  // Or just use the props if we want the parent to control it.
-  // The HEAD version of index.tsx used a wrapper "FeedCardWithLike" that managed its own state.
-  // Let's stick to the main version's internal state for now but allow external control.
 
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.9}
+      activeOpacity={0.92}
       style={styles.touchableContainer}
     >
-      <ThemedView style={styles.container}>
-        {/* Header with title, Aura, and options menu */}
+      <ThemedView style={[styles.container, cardShadow(3)]}>
         <View style={styles.header}>
-          <View style={styles.optionsButton} />
-          <View style={styles.titleSection}>
-            <ThemedText style={styles.challengeTitle}>{challengeTitle}</ThemedText>
-            <ThemedText style={styles.pointsText}>+{points} Aura</ThemedText>
+          <View style={styles.titleRow}>
+            <ThemedText style={styles.challengeTitle} numberOfLines={2}>
+              {challengeTitle}
+            </ThemedText>
+            <View style={styles.pointsPill}>
+              <ThemedText style={styles.pointsPillText}>+{points}</ThemedText>
+            </View>
           </View>
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
               onOptionsPress?.();
             }}
-            style={styles.optionsButton}
+            style={styles.flagBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name="flag-outline"
               size={20}
-              color={tailwindColors["aura-black"]}
+              color={tailwindColors["aura-gray-500"]}
             />
           </TouchableOpacity>
         </View>
 
-        {/* Image */}
-        {postImage || userImage ? (
+        {(postImage?.trim() || userImage?.trim()) ? (
           <Image
-            source={{ uri: postImage ?? userImage }}
-            style={[styles.image, { width: imageSize, height: imageSize }]}
+            source={{ uri: (postImage ?? userImage)!.trim() }}
+            style={[styles.image, { width: imageSize, height: imageSize * 0.92 }]}
             contentFit="cover"
+            transition={200}
           />
         ) : (
-          <View style={[styles.imagePlaceholder, { width: imageSize, height: imageSize }]}>
+          <View
+            style={[
+              styles.imagePlaceholder,
+              { width: imageSize, height: imageSize * 0.55 },
+            ]}
+          >
             <Ionicons
               name="image-outline"
-              size={48}
-              color={tailwindColors["aura-gray-400"]}
+              size={40}
+              color={tailwindColors["aura-gray-300"]}
             />
           </View>
         )}
 
-        {/* User info and caption */}
         <View style={styles.contentSection}>
-          <ThemedText style={styles.userName}>{userName}</ThemedText>
-          {caption && <ThemedText style={styles.caption}>{caption}</ThemedText>}
+          <View style={styles.userRow}>
+            <View style={styles.avatar}>
+              <ThemedText style={styles.avatarLetter}>
+                {(userName || "?").charAt(0).toUpperCase()}
+              </ThemedText>
+            </View>
+            <ThemedText style={styles.userName}>{userName}</ThemedText>
+          </View>
+          {caption ? (
+            <ThemedText style={styles.caption}>{caption}</ThemedText>
+          ) : null}
           <ThemedText style={styles.dateText}>{date}</ThemedText>
         </View>
 
-        {/* Likes */}
         <View style={styles.footer}>
           <TouchableOpacity
             onPress={(e) => {
               e.stopPropagation();
-
               const newIsLiked = !isLiked;
               if (newIsLiked) {
                 setLikesState((prev) => prev + 1);
               } else {
-                setLikesState((prev) => prev - 1);
+                setLikesState((prev) => Math.max(0, prev - 1));
               }
               setIsLiked(newIsLiked);
-
               onLikePress?.();
             }}
             style={styles.likeButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={isLiked ? "heart" : "heart-outline"}
-              size={20}
-              color={isLiked ? tailwindColors["aura-red"] : tailwindColors["aura-black"]}
+              size={22}
+              color={
+                isLiked ? tailwindColors["aura-red"] : tailwindColors["aura-gray-500"]
+              }
             />
             <ThemedText style={styles.likesText}>{likesState}</ThemedText>
           </TouchableOpacity>
@@ -132,96 +143,134 @@ export function FeedCard({
 
 const styles = StyleSheet.create({
   touchableContainer: {
-    marginBottom: 20,
+    marginBottom: spacing.lg,
   },
   container: {
-    backgroundColor: tailwindColors["aura-white"],
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: tailwindColors["aura-black"],
+    backgroundColor: tailwindColors["aura-surface"],
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-border"],
     overflow: "hidden",
-    shadowColor: tailwindColors["aura-black"],
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   header: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
-  titleSection: {
+  titleRow: {
     flex: 1,
-    alignItems: "center",
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+    flexWrap: "wrap",
   },
   challengeTitle: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 17,
     fontFamily: "Poppins_700Bold",
     color: tailwindColors["aura-black"],
-    marginBottom: 4,
-    textAlign: "center",
+    lineHeight: 22,
   },
-  pointsText: {
-    fontSize: 14,
+  pointsPill: {
+    backgroundColor: tailwindColors["aura-green-light"],
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-green-tint"],
+  },
+  pointsPillText: {
+    fontSize: 13,
     fontFamily: "Poppins_600SemiBold",
-    color: tailwindColors["aura-yellow"],
-    textAlign: "center",
+    color: tailwindColors["aura-green"],
   },
-  optionsButton: {
+  flagBtn: {
     padding: 4,
+    marginTop: 2,
   },
   image: {
+    alignSelf: "center",
     backgroundColor: tailwindColors["aura-gray-100"],
+    borderRadius: radius.md,
+    marginHorizontal: spacing.md,
   },
   imagePlaceholder: {
+    alignSelf: "center",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: tailwindColors["aura-gray-100"],
+    backgroundColor: tailwindColors["aura-gray-50"],
+    borderRadius: radius.md,
+    marginHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-border"],
+    borderStyle: "dashed",
   },
   contentSection: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  userRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: 6,
+  },
+  avatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: tailwindColors["aura-red-tint"],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarLetter: {
+    fontSize: 13,
+    fontFamily: "Poppins_700Bold",
+    color: tailwindColors["aura-red"],
   },
   userName: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Poppins_600SemiBold",
-    color: tailwindColors["aura-red"],
-    marginBottom: 4,
+    color: tailwindColors["aura-black"],
   },
   caption: {
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Poppins_400Regular",
-    color: tailwindColors["aura-black"],
-    marginBottom: 4,
-    lineHeight: 20,
+    color: tailwindColors["aura-gray-700"],
+    marginBottom: 6,
+    lineHeight: 22,
   },
   dateText: {
     fontSize: 12,
     fontFamily: "Poppins_400Regular",
     color: tailwindColors["aura-gray-400"],
-    marginTop: 4,
   },
   footer: {
     flexDirection: "row",
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 8,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: tailwindColors["aura-border"],
+    backgroundColor: tailwindColors["aura-surface-muted"],
   },
   likeButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   likesText: {
-    fontSize: 14,
-    fontFamily: "Poppins_400Regular",
-    color: tailwindColors["aura-black"],
+    fontSize: 15,
+    fontFamily: "Poppins_600SemiBold",
+    color: tailwindColors["aura-gray-700"],
   },
 });

@@ -7,6 +7,8 @@ export interface CompletionDetail {
   challengeId: number;
   caption: string | null;
   imageUri: string;
+  /** Legacy / optional duplicate in DB; prefer imageUri when present */
+  imageUrl?: string | null;
   likes: number;
   completedAt: string;
   user: { id: number; name: string; auraPoints: number };

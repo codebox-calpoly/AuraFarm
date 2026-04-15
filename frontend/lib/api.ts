@@ -33,6 +33,7 @@ export type UserCompletion = {
   latitude: number;
   longitude: number;
   imageUri?: string | null;
+  imageUrl?: string | null;
   caption?: string | null;
   completedAt: string;
   challenge: {
@@ -51,6 +52,7 @@ export type FeedCompletion = {
   latitude: number;
   longitude: number;
   imageUri?: string | null;
+  imageUrl?: string | null;
   caption?: string | null;
   completedAt: string;
   likes?: number;
@@ -348,11 +350,11 @@ export async function apiForgotPassword(email: string): Promise<ApiResponse<{ me
   return authFetch("forgot-password", { email });
 }
 
-const apiClient = axios.create({
-  baseURL: `${apiBaseUrl()}/api`,
-});
+const apiClient = axios.create();
 
 apiClient.interceptors.request.use(async (config) => {
+  // Resolve on each request so device LAN / Metro host is correct (import-time URL is often localhost).
+  config.baseURL = `${apiBaseUrl()}/api`;
   const session = await getValidSession();
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;

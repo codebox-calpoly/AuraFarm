@@ -62,7 +62,7 @@ export default function PostDetailScreen() {
 
   const handleEdit = () => {
     if (paramIsOwnPost === 'true') {
-      const currentImage = completion?.imageUri || paramImageUri || "";
+      const currentImage = completion?.imageUri || completion?.imageUrl || paramImageUri || "";
       const currentCaption = completion?.caption || caption || "";
       const currentPoints = completion?.challenge?.pointsReward || Number(paramPoints || 0);
       const currentTitle = completion?.challenge?.title || paramTitle || "Challenge";
@@ -105,7 +105,7 @@ export default function PostDetailScreen() {
   const post = {
     challengeTitle: completion?.challenge.title || paramTitle || "Challenge",
     points: completion?.challenge.pointsReward || Number(paramPoints || 0),
-    postImage: completion?.imageUri || paramImageUri || null,
+    postImage: completion?.imageUri || completion?.imageUrl || paramImageUri || null,
     caption: completion?.caption || caption || "",
     likes: completion?.likes ?? (likeMutation.data?.likes ?? likes),
     isOwnPost: paramIsOwnPost === 'true'

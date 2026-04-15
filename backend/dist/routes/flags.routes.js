@@ -42,7 +42,7 @@ const router = (0, express_1.Router)();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', rateLimiter_1.default.flagLimiter, (0, validate_1.validateBody)(types_1.createFlagSchema), flags_controller_1.flagCompletion);
+router.post('/', auth_1.authenticate, rateLimiter_1.default.flagLimiter, (0, validate_1.validateBody)(types_1.createFlagSchema), flags_controller_1.flagCompletion);
 /**
  * @swagger
  * /flags:

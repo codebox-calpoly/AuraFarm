@@ -11,6 +11,7 @@ export default {
     name: 'aura-farm',
     slug: 'my-app',
     version: '1.0.0',
+    userInterfaceStyle: 'automatic',
     scheme: 'aurafarmmobile',
     plugins: ['expo-font', 'expo-updates'],
     updates: {

@@ -20,7 +20,7 @@ const MAPPING: Record<string, ComponentProps<typeof MaterialIcons>['name']> = {
   'eye.slash': 'visibility-off',
   'checkmark': 'check',
   'trophy': 'emoji-events',
-  'sparkle': 'auto-awesome',
+  'diamond': 'diamond',
   'gearshape': 'settings',
 };
 

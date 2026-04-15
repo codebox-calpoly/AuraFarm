@@ -271,7 +271,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-white"],
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,

@@ -10,20 +10,7 @@ import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { ThemedText } from "@/components/themed-text";
 import { getValidSession } from "@/lib/auth";
 import { getUserProfileFromApi } from "@/lib/api";
-
-// Aura tiers ordered by minimum points (highest first)
-const AURA_TIERS = [
-  { label: "red",    color: tailwindColors["aura-red"],    bg: tailwindColors["aura-red-tint"],   minPoints: 500 },
-  { label: "orange", color: tailwindColors["aura-orange"], bg: "#FFF8EE",                         minPoints: 300 },
-  { label: "yellow", color: tailwindColors["aura-yellow"], bg: "#FFFDE7",                         minPoints: 150 },
-  { label: "green",  color: tailwindColors["aura-green"],  bg: tailwindColors["aura-green-light"],minPoints: 75  },
-  { label: "blue",   color: tailwindColors["aura-blue"],   bg: "#EEF2FF",                         minPoints: 25  },
-  { label: "purple", color: tailwindColors["aura-purple"], bg: "#F5EEFF",                         minPoints: 0   },
-];
-
-function getTier(points: number) {
-  return AURA_TIERS.find((t) => points >= t.minPoints) ?? AURA_TIERS[AURA_TIERS.length - 1];
-}
+import { getTierForPoints } from "@/constants/auraTiers";
 
 export default function AuraScreen() {
   const auraRef = useRef<ViewShot>(null);
@@ -46,7 +33,7 @@ export default function AuraScreen() {
     });
   }, []);
 
-  const tier = getTier(auraPoints ?? 0);
+  const tier = getTierForPoints(auraPoints ?? 0);
 
   const handleShare = async () => {
     try {
@@ -129,7 +116,7 @@ export default function AuraScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-white"],
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,

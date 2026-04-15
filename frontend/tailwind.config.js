@@ -6,27 +6,35 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "aura-red": "#CC0A19",
-        "aura-orange": "#F38E08",
-        "aura-yellow": "#FFD609",
-        "aura-green": "#4FB948",
-        "aura-blue": "#2B09FF",
-        "aura-purple": "#B709FF",
-        "aura-black": "#383737",
+        "aura-red": "#C41E3A",
+        "aura-orange": "#E67E22",
+        "aura-yellow": "#F4C430",
+        "aura-green": "#2D8A5E",
+        "aura-blue": "#2563EB",
+        "aura-purple": "#7C3AED",
+        "aura-black": "#1C1917",
         "aura-white": "#FFFFFF",
+        /** App canvas behind cards */
+        "aura-page": "#F4F6F5",
+        /** Elevated surfaces */
+        "aura-surface": "#FFFFFF",
+        "aura-surface-muted": "#FAFBFA",
+        /** Hairline borders */
+        "aura-border": "#E7E5E4",
+        "aura-border-strong": "#D6D3D1",
         // Standard grays for UI
-        "aura-gray-50": "#F9FAFB",
-        "aura-gray-100": "#F3F4F6",
-        "aura-gray-200": "#E5E7EB",
-        "aura-gray-300": "#D1D5DB",
-        "aura-gray-400": "#9CA3AF",
-        "aura-gray-500": "#6B7280",
-        "aura-gray-600": "#4B5563",
-        "aura-gray-700": "#374151",
+        "aura-gray-50": "#FAFAF9",
+        "aura-gray-100": "#F5F5F4",
+        "aura-gray-200": "#E7E5E4",
+        "aura-gray-300": "#D6D3D1",
+        "aura-gray-400": "#A8A29E",
+        "aura-gray-500": "#78716C",
+        "aura-gray-600": "#57534E",
+        "aura-gray-700": "#44403C",
         // Light tints for backgrounds
         "aura-red-light": "#FFF5F5",
-        "aura-red-tint": "#FFF1F1",
-        "aura-green-light": "#F0FFF4",
+        "aura-red-tint": "#FFE4E6",
+        "aura-green-light": "#ECFDF5",
         "aura-green-tint": "#A7F3D0",
       },
       fontFamily: {
