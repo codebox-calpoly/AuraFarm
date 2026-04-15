@@ -4,11 +4,12 @@ exports.getLeaderboard = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const prisma_1 = require("../prisma");
 const client_1 = require("@prisma/client");
+const jsonSafe_1 = require("../utils/jsonSafe");
 exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
     const pageNum = Math.max(1, Number(req.query.page ?? 1));
     const limitNum = Math.max(1, Number(req.query.limit ?? 20));
     const startIndex = (pageNum - 1) * limitNum;
-    const total = await prisma_1.prisma.user.count();
+    const total = Number(await prisma_1.prisma.user.count());
     const rows = await prisma_1.prisma.$queryRaw(client_1.Prisma.sql `
       WITH ranked_users AS (
         SELECT
@@ -17,7 +18,7 @@ exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
           COALESCE(u."auraPoints", 0) AS "auraPoints",
           COALESCE(u.streak, 0) AS streak,
           COUNT(cc.id)::int AS "completionsCount",
-          DENSE_RANK() OVER (ORDER BY COALESCE(u."auraPoints", 0) DESC) AS rank
+          (DENSE_RANK() OVER (ORDER BY COALESCE(u."auraPoints", 0) DESC))::int AS rank
         FROM "User" u
         LEFT JOIN "ChallengeCompletion" cc ON cc."userId" = u.id
         GROUP BY u.id
@@ -43,8 +44,8 @@ exports.getLeaderboard = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
             page: pageNum,
             limit: limitNum,
             total,
-            totalPages: Math.ceil(total / limitNum),
+            totalPages: Math.max(1, Math.ceil(total / limitNum)),
         },
     };
-    res.json(response);
+    res.json((0, jsonSafe_1.toJsonSafe)(response));
 });
