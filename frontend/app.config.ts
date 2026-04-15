@@ -23,6 +23,9 @@ export default {
     ios: {
       bundleIdentifier: 'com.codebox.aurafarm',
       supportsTablet: true,
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     extra: {
       supabaseUrl:
