@@ -12,7 +12,17 @@ export default {
     slug: 'my-app',
     version: '1.0.0',
     scheme: 'aurafarmmobile',
-    plugins: ['expo-font'],
+    plugins: ['expo-font', 'expo-updates'],
+    updates: {
+      url: 'https://u.expo.dev/3c36a5fa-98d4-45f9-bb18-fe6266fa0978',
+    },
+    runtimeVersion: {
+      policy: 'appVersion',
+    },
+    ios: {
+      bundleIdentifier: 'com.codebox.aurafarm',
+      supportsTablet: true,
+    },
     extra: {
       supabaseUrl:
         process.env.EXPO_PUBLIC_SUPABASE_URL ??
@@ -23,6 +33,9 @@ export default {
         process.env.SUPABASE_ANON_KEY ??
         process.env.SUPABASE_KEY,
       apiUrl: process.env.EXPO_PUBLIC_API_URL,
+      eas: {
+        projectId: '3c36a5fa-98d4-45f9-bb18-fe6266fa0978',
+      },
     },
   },
 };
