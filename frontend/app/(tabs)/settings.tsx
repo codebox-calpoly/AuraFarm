@@ -1,26 +1,32 @@
 import EditIcon from "@/assets/EditIcon.svg";
 import ProfileImage from "@/assets/ProfileImage.svg";
+import { Header } from "@/components/home/Header";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { cardShadow, layout, radius, spacing } from "@/constants/design";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
+import { apiBaseUrl, changePassword as apiChangePassword } from "@/lib/api";
+import { clearSession, getSession } from "@/lib/auth";
+import { Ionicons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   useWindowDimensions,
   View,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { apiBaseUrl, changePassword as apiChangePassword } from "@/lib/api";
-import { getSession, clearSession } from "@/lib/auth";
-import { Header } from "@/components/home/Header";
-import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 const BASE_WIDTH = 414;
-const API_URL = apiBaseUrl();
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -29,7 +35,6 @@ export default function SettingsScreen() {
   const [username, setUsername] = useState("");
   const [originalUsername, setOriginalUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [originalEmail, setOriginalEmail] = useState("");
 
   const [showPasswordEditor, setShowPasswordEditor] = useState(false);
   const [oldPassword, setOldPassword] = useState("");
@@ -55,7 +60,7 @@ export default function SettingsScreen() {
           router.replace("/login");
           return;
         }
-        const res = await fetch(`${API_URL}/api/users/me`, {
+        const res = await fetch(`${apiBaseUrl()}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
@@ -63,7 +68,6 @@ export default function SettingsScreen() {
           setUsername(json.data.name ?? "");
           setOriginalUsername(json.data.name ?? "");
           setEmail(json.data.email ?? "");
-          setOriginalEmail((json.data.email ?? "").toLowerCase());
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
@@ -72,13 +76,13 @@ export default function SettingsScreen() {
       }
     };
     fetchProfile();
-  }, []);
+  }, [router]);
 
   const handleSaveUsername = async () => {
     if (username === originalUsername) return;
     try {
       const token = await getToken();
-      const res = await fetch(`${API_URL}/api/users/me`, {
+      const res = await fetch(`${apiBaseUrl()}/api/users/me`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -89,9 +93,9 @@ export default function SettingsScreen() {
       const json = await res.json();
       if (json.success) {
         setOriginalUsername(username);
-        Alert.alert("Success", "Username updated!");
+        Alert.alert("Saved", "Your display name was updated.");
       } else {
-        Alert.alert("Error", json.message ?? "Failed to update username.");
+        Alert.alert("Error", json.message ?? "Could not update name.");
       }
     } catch {
       Alert.alert("Error", "Network error. Please try again.");
@@ -104,7 +108,7 @@ export default function SettingsScreen() {
       router.replace("/login");
     } catch (err) {
       console.error("Error signing out:", err);
-      Alert.alert("Error", "Failed to sign out. Please try again.");
+      Alert.alert("Error", "Could not sign out. Try again.");
     }
   };
 
@@ -123,7 +127,7 @@ export default function SettingsScreen() {
       return;
     }
     if (newPassword === oldPassword) {
-      setError("New password must be different from current password");
+      setError("New password must be different from your current password");
       return;
     }
     try {
@@ -143,17 +147,19 @@ export default function SettingsScreen() {
   };
 
   const handleCancelPasswordEdit = () => {
-    setShowPasswordEditor(false);
     setOldPassword("");
     setNewPassword("");
     setConfirmPassword("");
     setError("");
+    // Defer collapse so the touch release does not hit the Logout row that appears below.
+    setTimeout(() => setShowPasswordEditor(false), 400);
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]}>
-        <ActivityIndicator size="large" />
+      <SafeAreaView style={[styles.safeArea, styles.loadingWrap]}>
+        <Header />
+        <ActivityIndicator size="large" color={tailwindColors["aura-green"]} />
       </SafeAreaView>
     );
   }
@@ -162,211 +168,442 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <Header />
 
-      <View style={[styles.container, { paddingHorizontal: 24 * scale }]}>
-        <Text style={[styles.settingsTitle, { fontSize: 28 * scale, marginTop: 16 * scale }]}>
-          Settings
-        </Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
+      >
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: tabBarHeight + spacing.xl },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <ThemedText style={styles.pageTitle}>Settings</ThemedText>
+          <ThemedText style={styles.pageSubtitle}>
+            Manage your profile and account security
+          </ThemedText>
 
-        <View style={[styles.avatarWrap, { marginTop: 32 * scale }]}>
-          <ProfileImage width={80 * scale} height={80 * scale} />
-        </View>
-
-        <View style={[styles.fieldsBlock, { marginTop: 40 * scale, gap: 24 * scale }]}>
-          {/* Username */}
-          <View style={styles.fieldRow}>
-            <Text style={[styles.fieldLabel, { fontSize: 18 * scale }]}>username: </Text>
-            <TextInput
-              ref={usernameInputRef}
-              value={username}
-              onChangeText={setUsername}
-              style={[styles.fieldValueInput, { fontSize: 18 * scale }]}
-            />
-            <Pressable
-              onPress={() => usernameInputRef.current?.focus()}
-              hitSlop={8}
-              style={styles.pencilWrap}
+          {/* Profile hero — soft disc behind icon so the glyph stays inside (no ring through shoulders) */}
+          <ThemedView
+            style={[styles.profileCard, cardShadow(3)]}
+            lightColor={tailwindColors["aura-surface"]}
+          >
+            <View
+              style={[
+                styles.avatarDisc,
+                {
+                  width: Math.min(104, 104 * scale),
+                  height: Math.min(104, 104 * scale),
+                  borderRadius: Math.min(52, 52 * scale),
+                },
+              ]}
             >
-              <EditIcon width={22 * scale} height={22 * scale} />
-            </Pressable>
-          </View>
-          {username !== originalUsername && (
-            <View style={styles.editActions}>
-              <Pressable style={styles.saveBtn} onPress={handleSaveUsername}>
-                <Text style={styles.saveBtnText}>Save</Text>
-              </Pressable>
-              <Pressable style={styles.cancelBtn} onPress={() => setUsername(originalUsername)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </Pressable>
+              <ProfileImage width={Math.min(72, 72 * scale)} height={Math.min(72, 72 * scale)} />
             </View>
-          )}
-
-          {/* Email - read only */}
-          <View style={styles.fieldRow}>
-            <Text style={[styles.fieldLabel, { fontSize: 18 * scale }]}>email: </Text>
-            <Text style={[styles.fieldValue, { fontSize: 18 * scale }]} numberOfLines={1}>
-              {email}
-            </Text>
-          </View>
-
-          {/* Password */}
-          {!showPasswordEditor ? (
-            <View style={styles.fieldRow}>
-              <Text style={[styles.fieldLabel, { fontSize: 18 * scale }]}>password: </Text>
-              <Text style={[styles.fieldValue, { fontSize: 18 * scale }]}>**********</Text>
-              <Pressable onPress={() => setShowPasswordEditor(true)} hitSlop={8} style={styles.pencilWrap}>
-                <EditIcon width={22 * scale} height={22 * scale} />
-              </Pressable>
+            <ThemedText style={styles.profileName} numberOfLines={1}>
+              {username || "Your profile"}
+            </ThemedText>
+            <View style={styles.emailRow}>
+              <Ionicons
+                name="mail-outline"
+                size={16}
+                color={tailwindColors["aura-gray-500"]}
+              />
+              <ThemedText style={styles.profileEmail} numberOfLines={1}>
+                {email || "—"}
+              </ThemedText>
             </View>
-          ) : (
-            <View style={styles.passwordEditor}>
-              <TextInput
-                placeholder="Current password"
-                secureTextEntry
-                value={oldPassword}
-                onChangeText={setOldPassword}
-                style={styles.passwordInput}
-                placeholderTextColor="#9CA3AF"
-              />
-              <TextInput
-                placeholder="New password"
-                secureTextEntry
-                value={newPassword}
-                onChangeText={setNewPassword}
-                style={styles.passwordInput}
-                placeholderTextColor="#9CA3AF"
-              />
-              <TextInput
-                placeholder="Confirm new password"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                style={styles.passwordInput}
-                placeholderTextColor="#9CA3AF"
-              />
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
-              <View style={styles.editActions}>
-                <Pressable style={styles.saveBtn} onPress={handleChangePassword}>
-                  <Text style={styles.saveBtnText}>Save</Text>
-                </Pressable>
-                <Pressable style={styles.cancelBtn} onPress={handleCancelPasswordEdit}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+          </ThemedView>
+
+          {/* Account */}
+          <ThemedText style={styles.sectionLabel}>Account</ThemedText>
+          <ThemedView
+            style={[styles.card, cardShadow(2)]}
+            lightColor={tailwindColors["aura-surface"]}
+          >
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.inputLabel}>Display name</ThemedText>
+              <View style={styles.inputRow}>
+                <TextInput
+                  ref={usernameInputRef}
+                  value={username}
+                  onChangeText={setUsername}
+                  style={styles.textInput}
+                  placeholder="Your name"
+                  placeholderTextColor={tailwindColors["aura-gray-400"]}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                />
+                <Pressable
+                  onPress={() => usernameInputRef.current?.focus()}
+                  hitSlop={10}
+                  style={styles.iconBtn}
+                >
+                  <EditIcon width={22} height={22} />
                 </Pressable>
               </View>
+              {username !== originalUsername ? (
+                <View style={styles.inlineActions}>
+                  <Pressable style={styles.primaryBtn} onPress={handleSaveUsername}>
+                    <Text style={styles.primaryBtnText}>Save name</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.secondaryBtn}
+                    onPress={() => setUsername(originalUsername)}
+                  >
+                    <Text style={styles.secondaryBtnText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              ) : null}
             </View>
-          )}
-        </View>
 
-        {!showPasswordEditor && (
-          <View style={[styles.footer, { paddingBottom: tabBarHeight + 24 * scale }]}>
-            <Pressable style={[styles.logoutButton, { borderRadius: 18 * scale }]} onPress={handleLogOut}>
-              <Text style={styles.logoutText}>Log out</Text>
-            </Pressable>
-          </View>
-        )}
-      </View>
+            <View style={styles.divider} />
+
+            <View style={styles.readOnlyBlock}>
+              <ThemedText style={styles.inputLabel}>Email</ThemedText>
+              <View style={styles.readOnlyRow}>
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={18}
+                  color={tailwindColors["aura-gray-400"]}
+                />
+                <Text style={styles.readOnlyText} numberOfLines={1}>
+                  {email}
+                </Text>
+              </View>
+              <ThemedText style={styles.hint}>Email cannot be changed here</ThemedText>
+            </View>
+          </ThemedView>
+
+          {/* Security */}
+          <ThemedText style={styles.sectionLabel}>Security</ThemedText>
+          <ThemedView
+            style={[styles.card, cardShadow(2)]}
+            lightColor={tailwindColors["aura-surface"]}
+          >
+            {!showPasswordEditor ? (
+              <Pressable
+                style={styles.securityRow}
+                onPress={() => setShowPasswordEditor(true)}
+              >
+                <View style={styles.securityLeft}>
+                  <View style={styles.securityIconBg}>
+                    <Ionicons
+                      name="key-outline"
+                      size={20}
+                      color={tailwindColors["aura-green"]}
+                    />
+                  </View>
+                  <View>
+                    <ThemedText style={styles.securityTitle}>Password</ThemedText>
+                    <ThemedText style={styles.securitySubtitle}>
+                      Update your sign-in password
+                    </ThemedText>
+                  </View>
+                </View>
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={tailwindColors["aura-gray-400"]}
+                />
+              </Pressable>
+            ) : (
+              <View style={styles.passwordBlock}>
+                <ThemedText style={styles.inputLabel}>Change password</ThemedText>
+                <TextInput
+                  placeholder="Current password"
+                  secureTextEntry
+                  value={oldPassword}
+                  onChangeText={setOldPassword}
+                  style={styles.passwordField}
+                  placeholderTextColor={tailwindColors["aura-gray-400"]}
+                />
+                <TextInput
+                  placeholder="New password (8+ characters)"
+                  secureTextEntry
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  style={styles.passwordField}
+                  placeholderTextColor={tailwindColors["aura-gray-400"]}
+                />
+                <TextInput
+                  placeholder="Confirm new password"
+                  secureTextEntry
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  style={styles.passwordField}
+                  placeholderTextColor={tailwindColors["aura-gray-400"]}
+                />
+                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+                <View style={styles.inlineActions}>
+                  <Pressable style={styles.primaryBtn} onPress={handleChangePassword}>
+                    <Text style={styles.primaryBtnText}>Update password</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.secondaryBtn}
+                    onPress={handleCancelPasswordEdit}
+                    hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.secondaryBtnText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+          </ThemedView>
+
+          {/* Sign out — always mounted; disabled while password editor open to avoid accidental tap after Cancel */}
+          <Pressable
+            style={[
+              styles.logoutCard,
+              cardShadow(2),
+              showPasswordEditor && styles.logoutCardHidden,
+            ]}
+            onPress={handleLogOut}
+            disabled={showPasswordEditor}
+          >
+            <Ionicons name="log-out-outline" size={22} color={tailwindColors["aura-red"]} />
+            <Text style={styles.logoutLabel}>Log out</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   safeArea: {
     flex: 1,
     backgroundColor: tailwindColors["aura-page"],
   },
-  container: {
-    flex: 1,
+  loadingWrap: {
+    justifyContent: "center",
+    alignItems: "center",
   },
-  settingsTitle: {
-    textAlign: "center",
+  scroll: { flex: 1 },
+  scrollContent: {
+    paddingHorizontal: layout.screenPaddingX,
+    paddingTop: spacing.sm,
+  },
+  pageTitle: {
     fontFamily: tailwindFonts["bold"],
+    fontSize: 28,
     color: tailwindColors["aura-black"],
+    letterSpacing: -0.5,
+    marginBottom: spacing.xs,
   },
-  avatarWrap: {
+  pageSubtitle: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 15,
+    color: tailwindColors["aura-gray-500"],
+    marginBottom: spacing.lg,
+  },
+  profileCard: {
     alignItems: "center",
+    borderRadius: radius.xl,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border"],
   },
-  fieldsBlock: {
-    width: "100%",
-  },
-  fieldRow: {
-    flexDirection: "row",
+  avatarDisc: {
+    backgroundColor: tailwindColors["aura-green-light"],
     alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(45, 138, 94, 0.22)",
   },
-  fieldLabel: {
+  profileName: {
     fontFamily: tailwindFonts["semibold"],
+    fontSize: 22,
     color: tailwindColors["aura-black"],
+    textAlign: "center",
+    maxWidth: "100%",
   },
-  fieldValue: {
-    flex: 1,
-    fontFamily: tailwindFonts["regular"],
-    color: tailwindColors["aura-black"],
-  },
-  fieldValueInput: {
-    flex: 1,
-    fontFamily: tailwindFonts["regular"],
-    color: tailwindColors["aura-black"],
-    padding: 0,
-    margin: 0,
-  },
-  pencilWrap: {
-    marginLeft: 8,
-  },
-  editActions: {
+  emailRow: {
     flexDirection: "row",
-    gap: 12,
-    marginTop: 8,
+    alignItems: "center",
+    gap: 6,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
   },
-  saveBtn: {
+  profileEmail: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 14,
+    color: tailwindColors["aura-gray-600"],
+    flex: 1,
+  },
+  sectionLabel: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 12,
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+    color: tailwindColors["aura-gray-500"],
+    marginBottom: spacing.sm,
+    marginLeft: 2,
+  },
+  card: {
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border"],
+  },
+  inputGroup: { marginBottom: 0 },
+  inputLabel: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-600"],
+    marginBottom: spacing.sm,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: tailwindColors["aura-gray-100"],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    minHeight: 48,
+  },
+  textInput: {
+    flex: 1,
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
+  },
+  iconBtn: { padding: 4 },
+  inlineActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  primaryBtn: {
     backgroundColor: tailwindColors["aura-green"],
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    borderRadius: radius.md,
   },
-  saveBtnText: {
+  primaryBtnText: {
     color: "#fff",
     fontFamily: tailwindFonts["semibold"],
-    fontSize: 16,
+    fontSize: 15,
   },
-  cancelBtn: {
-    backgroundColor: "#E5E7EB",
+  secondaryBtn: {
+    backgroundColor: tailwindColors["aura-gray-200"],
     paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    borderRadius: radius.md,
   },
-  cancelBtnText: {
-    color: tailwindColors["aura-black"],
+  secondaryBtnText: {
+    color: tailwindColors["aura-gray-700"],
     fontFamily: tailwindFonts["semibold"],
-    fontSize: 16,
+    fontSize: 15,
   },
-  passwordEditor: {
-    gap: 12,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: tailwindColors["aura-border"],
+    marginVertical: spacing.md,
   },
-  passwordInput: {
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    padding: 14,
-    borderRadius: 10,
+  readOnlyBlock: {},
+  readOnlyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    backgroundColor: tailwindColors["aura-surface-muted"],
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 14,
+  },
+  readOnlyText: {
+    flex: 1,
     fontFamily: tailwindFonts["regular"],
     fontSize: 16,
+    color: tailwindColors["aura-gray-600"],
+  },
+  hint: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 12,
+    color: tailwindColors["aura-gray-400"],
+    marginTop: spacing.sm,
+  },
+  securityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.xs,
+  },
+  securityLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    flex: 1,
+  },
+  securityIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: tailwindColors["aura-green-light"],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  securityTitle: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+  },
+  securitySubtitle: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-500"],
+    marginTop: 2,
+  },
+  passwordBlock: { gap: spacing.sm },
+  passwordField: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border-strong"],
+    backgroundColor: tailwindColors["aura-gray-50"],
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === "ios" ? 14 : 10,
+    borderRadius: radius.md,
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
   },
   errorText: {
     color: tailwindColors["aura-red"],
     fontSize: 14,
     fontFamily: tailwindFonts["regular"],
+    marginTop: spacing.xs,
   },
-  footer: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  logoutButton: {
-    backgroundColor: tailwindColors["aura-red"],
-    paddingVertical: 18,
+  logoutCard: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    width: "100%",
+    gap: spacing.sm,
+    backgroundColor: tailwindColors["aura-surface"],
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border"],
   },
-  logoutText: {
-    fontSize: 18,
+  logoutCardHidden: {
+    opacity: 0,
+    height: 0,
+    marginBottom: 0,
+    paddingVertical: 0,
+    overflow: "hidden",
+    borderWidth: 0,
+  },
+  logoutLabel: {
     fontFamily: tailwindFonts["semibold"],
-    color: "#fff",
+    fontSize: 16,
+    color: tailwindColors["aura-red"],
   },
 });
