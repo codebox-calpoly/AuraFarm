@@ -238,6 +238,36 @@ export const resendOtp = asyncHandler(async (req: Request, res: Response) => {
     });
 });
 
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    if (!normalizedEmail) {
+        throw new AppError('email is required', 400);
+    }
+
+    if (!/.+@calpoly\.edu$/.test(normalizedEmail)) {
+        throw new AppError('Email must be a @calpoly.edu address', 400);
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail);
+
+    if (error) {
+        logger.warn('Forgot password request failed', { email: normalizedEmail, error });
+        if (error.message.toLowerCase().includes('invalid') && error.message.toLowerCase().includes('api key')) {
+            throw new AppError('Supabase is misconfigured. Please check your .env file.', 500);
+        }
+        throw new AppError('Could not send reset email. Please try again.', 400);
+    }
+
+    logger.info('Password reset email sent', { email: normalizedEmail });
+
+    res.json({
+        success: true,
+        message: 'If an account exists for that email, a password reset link has been sent.',
+    });
+});
+
 export const changePassword = asyncHandler(async (req: Request, res: Response) => {
     const { oldPassword, newPassword } = req.body;
 

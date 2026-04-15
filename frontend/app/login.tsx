@@ -9,13 +9,14 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { apiLogin } from "@/lib/api";
+import { apiLogin, apiForgotPassword } from "@/lib/api";
 import { storeSession } from "@/lib/auth";
 
 export default function LogInScreen() {
@@ -76,8 +77,36 @@ export default function LogInScreen() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    // logic to handle forgot password
+  const [forgotModalVisible, setForgotModalVisible] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+
+  const handleForgotPassword = () => {
+    setForgotEmail(email); // pre-fill with login email if already entered
+    setForgotError(null);
+    setForgotSuccess(false);
+    setForgotModalVisible(true);
+  };
+
+  const handleForgotSubmit = async () => {
+    if (!forgotEmail) {
+      setForgotError("Please enter your email.");
+      return;
+    }
+    setForgotLoading(true);
+    setForgotError(null);
+    try {
+      const res = await apiForgotPassword(forgotEmail);
+      if (!res.success) {
+        setForgotError(res.error ?? "Could not send reset email.");
+      } else {
+        setForgotSuccess(true);
+      }
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   return (
@@ -205,6 +234,87 @@ export default function LogInScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {/* Forgot Password Modal */}
+      <Modal
+        visible={forgotModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setForgotModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Reset Password</Text>
+              <TouchableOpacity onPress={() => setForgotModalVisible(false)}>
+                <IconSymbol name="xmark" size={22} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {forgotSuccess ? (
+              <>
+                <View style={styles.successContainer}>
+                  <Text style={styles.successText}>
+                    Check your email for a password reset link. Follow the link to set a new password, then log in here.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.button, styles.buttonPrimary]}
+                  onPress={() => setForgotModalVisible(false)}
+                >
+                  <Text style={styles.buttonTextPrimary}>Done</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalDescription}>
+                  Enter your @calpoly.edu email and we'll send you a reset link.
+                </Text>
+
+                {forgotError ? (
+                  <View style={styles.serverErrorContainer}>
+                    <Text style={styles.serverErrorText}>{forgotError}</Text>
+                  </View>
+                ) : null}
+
+                <View style={styles.credentialsContainer}>
+                  <Text style={styles.inputLabel}>Email</Text>
+                  <View style={styles.inputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      value={forgotEmail}
+                      onChangeText={(t) => { setForgotEmail(t); setForgotError(null); }}
+                      placeholder="mmustang@calpoly.edu"
+                      placeholderTextColor="#c2c2c2"
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      textContentType="emailAddress"
+                      editable={!forgotLoading}
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.modalBottomSection}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.buttonPrimary, forgotLoading && styles.buttonDisabled]}
+                    onPress={handleForgotSubmit}
+                    disabled={forgotLoading}
+                  >
+                    {forgotLoading ? (
+                      <ActivityIndicator color="#ffffff" />
+                    ) : (
+                      <Text style={styles.buttonTextPrimary}>Send Reset Link</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView >
   );
 }
@@ -344,5 +454,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: tailwindColors["aura-red"],
     fontFamily: tailwindFonts["regular"],
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  modalContainer: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 48,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: tailwindFonts["semibold"],
+    color: "#1F2937",
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: tailwindFonts["regular"],
+    marginBottom: 8,
+  },
+  modalBottomSection: {
+    marginTop: 32,
+  },
+  successContainer: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-green"],
+    padding: 16,
+    marginBottom: 24,
+  },
+  successText: {
+    fontSize: 14,
+    color: tailwindColors["aura-green"],
+    fontFamily: tailwindFonts["regular"],
+    textAlign: "center",
   },
 });

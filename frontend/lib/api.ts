@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import axios from "axios";
 import { getValidSession, refreshSession } from "@/lib/auth";
 
 type ApiOk<T> = { success: true; data: T; message?: string };
@@ -31,7 +32,7 @@ export type UserCompletion = {
   challengeId: number;
   latitude: number;
   longitude: number;
-  imageUrl?: string | null;
+  imageUri?: string | null;
   caption?: string | null;
   completedAt: string;
   challenge: {
@@ -49,7 +50,7 @@ export type FeedCompletion = {
   challengeId: number;
   latitude: number;
   longitude: number;
-  imageUrl?: string | null;
+  imageUri?: string | null;
   caption?: string | null;
   completedAt: string;
   likes?: number;
@@ -342,3 +343,21 @@ export async function apiVerify(input: {
 export async function apiResend(email: string): Promise<ApiResponse<{ message: string }>> {
   return authFetch("resend", { email });
 }
+
+export async function apiForgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {
+  return authFetch("forgot-password", { email });
+}
+
+const apiClient = axios.create({
+  baseURL: `${apiBaseUrl()}/api`,
+});
+
+apiClient.interceptors.request.use(async (config) => {
+  const session = await getValidSession();
+  if (session?.accessToken) {
+    config.headers.Authorization = `Bearer ${session.accessToken}`;
+  }
+  return config;
+});
+
+export default apiClient;
