@@ -5,8 +5,12 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { cardShadow, layout, radius, spacing } from "@/constants/design";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { apiBaseUrl, changePassword as apiChangePassword } from "@/lib/api";
-import { clearSession, getSession } from "@/lib/auth";
+import {
+  changePassword as apiChangePassword,
+  getCurrentUserFromApi,
+  updateCurrentUserProfile,
+} from "@/lib/api";
+import { clearSession, getValidSession, storeSession } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
@@ -47,55 +51,78 @@ export default function SettingsScreen() {
   const tabBarHeight = useBottomTabBarHeight();
   const scale = width / BASE_WIDTH;
 
-  const getToken = async (): Promise<string | null> => {
-    const session = await getSession();
-    return session?.accessToken ?? null;
-  };
-
   useEffect(() => {
+    let cancelled = false;
     const fetchProfile = async () => {
       try {
-        const token = await getToken();
-        if (!token) {
+        const session = await getValidSession();
+        if (!session) {
           router.replace("/login");
           return;
         }
-        const res = await fetch(`${apiBaseUrl()}/api/users/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const json = await res.json();
+        // Show cached identity immediately (login/verify store user on device)
+        if (session.user?.name || session.user?.email) {
+          setUsername(session.user.name ?? "");
+          setOriginalUsername(session.user.name ?? "");
+          setEmail(session.user.email ?? "");
+        }
+        const json = await getCurrentUserFromApi();
+        if (cancelled) return;
         if (json.success && json.data) {
-          setUsername(json.data.name ?? "");
-          setOriginalUsername(json.data.name ?? "");
-          setEmail(json.data.email ?? "");
+          const d = json.data;
+          setUsername(d.name ?? "");
+          setOriginalUsername(d.name ?? "");
+          setEmail(d.email ?? "");
+          const fresh = await getValidSession();
+          if (fresh) {
+            await storeSession({
+              ...fresh,
+              user: {
+                id: d.id,
+                email: d.email,
+                name: d.name,
+                auraPoints: d.auraPoints,
+                streak: d.streak,
+              },
+            });
+          }
+        } else if (!session.user?.email) {
+          console.warn("Settings: profile fetch failed", json.error);
         }
       } catch (err) {
         console.error("Failed to fetch profile:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchProfile();
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const handleSaveUsername = async () => {
     if (username === originalUsername) return;
     try {
-      const token = await getToken();
-      const res = await fetch(`${apiBaseUrl()}/api/users/me`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: username }),
-      });
-      const json = await res.json();
-      if (json.success) {
+      const json = await updateCurrentUserProfile({ name: username });
+      if (json.success && json.data) {
         setOriginalUsername(username);
+        const s = await getValidSession();
+        if (s) {
+          await storeSession({
+            ...s,
+            user: {
+              id: json.data.id,
+              name: json.data.name,
+              email: json.data.email,
+              auraPoints: s.user?.auraPoints,
+              streak: s.user?.streak,
+            },
+          });
+        }
         Alert.alert("Saved", "Your display name was updated.");
       } else {
-        Alert.alert("Error", json.message ?? "Could not update name.");
+        Alert.alert("Error", json.error ?? "Could not update name.");
       }
     } catch {
       Alert.alert("Error", "Network error. Please try again.");

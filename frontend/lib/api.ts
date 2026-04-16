@@ -27,6 +27,11 @@ export type UserProfile = {
   rank?: number;
 };
 
+/** GET /api/users/me — includes email (unlike public profile by id) */
+export type CurrentUserProfile = UserProfile & {
+  email: string;
+};
+
 export type UserCompletion = {
   id: number;
   userId: number;
@@ -162,6 +167,39 @@ export async function submitCompletion(input: {
     };
   }
 
+  return json;
+}
+
+/** Authenticated current user (name + email). Refreshes token on 401. */
+export async function getCurrentUserFromApi(): Promise<
+  ApiResponse<CurrentUserProfile>
+> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/users/me`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function updateCurrentUserProfile(body: {
+  name?: string;
+}): Promise<ApiResponse<{ id: number; name: string; email: string }>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/users/me`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
   return json;
 }
 
