@@ -109,8 +109,8 @@ export interface PaginatedResponse<T> {
 
 export const createCompletionSchema = z.object({
   challengeId: z.number().int().positive(),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   imageUrl: z.string().url().optional(),
   caption: z.string().max(500).optional(),
 });

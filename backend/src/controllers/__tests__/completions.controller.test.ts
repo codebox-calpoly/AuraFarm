@@ -15,11 +15,6 @@ jest.mock('../../prisma', () => ({
     },
   }));
   
-  // Mock geo utility - we don't want to test distance calculation in this test
-  jest.mock('../../utils/geo', () => ({
-    calculateDistance: jest.fn(() => 50), // Always return 50m (within range)
-  }));
-
   // Mock date utilities to control calendar day comparisons
   jest.mock('../../utils/date', () => ({
     isSameCalendarDay: jest.fn(),

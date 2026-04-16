@@ -2,7 +2,6 @@ import { Alert, StyleSheet, ScrollView } from "react-native";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import * as Location from "expo-location";
 import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Header } from "@/components/home/Header";
@@ -54,6 +53,8 @@ export default function HomeScreen() {
     timeLeft: string;
     description: string;
     photoGuidelines?: string;
+    latitude: number;
+    longitude: number;
   } | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
@@ -61,14 +62,16 @@ export default function HomeScreen() {
 
   // State for challenges
   const [incomingChallenges, setIncomingChallenges] = useState<
-    Array<{
+    {
       id: number;
       title: string;
       points: number;
       timeLeft: string;
       description: string;
       photoGuidelines?: string;
-    }>
+      latitude: number;
+      longitude: number;
+    }[]
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
   const [auraCurrent, setAuraCurrent] = useState(0);
@@ -132,6 +135,8 @@ export default function HomeScreen() {
                 timeLeft: "3 days 2 hrs 3 min",
                 description: c.description,
                 photoGuidelines: c.photoGuidelines,
+                latitude: c.latitude,
+                longitude: c.longitude,
               })),
           );
           if (compRes.success) {
@@ -163,6 +168,8 @@ export default function HomeScreen() {
             "Include yourself (and friends if you like) in the frame.",
             "Stay on designated trails.",
           ].join("\n"),
+          latitude: 35.302,
+          longitude: -120.668,
         }]);
         setChallengesLoading(false);
       }
@@ -202,6 +209,8 @@ export default function HomeScreen() {
     timeLeft: string;
     description: string;
     photoGuidelines?: string;
+    latitude: number;
+    longitude: number;
   }) => {
     setSelectedChallenge(challenge);
     setModalVisible(true);
@@ -221,20 +230,6 @@ export default function HomeScreen() {
     if (!challengeToComplete) return false;
 
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Location required",
-          "We verify challenge completion using your location. Please enable location access.",
-        );
-        return false;
-      }
-
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      const { latitude, longitude } = loc.coords;
-
       const imageUrl = await uploadCompletionImage(imageUri);
       if (!imageUrl) {
         Alert.alert(
@@ -246,8 +241,8 @@ export default function HomeScreen() {
 
       const res = await submitCompletion({
         challengeId: selectedChallenge.id,
-        latitude,
-        longitude,
+        latitude: challengeToComplete.latitude,
+        longitude: challengeToComplete.longitude,
         imageUrl,
         caption: caption || undefined,
       });
@@ -255,8 +250,7 @@ export default function HomeScreen() {
       if (!res.success) {
         Alert.alert(
           "Submission failed",
-          res.error ||
-            "Could not submit. Make sure you are near the challenge location (~100m).",
+          res.error || "Could not submit your completion. Please try again.",
         );
         return false;
       }

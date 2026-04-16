@@ -3,7 +3,6 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { ApiResponse } from '../types';
 import { prisma } from '../prisma';
-import { calculateDistance } from '../utils/geo';
 import { Prisma } from '@prisma/client';
 import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
 
@@ -35,17 +34,14 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     throw new AppError('Challenge not found', 404);
   }
 
-  const distance = calculateDistance(
-    latitude,
-    longitude,
-    challenge.latitude,
-    challenge.longitude
-  );
-
-  const maxDistance = Number(process.env.MAX_COMPLETION_DISTANCE_M) || 100;
-  if (distance > maxDistance) {
-    throw new AppError(`You are too far from the challenge location (${Math.round(distance)}m away)`, 400);
-  }
+  const lat =
+    latitude !== undefined && latitude !== null && !Number.isNaN(Number(latitude))
+      ? Number(latitude)
+      : challenge.latitude;
+  const lng =
+    longitude !== undefined && longitude !== null && !Number.isNaN(Number(longitude))
+      ? Number(longitude)
+      : challenge.longitude;
 
   const existingCompletion = await prisma.challengeCompletion.findUnique({
     where: {
@@ -65,8 +61,8 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
       data: {
         userId,
         challengeId: Number(challengeId),
-        latitude,
-        longitude,
+        latitude: lat,
+        longitude: lng,
         imageUri: imageUrl,
         caption: caption ?? null,
       },
