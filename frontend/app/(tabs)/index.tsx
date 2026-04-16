@@ -19,6 +19,7 @@ import {
   getUserCompletionsFromApi,
   getFeedCompletionsFromApi,
   likeCompletion,
+  unlikeCompletion,
   flagCompletion,
 } from "@/lib/api";
 import { getSession } from "@/lib/auth";
@@ -106,7 +107,7 @@ export default function HomeScreen() {
           caption: c.caption ?? "",
           date: formatFeedDate(new Date(c.completedAt)),
           likes: c.likes ?? 0,
-          postImage: (c.imageUri ?? c.imageUrl) ?? undefined,
+          postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || undefined,
         })),
       );
     }
@@ -147,7 +148,7 @@ export default function HomeScreen() {
                 points: c.challenge.pointsReward,
                 date: formatFeedDate(new Date(c.completedAt)),
                 description: c.challenge.description,
-                postImage: c.imageUri ?? c.imageUrl ?? "",
+                postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || "",
                 caption: c.caption ?? "",
                 likes: 0,
               })),
@@ -312,12 +313,13 @@ export default function HomeScreen() {
     }
   };
 
-  const handleLikePost = async (postId: number) => {
-    if (postId < 0) return; // skip static/cached posts
-    setRemoteFeedPosts((prev) =>
-      prev.map((p) => (p.id === postId ? { ...p, likes: p.likes + 1 } : p))
-    );
-    await likeCompletion(postId);
+  const handleLikePost = async (postId: number, liked: boolean) => {
+    if (postId < 0) return;
+    if (liked) {
+      await likeCompletion(postId);
+    } else {
+      await unlikeCompletion(postId);
+    }
   };
 
   return (
@@ -403,7 +405,7 @@ export default function HomeScreen() {
                             )
                       }
                       onOptionsPress={() => handleOpenReportModal(post.id)}
-                      onLikePress={() => handleLikePost(post.id)}
+                      onLikePress={(liked) => handleLikePost(post.id, liked)}
                     />
                   );
                 })

@@ -321,6 +321,7 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         latitude: true,
         longitude: true,
         imageUri: true,
+        imageUrl: true,
         caption: true,
         completedAt: true,
         likes: true,

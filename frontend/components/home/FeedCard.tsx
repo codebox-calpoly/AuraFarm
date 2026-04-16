@@ -19,7 +19,7 @@ export interface FeedCardProps {
   isLiked?: boolean;
   onPress?: () => void;
   onOptionsPress?: () => void;
-  onLikePress?: () => void;
+  onLikePress?: (liked: boolean) => void;
 }
 
 export function FeedCard({
@@ -121,7 +121,7 @@ export function FeedCard({
                 setLikesState((prev) => Math.max(0, prev - 1));
               }
               setIsLiked(newIsLiked);
-              onLikePress?.();
+              onLikePress?.(newIsLiked);
             }}
             style={styles.likeButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

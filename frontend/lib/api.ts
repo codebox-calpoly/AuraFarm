@@ -253,6 +253,21 @@ export async function likeCompletion(completionId: number): Promise<ApiResponse<
   return json;
 }
 
+export async function unlikeCompletion(completionId: number): Promise<ApiResponse<{ likes: number }>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/completions/${completionId}/like`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
 export async function changePassword(oldPassword: string, newPassword: string): Promise<ApiResponse<unknown>> {
   const session = await getValidSession();
   if (!session?.accessToken) {
