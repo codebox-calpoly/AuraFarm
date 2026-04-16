@@ -7,6 +7,7 @@ import { supabase, supabaseAdmin } from '../supabase';
 import logger from '../utils/logger';
 import {
   User as PrismaUser,
+  ChallengeReviewStatus,
 } from '@prisma/client';
 
 function toPublicUserProfile(
@@ -43,15 +44,21 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
       streak: true,
       lastCompletedAt: true,
       createdAt: true,
-      _count: {
-        select: { completions: true },
-      },
     },
   });
 
   if (!user) {
     throw new AppError('User not found', 404);
   }
+
+  const viewerId = req.user?.id;
+  const isOwner = viewerId === userId;
+  const completionsCount = await prisma.challengeCompletion.count({
+    where: {
+      userId,
+      ...(isOwner ? {} : { reviewStatus: ChallengeReviewStatus.approved }),
+    },
+  });
 
   const userProfile = toPublicUserProfile({
     id: user.id,
@@ -61,7 +68,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
-    completionsCount: user._count.completions,
+    completionsCount,
   });
 
   const response: ApiResponse<PublicUserProfile> = {
@@ -213,8 +220,15 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
     throw new AppError('User not found', 404);
   }
 
+  const viewerId = req.user?.id;
+  const isOwner = viewerId === userId;
+  const isAdmin = req.user?.role === 'admin';
+
   const completions = await prisma.challengeCompletion.findMany({
-    where: { userId },
+    where: {
+      userId,
+      ...(!isOwner && !isAdmin ? { reviewStatus: ChallengeReviewStatus.approved } : {}),
+    },
     include: {
       challenge: true,
       flags: {
@@ -265,7 +279,7 @@ export const getUserStats = asyncHandler(async (req: Request, res: Response) => 
   }
 
   const completions = await prisma.challengeCompletion.findMany({
-    where: { userId },
+    where: { userId, reviewStatus: ChallengeReviewStatus.approved },
     select: {
       completedAt: true,
       challenge: {

@@ -22,6 +22,7 @@ const schemas = {
     ChallengeWithCompletions: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.challengeWithCompletionsSchema, { target: 'openApi3' }),
     ChallengeWithDistance: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.challengeWithDistanceSchema, { target: 'openApi3' }),
     ChallengeCompletion: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.challengeCompletionSchema, { target: 'openApi3' }),
+    ReviewCompletion: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.reviewCompletionSchema, { target: 'openApi3' }),
     Flag: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.flagSchema, { target: 'openApi3' }),
     LeaderboardEntry: (0, zod_to_json_schema_1.zodToJsonSchema)(types_1.leaderboardEntrySchema, { target: 'openApi3' }),
 };

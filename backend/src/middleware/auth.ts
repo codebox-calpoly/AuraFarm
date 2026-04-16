@@ -18,19 +18,87 @@ declare global {
   }
 }
 
+async function lookupUserFromSupabaseUser(supabaseUser: {
+  id: string;
+  email?: string | null;
+}): Promise<{
+  id: number;
+  email: string;
+  role: string;
+  supabaseId: string;
+} | null> {
+  const email = supabaseUser.email?.toLowerCase() ?? null;
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [
+        { supabaseId: supabaseUser.id },
+        ...(email ? [{ email }] : []),
+      ],
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      supabaseId: true,
+    },
+  });
+
+  if (!user) return null;
+
+  if (user.supabaseId !== supabaseUser.id) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { supabaseId: supabaseUser.id },
+    }).catch((syncError) => {
+      logger.warn('Failed to backfill Supabase user id', { error: syncError, userId: user.id });
+    });
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role as string,
+    supabaseId: supabaseUser.id,
+  };
+}
+
+/**
+ * If Authorization Bearer is present and valid, attaches req.user.
+ * Invalid/missing user: leaves req.user unset (no throw).
+ */
+export const optionalAuthenticate = asyncHandler(async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      next();
+      return;
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user: supabaseUser }, error } = await supabase.auth.getUser(token);
+
+    if (error || !supabaseUser) {
+      next();
+      return;
+    }
+
+    const user = await lookupUserFromSupabaseUser(supabaseUser);
+    if (user) {
+      req.user = user;
+    }
+    next();
+  } catch {
+    next();
+  }
+});
+
 /**
  * Authentication middleware - verifies JWT token and attaches user to request
- * 
- * Extracts JWT token from Authorization header, verifies it with Supabase,
- * and looks up the user in the database. Attaches user info to req.user
- * for use in subsequent middleware and controllers.
- * 
- * @middleware
- * @throws {AppError} 401 if no token provided
- * @throws {AppError} 401 if token is invalid or expired
- * @throws {AppError} 404 if user not found in database
  */
-
 export const authenticate = asyncHandler(async (
   req: Request,
   res: Response,
@@ -51,41 +119,13 @@ export const authenticate = asyncHandler(async (
       throw new AppError('Invalid or expired token', 401);
     }
 
-    const email = supabaseUser.email?.toLowerCase() ?? null;
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { supabaseId: supabaseUser.id },
-          ...(email ? [{ email }] : []),
-        ],
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        supabaseId: true,
-      },
-    });
+    const user = await lookupUserFromSupabaseUser(supabaseUser);
 
     if (!user) {
       throw new AppError('User not found in database', 404);
     }
 
-    if (user.supabaseId !== supabaseUser.id) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { supabaseId: supabaseUser.id },
-      }).catch((syncError) => {
-        logger.warn('Failed to backfill Supabase user id', { error: syncError, userId: user.id });
-      });
-    }
-
-    req.user = {
-      id: user.id,
-      email: user.email,
-      role: user.role as string,
-      supabaseId: supabaseUser.id,
-    };
+    req.user = user;
 
     next();
   } catch (error) {

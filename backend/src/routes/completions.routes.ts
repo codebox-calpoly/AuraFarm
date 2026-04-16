@@ -6,16 +6,18 @@ import {
   updateCompletion,
   likeCompletion,
   unlikeCompletion,
+  reviewChallengeCompletion,
 } from '../controllers/completions.controller';
 import { validateBody, validate, validateQuery } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
 import {
   createCompletionSchema,
   updateCompletionSchema,
+  reviewCompletionSchema,
   completionIdParamSchema,
   completionsListQuerySchema,
 } from '../types';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate, requireAdmin } from '../middleware/auth';
 import rateLimiter from '../middleware/rateLimiter';
 
 const router = Router();
@@ -98,12 +100,51 @@ router.post(
  */
 router.get(
   '/',
+  optionalAuthenticate,
   validateQuery(completionsListQuerySchema),
   getCompletions
 );
 
+/**
+ * @swagger
+ * /completions/{id}/review:
+ *   patch:
+ *     summary: Approve or reject a completion (admin)
+ *     tags: [Completions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ReviewCompletion'
+ *     responses:
+ *       200:
+ *         description: Updated completion
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.patch(
+  '/:id/review',
+  authenticate,
+  requireAdmin,
+  validateParams(completionIdParamSchema),
+  validateBody(reviewCompletionSchema),
+  reviewChallengeCompletion
+);
+
 router.get(
   '/:id',
+  optionalAuthenticate,
   validateParams(completionIdParamSchema),
   getCompletionById
 );

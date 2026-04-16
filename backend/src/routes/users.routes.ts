@@ -8,7 +8,7 @@ import {
 } from '../controllers/users.controller';
 import { validateBody } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import {
   updateUserSchema,
   userIdParamSchema,
@@ -124,6 +124,7 @@ router.patch(
  */
 router.get(
   '/:id/completions',
+  optionalAuthenticate,
   validateParams(userIdParamSchema),
   getUserCompletions
 );
@@ -176,6 +177,7 @@ router.get(
  */
 router.get(
   '/:id',
+  optionalAuthenticate,
   validateParams(userIdParamSchema),
   getUserById
 );

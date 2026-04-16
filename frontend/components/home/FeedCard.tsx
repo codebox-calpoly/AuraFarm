@@ -1,10 +1,15 @@
-import { StyleSheet, View, TouchableOpacity, useWindowDimensions } from "react-native";
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  type LayoutChangeEvent,
+} from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { cardShadow, radius, spacing } from "@/constants/design";
 
 export interface FeedCardProps {
@@ -20,6 +25,43 @@ export interface FeedCardProps {
   onPress?: () => void;
   onOptionsPress?: () => void;
   onLikePress?: (liked: boolean) => void;
+}
+
+/**
+ * Remote images need explicit pixel width/height on iOS. Nesting `absoluteFill` under
+ * `aspectRatio` often paints a grey box only (0×0 bitmap layer).
+ */
+function PostImage({ uri }: { uri: string }) {
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+
+  const onImageFrameLayout = useCallback((e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    if (width <= 0 || height <= 0) return;
+    setSize((prev) =>
+      prev && prev.w === width && prev.h === height ? prev : { w: width, h: height },
+    );
+  }, []);
+
+  return (
+    <View style={styles.imageFrame} onLayout={onImageFrameLayout}>
+      {size ? (
+        <Image
+          source={{ uri: uri.trim() }}
+          style={{ width: size.w, height: size.h }}
+          contentFit="cover"
+          transition={200}
+          accessibilityLabel="Challenge photo"
+          onError={(event) => {
+            console.warn(
+              "[FeedCard] image failed:",
+              uri.slice(0, 96),
+              "error" in event ? event.error : event,
+            );
+          }}
+        />
+      ) : null}
+    </View>
+  );
 }
 
 export function FeedCard({
@@ -38,8 +80,8 @@ export function FeedCard({
 }: FeedCardProps) {
   const [isLiked, setIsLiked] = useState(initialIsLiked);
   const [likesState, setLikesState] = useState(likes);
-  const { width } = useWindowDimensions();
-  const imageSize = width - 48;
+
+  const mainUri = (postImage?.trim() || userImage?.trim()) ?? "";
 
   return (
     <TouchableOpacity
@@ -73,20 +115,10 @@ export function FeedCard({
           </TouchableOpacity>
         </View>
 
-        {(postImage?.trim() || userImage?.trim()) ? (
-          <Image
-            source={{ uri: (postImage ?? userImage)!.trim() }}
-            style={[styles.image, { width: imageSize, height: imageSize * 0.92 }]}
-            contentFit="cover"
-            transition={200}
-          />
+        {mainUri ? (
+          <PostImage uri={mainUri} />
         ) : (
-          <View
-            style={[
-              styles.imagePlaceholder,
-              { width: imageSize, height: imageSize * 0.55 },
-            ]}
-          >
+          <View style={styles.imagePlaceholder}>
             <Ionicons
               name="image-outline"
               size={40}
@@ -192,19 +224,23 @@ const styles = StyleSheet.create({
     padding: 4,
     marginTop: 2,
   },
-  image: {
-    alignSelf: "center",
-    backgroundColor: tailwindColors["aura-gray-100"],
-    borderRadius: radius.md,
+  /** Full width of card content; height from aspectRatio (no useWindowDimensions). */
+  imageFrame: {
+    alignSelf: "stretch",
     marginHorizontal: spacing.md,
+    aspectRatio: 0.92,
+    borderRadius: radius.md,
+    overflow: "hidden",
+    backgroundColor: tailwindColors["aura-gray-100"],
   },
   imagePlaceholder: {
-    alignSelf: "center",
+    alignSelf: "stretch",
+    marginHorizontal: spacing.md,
+    aspectRatio: 1.6,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: tailwindColors["aura-gray-50"],
     borderRadius: radius.md,
-    marginHorizontal: spacing.md,
     borderWidth: 1,
     borderColor: tailwindColors["aura-border"],
     borderStyle: "dashed",

@@ -46,6 +46,8 @@ export interface ChallengeWithDistance extends Challenge {
   distance: number;
 }
 
+export type ChallengeReviewStatus = 'pending' | 'approved' | 'rejected';
+
 export interface ChallengeCompletion {
   id: number;
   userId: number;
@@ -55,6 +57,9 @@ export interface ChallengeCompletion {
   imageUrl?: string | null;
   caption?: string | null;
   completedAt: Date;
+  reviewStatus: ChallengeReviewStatus;
+  reviewedAt?: Date | null;
+  postedAt?: Date | null;
   user?: User;
   challenge?: Challenge;
 }
@@ -117,6 +122,10 @@ export const createCompletionSchema = z.object({
 
 export const updateCompletionSchema = z.object({
   caption: z.string().max(500).optional(),
+});
+
+export const reviewCompletionSchema = z.object({
+  reviewStatus: z.enum(['approved', 'rejected']),
 });
 
 export const createFlagSchema = z.object({
@@ -260,6 +269,15 @@ export const challengeCompletionSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   caption: z.string().nullable().optional(),
   completedAt: z.string().transform((str) => new Date(str)),
+  reviewStatus: z.enum(['pending', 'approved', 'rejected']),
+  reviewedAt: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((str) => (str == null ? str : new Date(str))),
+  postedAt: z
+    .union([z.string(), z.null()])
+    .optional()
+    .transform((str) => (str == null ? str : new Date(str))),
   user: userSchema.optional(),
   challenge: challengeSchema.optional(),
 });

@@ -3,8 +3,20 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { ApiResponse } from '../types';
 import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { ChallengeReviewStatus, Prisma } from '@prisma/client';
 import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
+
+function viewerMaySeeCompletion(
+  completion: { userId: number; reviewStatus: ChallengeReviewStatus },
+  viewer: { id: number; role: string } | undefined
+): boolean {
+  if (completion.reviewStatus === ChallengeReviewStatus.approved) {
+    return true;
+  }
+  if (!viewer) return false;
+  if (viewer.role === 'admin') return true;
+  return completion.userId === viewer.id;
+}
 
 /**
  * POST /api/completions
@@ -56,54 +68,22 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     throw new AppError('You have already completed this challenge', 400);
   }
 
-  const completion = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const newCompletion = await tx.challengeCompletion.create({
-      data: {
-        userId,
-        challengeId: Number(challengeId),
-        latitude: lat,
-        longitude: lng,
-        imageUri: imageUrl,
-        caption: caption ?? null,
-      },
-    });
-
-    const user = await tx.user.findUnique({ where: { id: userId } });
-    if (!user) throw new AppError('User not found', 404);
-
-    const now = new Date();
-    const lastCompleted = user.lastCompletedAt;
-    let newStreak: number;
-
-    if (lastCompleted === null) {
-      newStreak = 1;
-    }
-    else if (isSameCalendarDay(now, lastCompleted)) {
-      newStreak = user.streak;
-    }
-    else if (isConsecutiveDay(lastCompleted, now)) {
-      newStreak = user.streak + 1;
-    }
-    else {
-      newStreak = 1;
-    }
-
-    await tx.user.update({
-      where: { id: userId },
-      data: {
-        auraPoints: { increment: challenge.pointsReward },
-        streak: newStreak,
-        lastCompletedAt: now,
-      },
-    });
-
-    return newCompletion;
+  const completion = await prisma.challengeCompletion.create({
+    data: {
+      userId,
+      challengeId: Number(challengeId),
+      latitude: lat,
+      longitude: lng,
+      imageUri: imageUrl,
+      caption: caption ?? null,
+      reviewStatus: ChallengeReviewStatus.pending,
+    },
   });
 
   const response: ApiResponse<typeof completion> = {
     success: true,
     data: completion,
-    message: 'Challenge completed successfully!',
+    message: 'Challenge submitted! It will appear on the feed once reviewed.',
   };
 
   res.status(201).json(response);
@@ -164,10 +144,14 @@ export const likeCompletion = asyncHandler(async (req: Request, res: Response) =
 
   const completion = await prisma.challengeCompletion.findUnique({
     where: { id: completionId },
-    select: { id: true },
+    select: { id: true, reviewStatus: true },
   });
 
   if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  if (completion.reviewStatus !== ChallengeReviewStatus.approved) {
     throw new AppError('Completion not found', 404);
   }
 
@@ -210,10 +194,14 @@ export const unlikeCompletion = asyncHandler(async (req: Request, res: Response)
 
   const completion = await prisma.challengeCompletion.findUnique({
     where: { id: completionId },
-    select: { id: true },
+    select: { id: true, reviewStatus: true },
   });
 
   if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  if (completion.reviewStatus !== ChallengeReviewStatus.approved) {
     throw new AppError('Completion not found', 404);
   }
 
@@ -267,9 +255,83 @@ export const getCompletionById = asyncHandler(async (req: Request, res: Response
     throw new AppError('Completion not found', 404);
   }
 
+  if (!viewerMaySeeCompletion(completion, req.user)) {
+    throw new AppError('Completion not found', 404);
+  }
+
   const response: ApiResponse<typeof completion> = {
     success: true,
     data: completion,
+  };
+
+  res.json(response);
+});
+
+/**
+ * PATCH /api/completions/:id/review (admin)
+ * Approve or reject a completion for the public feed.
+ */
+export const reviewChallengeCompletion = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const completionId = parseInt(id);
+
+  if (isNaN(completionId)) {
+    throw new AppError('Invalid completion ID', 400);
+  }
+
+  const body = req.body as { reviewStatus: 'approved' | 'rejected' };
+  const reviewStatus =
+    body.reviewStatus === 'approved'
+      ? ChallengeReviewStatus.approved
+      : ChallengeReviewStatus.rejected;
+
+  const now = new Date();
+
+  const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const completion = await tx.challengeCompletion.update({
+      where: { id: completionId },
+      data: {
+        reviewStatus,
+        reviewedAt: now,
+        postedAt: reviewStatus === ChallengeReviewStatus.approved ? now : null,
+      },
+      include: {
+        user: { select: { id: true, name: true, streak: true, lastCompletedAt: true } },
+        challenge: { select: { id: true, title: true, pointsReward: true } },
+      },
+    });
+
+    if (reviewStatus === ChallengeReviewStatus.approved) {
+      const user = completion.user;
+      const lastCompleted = user.lastCompletedAt;
+      let newStreak: number;
+
+      if (lastCompleted === null) {
+        newStreak = 1;
+      } else if (isSameCalendarDay(now, lastCompleted)) {
+        newStreak = user.streak;
+      } else if (isConsecutiveDay(lastCompleted, now)) {
+        newStreak = user.streak + 1;
+      } else {
+        newStreak = 1;
+      }
+
+      await tx.user.update({
+        where: { id: completion.userId },
+        data: {
+          auraPoints: { increment: completion.challenge.pointsReward },
+          streak: newStreak,
+          lastCompletedAt: now,
+        },
+      });
+    }
+
+    return completion;
+  });
+
+  const response: ApiResponse<typeof updated> = {
+    success: true,
+    data: updated,
   };
 
   res.json(response);
@@ -289,7 +351,23 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
 
   const where: Prisma.ChallengeCompletionWhereInput = {};
 
-  if (userId) where.userId = userId;
+  const userIdNum =
+    userId !== undefined && userId !== null && userId !== ''
+      ? Number(userId)
+      : undefined;
+
+  if (userIdNum !== undefined && !Number.isNaN(userIdNum)) {
+    where.userId = userIdNum;
+    const viewerId = req.user?.id;
+    const isOwner = viewerId === userIdNum;
+    const isAdmin = req.user?.role === 'admin';
+    if (!isOwner && !isAdmin) {
+      where.reviewStatus = ChallengeReviewStatus.approved;
+    }
+  } else {
+    where.reviewStatus = ChallengeReviewStatus.approved;
+  }
+
   if (challengeId) where.challengeId = challengeId;
 
   if (startDate || endDate) {
@@ -324,6 +402,9 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         imageUrl: true,
         caption: true,
         completedAt: true,
+        reviewStatus: true,
+        reviewedAt: true,
+        postedAt: true,
         likes: true,
         user: {
           select: { id: true, name: true },

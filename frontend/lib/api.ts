@@ -42,6 +42,9 @@ export type UserCompletion = {
   imageUrl?: string | null;
   caption?: string | null;
   completedAt: string;
+  reviewStatus?: "pending" | "approved" | "rejected";
+  reviewedAt?: string | null;
+  postedAt?: string | null;
   challenge: {
     id: number;
     title: string;
@@ -61,6 +64,9 @@ export type FeedCompletion = {
   imageUrl?: string | null;
   caption?: string | null;
   completedAt: string;
+  reviewStatus?: "pending" | "approved" | "rejected";
+  reviewedAt?: string | null;
+  postedAt?: string | null;
   likes?: number;
   user: {
     id: number;
@@ -211,7 +217,7 @@ export async function getUserProfileFromApi(): Promise<
     return { success: false, error: "No user in session" };
   }
 
-  const res = await fetch(`${apiBaseUrl()}/api/users/${userId}`);
+  const res = await authedFetch(`${apiBaseUrl()}/api/users/${userId}`);
   const json = await res.json();
   if (!res.ok) {
     return {
@@ -230,7 +236,7 @@ export async function getUserCompletionsFromApi(): Promise<
     return { success: false, error: "No user in session" };
   }
 
-  const res = await fetch(`${apiBaseUrl()}/api/users/${userId}/completions`);
+  const res = await authedFetch(`${apiBaseUrl()}/api/users/${userId}/completions`);
   const json = await res.json();
   if (!res.ok) {
     return {

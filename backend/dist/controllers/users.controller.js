@@ -9,6 +9,7 @@ const errorHandler_1 = require("../middleware/errorHandler");
 const prisma_1 = require("../prisma");
 const supabase_1 = require("../supabase");
 const logger_1 = __importDefault(require("../utils/logger"));
+const client_1 = require("@prisma/client");
 function toPublicUserProfile(user) {
     return {
         id: user.id,
@@ -38,14 +39,19 @@ exports.getUserById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
             streak: true,
             lastCompletedAt: true,
             createdAt: true,
-            _count: {
-                select: { completions: true },
-            },
         },
     });
     if (!user) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
+    const viewerId = req.user?.id;
+    const isOwner = viewerId === userId;
+    const completionsCount = await prisma_1.prisma.challengeCompletion.count({
+        where: {
+            userId,
+            ...(isOwner ? {} : { reviewStatus: client_1.ChallengeReviewStatus.approved }),
+        },
+    });
     const userProfile = toPublicUserProfile({
         id: user.id,
         name: user.name,
@@ -54,7 +60,7 @@ exports.getUserById = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         streak: user.streak,
         lastCompletedAt: user.lastCompletedAt,
         createdAt: user.createdAt,
-        completionsCount: user._count.completions,
+        completionsCount,
     });
     const response = {
         success: true,
@@ -180,8 +186,14 @@ exports.getUserCompletions = (0, asyncHandler_1.asyncHandler)(async (req, res) =
     if (!userExists) {
         throw new errorHandler_1.AppError('User not found', 404);
     }
+    const viewerId = req.user?.id;
+    const isOwner = viewerId === userId;
+    const isAdmin = req.user?.role === 'admin';
     const completions = await prisma_1.prisma.challengeCompletion.findMany({
-        where: { userId },
+        where: {
+            userId,
+            ...(!isOwner && !isAdmin ? { reviewStatus: client_1.ChallengeReviewStatus.approved } : {}),
+        },
         include: {
             challenge: true,
             flags: {
@@ -225,7 +237,7 @@ exports.getUserStats = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         throw new errorHandler_1.AppError('User not found', 404);
     }
     const completions = await prisma_1.prisma.challengeCompletion.findMany({
-        where: { userId },
+        where: { userId, reviewStatus: client_1.ChallengeReviewStatus.approved },
         select: {
             completedAt: true,
             challenge: {

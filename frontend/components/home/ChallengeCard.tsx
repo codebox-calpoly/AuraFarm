@@ -43,7 +43,7 @@ export function ChallengeCard({
 
             <View style={styles.incomingFooter}>
               <View style={styles.pointsBadge}>
-                <ThemedText style={styles.pointsBadgeText}>+{points} Aura</ThemedText>
+                <ThemedText style={styles.pointsBadgeText}>+{points} pts</ThemedText>
               </View>
 
               <TouchableOpacity style={styles.viewButton} onPress={onPress} activeOpacity={0.88}>
@@ -68,7 +68,9 @@ export function ChallengeCard({
         <ThemedText type="subtitle" style={styles.completedTitle}>
           {title}
         </ThemedText>
-        <ThemedText style={styles.completedPoints}>+{points} Aura</ThemedText>
+        <ThemedText style={styles.completedPoints}>
+          +{points} pts when approved
+        </ThemedText>
       </View>
       <View style={styles.chevronCircle}>
         <Ionicons name="chevron-forward" size={20} color={tailwindColors["aura-gray-500"]} />

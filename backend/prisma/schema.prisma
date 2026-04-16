@@ -1,6 +1,8 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL") // Required for Prisma 6 - Prisma 7 warning can be ignored
+  /// Supabase: use the **Transaction** pooler URI + `?pgbouncer=true&connection_limit=1`.
+  /// Do not use Session mode for Prisma — you will hit MaxClientsInSessionMode.
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -10,6 +12,12 @@ generator client {
 enum UserRole {
   user
   admin
+}
+
+enum ChallengeReviewStatus {
+  pending
+  approved
+  rejected
 }
 
 model User {
@@ -48,26 +56,32 @@ model Challenge {
 }
 
 model ChallengeCompletion {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  challengeId Int
-  latitude    Float
-  longitude   Float
-  imageUrl    String?
-  caption     String?
-  completedAt DateTime  @default(now())
-  user        User      @relation(fields: [userId], references: [id])
-  challenge   Challenge @relation(fields: [challengeId], references: [id])
-  flags       Flag[] // Flags on this completion
-  likeRecords CompletionLike[]
-  imageUri    String
-  likes       Int       @default(0)
+  id           Int                   @id @default(autoincrement())
+  userId       Int
+  challengeId  Int
+  latitude     Float
+  longitude    Float
+  imageUrl     String?
+  caption      String?
+  completedAt  DateTime              @default(now())
+  /// Moderation queue: new submissions start as pending; public feed shows approved only.
+  reviewStatus ChallengeReviewStatus @default(pending)
+  reviewedAt   DateTime?
+  /// When the post became visible on the public feed (set when approved).
+  postedAt     DateTime?
+  user         User                  @relation(fields: [userId], references: [id])
+  challenge    Challenge             @relation(fields: [challengeId], references: [id])
+  flags        Flag[] // Flags on this completion
+  likeRecords  CompletionLike[]
+  imageUri     String
+  likes        Int                   @default(0)
 
   @@unique([userId, challengeId]) // Prevent duplicate completions
   @@index([userId]) // Index for faster user completion queries
   @@index([challengeId]) // Index for faster challenge completion queries
   @@index([completedAt])
   @@index([userId, completedAt])
+  @@index([reviewStatus, completedAt])
 }
 
 model CompletionLike {

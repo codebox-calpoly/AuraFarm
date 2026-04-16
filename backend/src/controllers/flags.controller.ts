@@ -3,6 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Flag, CreateFlagRequest, ApiResponse } from '../types';
 import { prisma } from '../prisma';
+import { ChallengeReviewStatus } from '@prisma/client';
 
 /**
  * POST /api/flags
@@ -23,6 +24,10 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
   });
 
   if (!completion) {
+    throw new AppError('Completion not found', 404);
+  }
+
+  if (completion.reviewStatus !== ChallengeReviewStatus.approved) {
     throw new AppError('Completion not found', 404);
   }
 

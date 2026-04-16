@@ -2,8 +2,22 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { LeaderboardEntry, PaginatedResponse } from "../types";
 import { prisma } from "../prisma";
-import { Prisma } from "@prisma/client";
+import { ChallengeReviewStatus } from "@prisma/client";
 import { toJsonSafe } from "../utils/jsonSafe";
+
+/**
+ * DENSE_RANK over auraPoints DESC: each distinct score tier gets rank 1, 2, 3…
+ * (Same formula as SQL DENSE_RANK() OVER (ORDER BY auraPoints DESC).)
+ */
+function buildDenseRankByAura(
+  distinctDescending: { auraPoints: number }[]
+): Map<number, number> {
+  const map = new Map<number, number>();
+  distinctDescending.forEach((row, index) => {
+    map.set(row.auraPoints, index + 1);
+  });
+  return map;
+}
 
 export const getLeaderboard = asyncHandler(
   async (req: Request, res: Response) => {
@@ -11,54 +25,44 @@ export const getLeaderboard = asyncHandler(
     const limitNum = Math.max(1, Number(req.query.limit ?? 20));
     const startIndex = (pageNum - 1) * limitNum;
 
-    // Single round-trip: Supabase Session pooler has a low max client limit; avoid
-    // a separate count() query that doubles connections per leaderboard request.
-    const rows = await prisma.$queryRaw<Array<{
-      userId: number;
-      userName: string;
-      auraPoints: number;
-      streak: number;
-      completionsCount: number;
-      rank: number;
-      totalUsers: bigint;
-    }>>(Prisma.sql`
-      WITH ranked_users AS (
-        SELECT
-          u.id AS "userId",
-          u.name AS "userName",
-          COALESCE(u."auraPoints", 0) AS "auraPoints",
-          COALESCE(u.streak, 0) AS streak,
-          COUNT(cc.id)::int AS "completionsCount",
-          (DENSE_RANK() OVER (ORDER BY COALESCE(u."auraPoints", 0) DESC))::int AS rank
-        FROM "User" u
-        LEFT JOIN "ChallengeCompletion" cc ON cc."userId" = u.id
-        GROUP BY u.id
-      ),
-      tot AS (SELECT COUNT(*)::bigint AS c FROM "User")
-      SELECT
-        r."userId",
-        r."userName",
-        r."auraPoints",
-        r.streak,
-        r."completionsCount",
-        r.rank,
-        tot.c AS "totalUsers"
-      FROM ranked_users r
-      CROSS JOIN tot
-      ORDER BY r."auraPoints" DESC, r."userId" ASC
-      LIMIT ${limitNum} OFFSET ${startIndex}
-    `);
+    // No $queryRaw — works cleanly with PgBouncer transaction mode and avoids
+    // holding extra pooled connections. Rank map is one small DISTINCT query.
+    const [total, distinctAurasDesc, pageRows] = await prisma.$transaction([
+      prisma.user.count(),
+      prisma.user.findMany({
+        select: { auraPoints: true },
+        distinct: ["auraPoints"],
+        orderBy: { auraPoints: "desc" },
+      }),
+      prisma.user.findMany({
+        orderBy: [{ auraPoints: "desc" }, { id: "asc" }],
+        skip: startIndex,
+        take: limitNum,
+        select: {
+          id: true,
+          name: true,
+          auraPoints: true,
+          streak: true,
+          _count: {
+            select: {
+              completions: {
+                where: { reviewStatus: ChallengeReviewStatus.approved },
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
-    const total = rows.length > 0 ? Number(rows[0].totalUsers) : 0;
+    const auraToRank = buildDenseRankByAura(distinctAurasDesc);
 
-    // Raw SQL can return bigint for rank/counts — JSON cannot serialize BigInt.
-    const data: LeaderboardEntry[] = rows.map((row) => ({
-      userId: Number(row.userId),
-      userName: row.userName,
-      auraPoints: Number(row.auraPoints),
-      streak: Number(row.streak),
-      completionsCount: Number(row.completionsCount),
-      rank: Number(row.rank),
+    const data: LeaderboardEntry[] = pageRows.map((u) => ({
+      userId: u.id,
+      userName: u.name,
+      auraPoints: u.auraPoints,
+      streak: u.streak,
+      completionsCount: u._count.completions,
+      rank: auraToRank.get(u.auraPoints) ?? 1,
     }));
 
     const response: PaginatedResponse<LeaderboardEntry> = {

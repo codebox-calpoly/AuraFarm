@@ -106,7 +106,7 @@ router.patch('/me', auth_1.authenticate, (0, validate_1.validateBody)(types_1.up
  *       404:
  *         description: User not found
  */
-router.get('/:id/completions', (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserCompletions);
+router.get('/:id/completions', auth_1.optionalAuthenticate, (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserCompletions);
 /**
  * @route   GET /api/users/:id/stats
  * @desc    Get user statistics
@@ -148,5 +148,5 @@ router.get('/:id/stats', (0, validateParams_1.validateParams)(types_1.userIdPara
  *       404:
  *         description: User not found
  */
-router.get('/:id', (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserById);
+router.get('/:id', auth_1.optionalAuthenticate, (0, validateParams_1.validateParams)(types_1.userIdParamSchema), users_controller_1.getUserById);
 exports.default = router;

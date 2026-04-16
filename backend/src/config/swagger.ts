@@ -17,6 +17,7 @@ import {
     challengeWithCompletionsSchema,
     challengeWithDistanceSchema,
     challengeCompletionSchema,
+    reviewCompletionSchema,
     flagSchema,
     leaderboardEntrySchema,
 } from '../types';
@@ -37,6 +38,7 @@ const schemas = {
     ChallengeWithCompletions: zodToJsonSchema(challengeWithCompletionsSchema as any, { target: 'openApi3' }),
     ChallengeWithDistance: zodToJsonSchema(challengeWithDistanceSchema as any, { target: 'openApi3' }),
     ChallengeCompletion: zodToJsonSchema(challengeCompletionSchema as any, { target: 'openApi3' }),
+    ReviewCompletion: zodToJsonSchema(reviewCompletionSchema as any, { target: 'openApi3' }),
     Flag: zodToJsonSchema(flagSchema as any, { target: 'openApi3' }),
     LeaderboardEntry: zodToJsonSchema(leaderboardEntrySchema as any, { target: 'openApi3' }),
 };

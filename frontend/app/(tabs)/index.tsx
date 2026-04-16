@@ -278,9 +278,8 @@ export default function HomeScreen() {
       // Refetch feed so the new post appears and persists after reload
       await refetchFeed();
 
-      // Refresh Aura so the progress bar updates without leaving the screen
-      const profileRes = await getUserProfileFromApi();
-      if (profileRes.success) setAuraCurrent(profileRes.data.auraPoints);
+      // Aura is granted on the server only after admin approval — do not bump the bar here
+      // (avoid implying points landed immediately). Bar refreshes on next screen focus / pull.
 
       handleCloseModal();
       return true;

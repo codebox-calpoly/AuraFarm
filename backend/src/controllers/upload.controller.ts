@@ -15,6 +15,10 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('No image file provided', 400);
   }
 
+  if (!file.buffer?.length) {
+    throw new AppError('Image file is empty. Please try choosing the photo again.', 400);
+  }
+
   const mimeToExt: Record<string, string> = {
     'image/jpeg': 'jpg',
     'image/png': 'png',

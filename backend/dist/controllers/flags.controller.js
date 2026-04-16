@@ -4,6 +4,7 @@ exports.getFlags = exports.flagCompletion = void 0;
 const asyncHandler_1 = require("../middleware/asyncHandler");
 const errorHandler_1 = require("../middleware/errorHandler");
 const prisma_1 = require("../prisma");
+const client_1 = require("@prisma/client");
 /**
  * POST /api/flags
  * Flag a challenge completion
@@ -20,6 +21,9 @@ exports.flagCompletion = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
         where: { id: completionId },
     });
     if (!completion) {
+        throw new errorHandler_1.AppError('Completion not found', 404);
+    }
+    if (completion.reviewStatus !== client_1.ChallengeReviewStatus.approved) {
         throw new errorHandler_1.AppError('Completion not found', 404);
     }
     // Prevent users from flagging their own completions

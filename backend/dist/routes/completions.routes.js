@@ -80,8 +80,37 @@ router.post('/', auth_1.authenticate, rateLimiter_1.default.completionLimiter, (
  *                     totalPages:
  *                       type: integer
  */
-router.get('/', (0, validate_1.validateQuery)(types_1.completionsListQuerySchema), completions_controller_1.getCompletions);
-router.get('/:id', (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.getCompletionById);
+router.get('/', auth_1.optionalAuthenticate, (0, validate_1.validateQuery)(types_1.completionsListQuerySchema), completions_controller_1.getCompletions);
+/**
+ * @swagger
+ * /completions/{id}/review:
+ *   patch:
+ *     summary: Approve or reject a completion (admin)
+ *     tags: [Completions]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ReviewCompletion'
+ *     responses:
+ *       200:
+ *         description: Updated completion
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.patch('/:id/review', auth_1.authenticate, auth_1.requireAdmin, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), (0, validate_1.validateBody)(types_1.reviewCompletionSchema), completions_controller_1.reviewChallengeCompletion);
+router.get('/:id', auth_1.optionalAuthenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.getCompletionById);
 router.patch('/:id', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), (0, validate_1.validateBody)(types_1.updateCompletionSchema), completions_controller_1.updateCompletion);
 router.post('/:id/like', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.likeCompletion);
 router.delete('/:id/like', auth_1.authenticate, (0, validateParams_1.validateParams)(types_1.completionIdParamSchema), completions_controller_1.unlikeCompletion);

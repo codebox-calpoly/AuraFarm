@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.leaderboardEntrySchema = exports.flagSchema = exports.challengeCompletionSchema = exports.challengeWithDistanceSchema = exports.challengeWithCompletionsSchema = exports.challengeSchema = exports.userProfileSchema = exports.userSchema = exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.completionsListQuerySchema = exports.nearbyChallengesQuerySchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.updateCompletionSchema = exports.createCompletionSchema = exports.UserRole = void 0;
+exports.leaderboardEntrySchema = exports.flagSchema = exports.challengeCompletionSchema = exports.challengeWithDistanceSchema = exports.challengeWithCompletionsSchema = exports.challengeSchema = exports.userProfileSchema = exports.userSchema = exports.completionIdParamSchema = exports.challengeIdParamSchema = exports.userIdParamSchema = exports.idParamSchema = exports.completionsListQuerySchema = exports.nearbyChallengesQuerySchema = exports.queryParamsSchema = exports.updateUserSchema = exports.createChallengeSchema = exports.createFlagSchema = exports.reviewCompletionSchema = exports.updateCompletionSchema = exports.createCompletionSchema = exports.UserRole = void 0;
 const zod_1 = require("zod");
 var UserRole;
 (function (UserRole) {
@@ -9,13 +9,16 @@ var UserRole;
 })(UserRole || (exports.UserRole = UserRole = {}));
 exports.createCompletionSchema = zod_1.z.object({
     challengeId: zod_1.z.number().int().positive(),
-    latitude: zod_1.z.number().min(-90).max(90),
-    longitude: zod_1.z.number().min(-180).max(180),
+    latitude: zod_1.z.number().min(-90).max(90).optional(),
+    longitude: zod_1.z.number().min(-180).max(180).optional(),
     imageUrl: zod_1.z.string().url().optional(),
     caption: zod_1.z.string().max(500).optional(),
 });
 exports.updateCompletionSchema = zod_1.z.object({
     caption: zod_1.z.string().max(500).optional(),
+});
+exports.reviewCompletionSchema = zod_1.z.object({
+    reviewStatus: zod_1.z.enum(['approved', 'rejected']),
 });
 exports.createFlagSchema = zod_1.z.object({
     completionId: zod_1.z.number().int().positive(),
@@ -24,6 +27,7 @@ exports.createFlagSchema = zod_1.z.object({
 exports.createChallengeSchema = zod_1.z.object({
     title: zod_1.z.string().min(1).max(200),
     description: zod_1.z.string().min(1).max(1000),
+    photoGuidelines: zod_1.z.string().max(8000).optional(),
     latitude: zod_1.z.number().min(-90).max(90),
     longitude: zod_1.z.number().min(-180).max(180),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']),
@@ -111,6 +115,7 @@ exports.challengeSchema = zod_1.z.object({
     id: zod_1.z.number(),
     title: zod_1.z.string(),
     description: zod_1.z.string(),
+    photoGuidelines: zod_1.z.string(),
     latitude: zod_1.z.number(),
     longitude: zod_1.z.number(),
     difficulty: zod_1.z.string(),
@@ -132,6 +137,15 @@ exports.challengeCompletionSchema = zod_1.z.object({
     imageUrl: zod_1.z.string().nullable().optional(),
     caption: zod_1.z.string().nullable().optional(),
     completedAt: zod_1.z.string().transform((str) => new Date(str)),
+    reviewStatus: zod_1.z.enum(['pending', 'approved', 'rejected']),
+    reviewedAt: zod_1.z
+        .union([zod_1.z.string(), zod_1.z.null()])
+        .optional()
+        .transform((str) => (str == null ? str : new Date(str))),
+    postedAt: zod_1.z
+        .union([zod_1.z.string(), zod_1.z.null()])
+        .optional()
+        .transform((str) => (str == null ? str : new Date(str))),
     user: exports.userSchema.optional(),
     challenge: exports.challengeSchema.optional(),
 });
