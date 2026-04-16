@@ -30,14 +30,16 @@ model User {
 }
 
 model Challenge {
-  id           Int                   @id @default(autoincrement())
-  title        String
-  description  String
-  latitude     Float
-  longitude    Float
-  difficulty   String
-  pointsReward Int
-  createdAt    DateTime              @default(now())
+  id              Int                   @id @default(autoincrement())
+  title           String
+  description     String
+  /// Newline-separated lines; shown as photo submission guidelines
+  photoGuidelines String                @default("")
+  latitude        Float
+  longitude       Float
+  difficulty      String
+  pointsReward    Int
+  createdAt       DateTime              @default(now())
   completions  ChallengeCompletion[] // Reverse relation
 
   @@index([latitude, longitude])

@@ -30,6 +30,7 @@ export interface Challenge {
   id: number;
   title: string;
   description: string;
+  photoGuidelines: string;
   latitude: number;
   longitude: number;
   difficulty: string;
@@ -126,6 +127,7 @@ export const createFlagSchema = z.object({
 export const createChallengeSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(1000),
+  photoGuidelines: z.string().max(8000).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   difficulty: z.enum(['easy', 'medium', 'hard']),
@@ -233,6 +235,7 @@ export const challengeSchema = z.object({
   id: z.number(),
   title: z.string(),
   description: z.string(),
+  photoGuidelines: z.string(),
   latitude: z.number(),
   longitude: z.number(),
   difficulty: z.string(),

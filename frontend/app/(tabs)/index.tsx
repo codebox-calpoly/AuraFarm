@@ -53,6 +53,7 @@ export default function HomeScreen() {
     points: number;
     timeLeft: string;
     description: string;
+    photoGuidelines?: string;
   } | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
@@ -66,6 +67,7 @@ export default function HomeScreen() {
       points: number;
       timeLeft: string;
       description: string;
+      photoGuidelines?: string;
     }>
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
@@ -129,6 +131,7 @@ export default function HomeScreen() {
                 points: c.pointsReward,
                 timeLeft: "3 days 2 hrs 3 min",
                 description: c.description,
+                photoGuidelines: c.photoGuidelines,
               })),
           );
           if (compRes.success) {
@@ -151,9 +154,15 @@ export default function HomeScreen() {
         setIncomingChallenges([{
           id: 1,
           title: "Hike the P",
-          points: 300,
+          points: 78,
           timeLeft: "3 days 2 hrs 3 min",
-          description: "Go to the top of the P and take a smiling picture with a friend.",
+          description:
+            "Hike to the Cal Poly “P” on the hillside and take a photo at the top with the landmark visible.",
+          photoGuidelines: [
+            "The letter P must be clearly visible in the background.",
+            "Include yourself (and friends if you like) in the frame.",
+            "Stay on designated trails.",
+          ].join("\n"),
         }]);
         setChallengesLoading(false);
       }
@@ -192,6 +201,7 @@ export default function HomeScreen() {
     points: number;
     timeLeft: string;
     description: string;
+    photoGuidelines?: string;
   }) => {
     setSelectedChallenge(challenge);
     setModalVisible(true);
@@ -419,6 +429,7 @@ export default function HomeScreen() {
             onClose={handleCloseModal}
             title={selectedChallenge.title}
             description={selectedChallenge.description}
+            photoGuidelines={selectedChallenge.photoGuidelines}
             points={selectedChallenge.points}
             timeLeft={selectedChallenge.timeLeft}
             onSubmit={handleSubmit}

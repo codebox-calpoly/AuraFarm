@@ -10,6 +10,7 @@ export type Challenge = {
   id: number;
   title: string;
   description: string;
+  photoGuidelines?: string;
   latitude: number;
   longitude: number;
   difficulty: string;

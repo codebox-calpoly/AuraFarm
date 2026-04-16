@@ -10,6 +10,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   SafeAreaView,
+  ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -22,6 +23,8 @@ export interface ChallengeDetailModalProps {
   onClose: () => void;
   title: string;
   description: string;
+  /** Newline-separated guideline lines from the API */
+  photoGuidelines?: string;
   points: number;
   timeLeft: string;
   onSubmit: (imageUri: string, caption: string) => void | Promise<boolean | void>;
@@ -32,10 +35,16 @@ export function ChallengeDetailModal({
   onClose,
   title,
   description,
+  photoGuidelines,
   points,
   timeLeft,
   onSubmit,
 }: ChallengeDetailModalProps) {
+  const guidelineLines =
+    photoGuidelines
+      ?.split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean) ?? [];
   const [showUploadOptions, setShowUploadOptions] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
@@ -141,8 +150,27 @@ export function ChallengeDetailModal({
                 {title}
               </ThemedText>
 
-              {/* Description */}
-              <ThemedText style={styles.description}>{description}</ThemedText>
+              <ScrollView
+                style={styles.detailScroll}
+                showsVerticalScrollIndicator={false}
+                nestedScrollEnabled
+              >
+                <ThemedText style={styles.description}>{description}</ThemedText>
+
+                {guidelineLines.length > 0 && (
+                  <View style={styles.guidelinesBlock}>
+                    <ThemedText style={styles.guidelinesHeading}>
+                      Photo guidelines
+                    </ThemedText>
+                    {guidelineLines.map((line, i) => (
+                      <View key={i} style={styles.guidelineRow}>
+                        <ThemedText style={styles.guidelineBullet}>•</ThemedText>
+                        <ThemedText style={styles.guidelineText}>{line}</ThemedText>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
 
               {/* Initial Submit Button */}
               <TouchableOpacity
@@ -344,12 +372,49 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: tailwindColors["aura-black"],
   },
+  detailScroll: {
+    maxHeight: 280,
+    marginBottom: 8,
+  },
   description: {
     fontSize: 16,
     fontFamily: tailwindFonts["regular"],
     lineHeight: 24,
     color: tailwindColors["aura-gray-700"],
-    marginBottom: 24,
+    marginBottom: 16,
+  },
+  guidelinesBlock: {
+    marginBottom: 16,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: tailwindColors["aura-border"],
+  },
+  guidelinesHeading: {
+    fontSize: 13,
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-gray-500"],
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  guidelineRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    marginBottom: 8,
+  },
+  guidelineBullet: {
+    fontSize: 16,
+    color: tailwindColors["aura-green"],
+    lineHeight: 22,
+    marginTop: 1,
+  },
+  guidelineText: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: tailwindFonts["regular"],
+    lineHeight: 22,
+    color: tailwindColors["aura-gray-700"],
   },
   submitButton: {
     backgroundColor: tailwindColors["aura-green"],

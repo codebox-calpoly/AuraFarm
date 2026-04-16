@@ -65,13 +65,14 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
  * Create a new challenge (admin only)
  */
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
-  const { title, description, latitude, longitude, difficulty, pointsReward } = req.body;
+  const { title, description, photoGuidelines, latitude, longitude, difficulty, pointsReward } = req.body;
 
   try {
     const newChallenge = await prisma.challenge.create({
       data: {
         title,
         description,
+        photoGuidelines: typeof photoGuidelines === 'string' ? photoGuidelines : '',
         latitude,
         longitude,
         difficulty,
@@ -180,6 +181,7 @@ export const getNearbyChallenges = asyncHandler(async (req: Request, res: Respon
         c.id,
         c.title,
         c.description,
+        c."photoGuidelines",
         c.latitude,
         c.longitude,
         c.difficulty,
