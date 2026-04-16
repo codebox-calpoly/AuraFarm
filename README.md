@@ -48,7 +48,7 @@ Open `.env` in the repo root and fill in your values:
 
 | Variable | Where to find it |
 |---|---|
-| `DATABASE_URL` | Supabase → Project Settings → Database → Connection string (URI) |
+| `DATABASE_URL` | Use Supabase **Transaction pooler** (port **6543**) with `?pgbouncer=true&connection_limit=1` — not Session mode, or you can hit “max clients” errors. See `backend/.env.example`. |
 | `SUPABASE_URL` | Supabase → Project Settings → API → Project URL |
 | `SUPABASE_SERVICE_KEY` | Supabase → Project Settings → API → `service_role` secret key |
 | `SUPABASE_ANON_KEY` | Supabase → Project Settings → API → `anon` public key |

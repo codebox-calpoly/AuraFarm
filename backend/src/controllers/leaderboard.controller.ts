@@ -11,8 +11,8 @@ export const getLeaderboard = asyncHandler(
     const limitNum = Math.max(1, Number(req.query.limit ?? 20));
     const startIndex = (pageNum - 1) * limitNum;
 
-    const total = Number(await prisma.user.count());
-
+    // Single round-trip: Supabase Session pooler has a low max client limit; avoid
+    // a separate count() query that doubles connections per leaderboard request.
     const rows = await prisma.$queryRaw<Array<{
       userId: number;
       userName: string;
@@ -20,6 +20,7 @@ export const getLeaderboard = asyncHandler(
       streak: number;
       completionsCount: number;
       rank: number;
+      totalUsers: bigint;
     }>>(Prisma.sql`
       WITH ranked_users AS (
         SELECT
@@ -32,12 +33,23 @@ export const getLeaderboard = asyncHandler(
         FROM "User" u
         LEFT JOIN "ChallengeCompletion" cc ON cc."userId" = u.id
         GROUP BY u.id
-      )
-      SELECT *
-      FROM ranked_users
-      ORDER BY "auraPoints" DESC, "userId" ASC
+      ),
+      tot AS (SELECT COUNT(*)::bigint AS c FROM "User")
+      SELECT
+        r."userId",
+        r."userName",
+        r."auraPoints",
+        r.streak,
+        r."completionsCount",
+        r.rank,
+        tot.c AS "totalUsers"
+      FROM ranked_users r
+      CROSS JOIN tot
+      ORDER BY r."auraPoints" DESC, r."userId" ASC
       LIMIT ${limitNum} OFFSET ${startIndex}
     `);
+
+    const total = rows.length > 0 ? Number(rows[0].totalUsers) : 0;
 
     // Raw SQL can return bigint for rank/counts — JSON cannot serialize BigInt.
     const data: LeaderboardEntry[] = rows.map((row) => ({

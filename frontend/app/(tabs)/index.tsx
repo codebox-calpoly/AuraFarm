@@ -75,6 +75,7 @@ export default function HomeScreen() {
     }[]
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
+  const [challengesError, setChallengesError] = useState<string | null>(null);
   const [auraCurrent, setAuraCurrent] = useState(0);
 
   const formatFeedDate = (date: Date): string => {
@@ -121,7 +122,7 @@ export default function HomeScreen() {
     // Fire all requests independently so fast ones render immediately
     getChallenges().then((res) => {
       if (res.success) {
-        // We need completions to filter, so fetch those first too
+        setChallengesError(null);
         getUserCompletionsFromApi().then((compRes) => {
           const completedIds = new Set(
             compRes.success ? compRes.data.map((c) => c.challenge.id) : []
@@ -157,24 +158,20 @@ export default function HomeScreen() {
           setChallengesLoading(false);
         });
       } else {
-        setIncomingChallenges([{
-          id: 1,
-          title: "Hike the P",
-          points: 78,
-          timeLeft: "3 days 2 hrs 3 min",
-          description:
-            "Hike to the Cal Poly “P” on the hillside and take a photo at the top with the landmark visible.",
-          photoGuidelines: [
-            "The letter P must be clearly visible in the background.",
-            "Include yourself (and friends if you like) in the frame.",
-            "Stay on designated trails.",
-          ].join("\n"),
-          latitude: 35.302,
-          longitude: -120.668,
-        }]);
+        setIncomingChallenges([]);
+        setChallengesError(
+          res.error ??
+            "Could not load challenges. If this persists, check that the API is running and the database URL uses Supabase Transaction pooler (see backend .env.example).",
+        );
         setChallengesLoading(false);
       }
-    }).catch(() => setChallengesLoading(false));
+    }).catch(() => {
+      setChallengesLoading(false);
+      setIncomingChallenges([]);
+      setChallengesError(
+        "Could not load challenges. Check your network and backend.",
+      );
+    });
 
     getUserProfileFromApi().then((res) => {
       if (res.success) setAuraCurrent(res.data.auraPoints);
@@ -345,6 +342,8 @@ export default function HomeScreen() {
                 <ThemedText style={styles.emptyState}>
                   Loading challenges…
                 </ThemedText>
+              ) : challengesError ? (
+                <ThemedText style={styles.challengesError}>{challengesError}</ThemedText>
               ) : incomingChallenges.length > 0 ? (
                 incomingChallenges.map((challenge) => (
                   <ChallengeCard
@@ -473,6 +472,15 @@ const styles = StyleSheet.create({
     color: tailwindColors["aura-gray-400"],
     textAlign: "center",
     marginVertical: 36,
+    lineHeight: 22,
+  },
+  challengesError: {
+    fontSize: 14,
+    fontFamily: tailwindFonts["regular"],
+    color: tailwindColors["aura-red"],
+    textAlign: "center",
+    marginVertical: 24,
+    marginHorizontal: 8,
     lineHeight: 22,
   },
   feedPlaceholder: {
