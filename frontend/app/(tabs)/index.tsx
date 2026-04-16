@@ -119,65 +119,99 @@ export default function HomeScreen() {
       if (session?.userId) setCurrentUserId(session.userId);
     });
 
-    // Fire all requests independently so fast ones render immediately
-    getChallenges().then((res) => {
-      if (res.success) {
+    let cancelled = false;
+
+    const loadChallenges = async () => {
+      try {
+        const res = await Promise.race([
+          getChallenges(),
+          new Promise<Awaited<ReturnType<typeof getChallenges>>>((_, reject) =>
+            setTimeout(() => reject(new Error("challenges-timeout")), 20_000),
+          ),
+        ]);
+        if (cancelled) return;
+
+        if (!res.success) {
+          setIncomingChallenges([]);
+          setChallengesError(
+            res.error ??
+              "Could not load challenges. If this persists, check that the API is running and the database URL uses Supabase Transaction pooler (see backend .env.example).",
+          );
+          return;
+        }
+
         setChallengesError(null);
-        getUserCompletionsFromApi().then((compRes) => {
-          const completedIds = new Set(
-            compRes.success ? compRes.data.map((c) => c.challenge.id) : []
-          );
-          setIncomingChallenges(
-            res.data
-              .filter((c) => !completedIds.has(c.id))
-              .map((c) => ({
-                id: c.id,
-                title: c.title,
-                points: c.pointsReward,
-                timeLeft: "3 days 2 hrs 3 min",
-                description: c.description,
-                photoGuidelines: c.photoGuidelines,
-                latitude: c.latitude,
-                longitude: c.longitude,
-              })),
-          );
-          if (compRes.success) {
-            setCompletedChallenges(
-              compRes.data.map((c) => ({
-                id: c.id,
-                title: c.challenge.title,
-                points: c.challenge.pointsReward,
-                date: formatFeedDate(new Date(c.completedAt)),
-                description: c.challenge.description,
-                postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || "",
-                caption: c.caption ?? "",
-                likes: 0,
-              })),
-            );
-          }
-          setChallengesLoading(false);
-        });
-      } else {
-        setIncomingChallenges([]);
-        setChallengesError(
-          res.error ??
-            "Could not load challenges. If this persists, check that the API is running and the database URL uses Supabase Transaction pooler (see backend .env.example).",
+
+        // Completions are optional for showing incoming list; never block loading forever
+        // if this request hangs, throws, or times out (TestFlight / bad API URL).
+        let compRes: Awaited<ReturnType<typeof getUserCompletionsFromApi>>;
+        try {
+          compRes = await Promise.race([
+            getUserCompletionsFromApi(),
+            new Promise<Awaited<ReturnType<typeof getUserCompletionsFromApi>>>(
+              (_, reject) =>
+                setTimeout(() => reject(new Error("completions-timeout")), 15_000),
+            ),
+          ]);
+        } catch {
+          compRes = { success: false, error: "Could not load completions" };
+        }
+        if (cancelled) return;
+
+        const completedIds = new Set(
+          compRes.success ? compRes.data.map((c) => c.challenge.id) : []
         );
-        setChallengesLoading(false);
+        setIncomingChallenges(
+          res.data
+            .filter((c) => !completedIds.has(c.id))
+            .map((c) => ({
+              id: c.id,
+              title: c.title,
+              points: c.pointsReward,
+              timeLeft: "3 days 2 hrs 3 min",
+              description: c.description,
+              photoGuidelines: c.photoGuidelines,
+              latitude: c.latitude,
+              longitude: c.longitude,
+            })),
+        );
+        if (compRes.success) {
+          setCompletedChallenges(
+            compRes.data.map((c) => ({
+              id: c.id,
+              title: c.challenge.title,
+              points: c.challenge.pointsReward,
+              date: formatFeedDate(new Date(c.completedAt)),
+              description: c.challenge.description,
+              postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || "",
+              caption: c.caption ?? "",
+              likes: 0,
+            })),
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setIncomingChallenges([]);
+          setChallengesError(
+            "Could not load challenges. Check your network and backend.",
+          );
+        }
+      } finally {
+        if (!cancelled) setChallengesLoading(false);
       }
-    }).catch(() => {
-      setChallengesLoading(false);
-      setIncomingChallenges([]);
-      setChallengesError(
-        "Could not load challenges. Check your network and backend.",
-      );
-    });
+    };
+
+    loadChallenges();
 
     getUserProfileFromApi().then((res) => {
       if (res.success) setAuraCurrent(res.data.auraPoints);
     });
 
     refetchFeed();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Refetch feed when user switches to feed tab so they see fresh posts
