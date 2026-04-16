@@ -1,17 +1,15 @@
-import { StyleSheet, View, Image } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import { ThemedView } from "@/components/themed-view";
-import { tailwindColors } from "@/constants/tailwind-colors";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { spacing } from "@/constants/design";
 
 export function Header() {
   return (
     <View style={styles.wrap}>
       <ThemedView style={styles.container} lightColor="transparent">
-        <Image
-          source={require("@/assets/images/aura-farm-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <Text style={styles.wordmark} accessibilityRole="header">
+          Aura Farm
+        </Text>
       </ThemedView>
       <View style={styles.hairline} />
     </View>
@@ -28,9 +26,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     backgroundColor: "transparent",
   },
-  logo: {
-    width: 168,
-    height: 34,
+  wordmark: {
+    fontFamily: tailwindFonts.bold,
+    fontSize: 22,
+    letterSpacing: 0.3,
+    color: tailwindColors["aura-red"],
   },
   hairline: {
     height: StyleSheet.hairlineWidth,
