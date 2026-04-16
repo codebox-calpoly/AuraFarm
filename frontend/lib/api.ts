@@ -122,7 +122,10 @@ async function authedFetch(
 }
 
 export async function getChallenges(): Promise<ApiResponse<Challenge[]>> {
-  const res = await fetch(`${apiBaseUrl()}/api/challenges`);
+  // Backend defaults to limit=20; request enough to show the full catalog
+  const res = await fetch(
+    `${apiBaseUrl()}/api/challenges?limit=100`,
+  );
   const json = await res.json();
   if (!res.ok) {
     return {
