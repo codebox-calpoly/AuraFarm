@@ -45,7 +45,8 @@ async function verify() {
       latitude: 0,
       longitude: 0,
       difficulty: 'easy',
-      pointsReward: 10
+      pointsReward: 10,
+      tags: ['campus'],
     }
   });
 
@@ -56,7 +57,8 @@ async function verify() {
       latitude: 0,
       longitude: 0,
       difficulty: 'hard',
-      pointsReward: 50
+      pointsReward: 50,
+      tags: ['campus'],
     }
   });
 
@@ -69,7 +71,8 @@ async function verify() {
       latitude: 40.7138,
       longitude: -74.0060,
       difficulty: 'easy',
-      pointsReward: 10
+      pointsReward: 10,
+      tags: ['campus'],
     }
   });
 
@@ -81,7 +84,8 @@ async function verify() {
       latitude: 41.7128,
       longitude: -74.0060,
       difficulty: 'easy',
-      pointsReward: 10
+      pointsReward: 10,
+      tags: ['campus'],
     }
   });
 

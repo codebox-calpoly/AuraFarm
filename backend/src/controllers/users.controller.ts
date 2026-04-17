@@ -79,6 +79,35 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   res.json(response);
 });
 
+export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
+  const q = String(req.query.q ?? '').trim();
+  const rawLimit = Number(req.query.limit ?? 20);
+  const take = Math.min(30, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 20));
+
+  const users = await prisma.user.findMany({
+    where: {
+      id: { not: req.user.id },
+      name: { contains: q, mode: 'insensitive' },
+    },
+    select: {
+      id: true,
+      name: true,
+      auraPoints: true,
+    },
+    take,
+    orderBy: { name: 'asc' },
+  });
+
+  const response: ApiResponse<typeof users> = {
+    success: true,
+    data: users,
+  };
+  res.json(response);
+});
+
 export const getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
   if (!req.user) {
     throw new AppError('Not authenticated', 401);
@@ -96,6 +125,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
       streak: true,
       lastCompletedAt: true,
       createdAt: true,
+      shareCompletionsInFeed: true,
       _count: {
         select: { completions: true },
       },
@@ -120,6 +150,7 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     streak: user.streak,
     lastCompletedAt: user.lastCompletedAt,
     createdAt: user.createdAt,
+    shareCompletionsInFeed: user.shareCompletionsInFeed,
     completionsCount: user._count.completions,
     rank,
   };
@@ -138,14 +169,21 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   }
 
   const userId = req.user.id;
-  const { name, email } = req.body as { name?: string; email?: string };
+  const { name, email, shareCompletionsInFeed } = req.body as {
+    name?: string;
+    email?: string;
+    shareCompletionsInFeed?: boolean;
+  };
 
-  const updateData: { name?: string; email?: string } = {};
+  const updateData: { name?: string; email?: string; shareCompletionsInFeed?: boolean } = {};
   if (typeof name === 'string' && name.trim().length > 0) {
     updateData.name = name.trim();
   }
   if (typeof email === 'string' && email.trim().length > 0) {
     updateData.email = email.trim().toLowerCase();
+  }
+  if (typeof shareCompletionsInFeed === 'boolean') {
+    updateData.shareCompletionsInFeed = shareCompletionsInFeed;
   }
 
   if (Object.keys(updateData).length === 0) {

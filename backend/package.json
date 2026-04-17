@@ -10,6 +10,7 @@
     "build": "tsc",
     "seed": "ts-node prisma/seed.ts",
     "seed:challenges": "ts-node prisma/seed-challenges-only.ts",
+    "sync-challenge-tags": "ts-node prisma/sync-challenge-tags.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

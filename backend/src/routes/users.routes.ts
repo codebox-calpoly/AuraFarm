@@ -5,13 +5,15 @@ import {
   updateCurrentUser,
   getUserCompletions,
   getUserStats,
+  searchUsers,
 } from '../controllers/users.controller';
-import { validateBody } from '../middleware/validate';
+import { validateBody, validateQuery } from '../middleware/validate';
 import { validateParams } from '../middleware/validateParams';
 import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import {
   updateUserSchema,
   userIdParamSchema,
+  userSearchQuerySchema,
 } from '../types';
 
 const router = Router();
@@ -41,6 +43,8 @@ const router = Router();
  *         description: Unauthorized
  */
 router.get('/me', authenticate, getCurrentUser);
+
+router.get('/search', authenticate, validateQuery(userSearchQuerySchema), searchUsers);
 
 /**
  * @swagger

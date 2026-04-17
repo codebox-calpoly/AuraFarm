@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import { PostMedia } from "@/components/home/PostMedia";
 import { useState } from "react";
 
 import { ThemedView } from "@/components/themed-view";
@@ -97,11 +97,7 @@ export default function EditPostScreen() {
             {/* Post Image */}
             <View style={styles.imageContainer}>
               {post.postImage ? (
-                <Image
-                  source={{ uri: post.postImage }}
-                  style={styles.image}
-                  contentFit="cover"
-                />
+                <PostMedia uri={post.postImage} frameStyle={styles.image} />
               ) : (
                 <View style={styles.imagePlaceholder}>
                   <Ionicons

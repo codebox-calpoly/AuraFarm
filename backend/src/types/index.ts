@@ -14,6 +14,8 @@ export interface User {
   lastCompletedAt: Date | null;
   createdAt: Date;
   role: UserRole;
+  /** Present on GET /users/me — whether completions appear on global/friends feeds */
+  shareCompletionsInFeed?: boolean;
 }
 
 export interface UserProfile extends User {
@@ -26,6 +28,16 @@ export interface PublicUserProfile extends Omit<User, 'email'> {
   rank?: number;
 }
 
+export type ChallengeCategory =
+  | 'sports'
+  | 'outdoors'
+  | 'clubs'
+  | 'campus'
+  | 'beach'
+  | 'volunteering'
+  | 'arts_culture'
+  | 'misc';
+
 export interface Challenge {
   id: number;
   title: string;
@@ -35,6 +47,7 @@ export interface Challenge {
   longitude: number;
   difficulty: string;
   pointsReward: number;
+  tags: ChallengeCategory[];
   createdAt: Date;
 }
 
@@ -133,6 +146,17 @@ export const createFlagSchema = z.object({
   reason: z.string().optional(),
 });
 
+const challengeCategoryValues = [
+  'sports',
+  'outdoors',
+  'clubs',
+  'campus',
+  'beach',
+  'volunteering',
+  'arts_culture',
+  'misc',
+] as const;
+
 export const createChallengeSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(1000),
@@ -141,11 +165,21 @@ export const createChallengeSchema = z.object({
   longitude: z.number().min(-180).max(180),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   pointsReward: z.number().int().positive(),
+  tags: z.array(z.enum(challengeCategoryValues)).min(1).max(16),
 });
 
 export const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   email: z.string().email().max(255).optional(),
+  shareCompletionsInFeed: z.boolean().optional(),
+});
+
+export const friendRequestBodySchema = z.object({
+  targetUserId: z.number().int().positive(),
+});
+
+export const friendRequesterBodySchema = z.object({
+  requesterId: z.number().int().positive(),
 });
 
 export const queryParamsSchema = z.object({
@@ -153,6 +187,17 @@ export const queryParamsSchema = z.object({
   limit: z.string().regex(/^\d+$/).transform(Number).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   search: z.string().min(1).max(100).optional(),
+  category: z.enum(challengeCategoryValues).optional(),
+});
+
+export const userSearchQuerySchema = z.object({
+  q: z.string().min(2).max(80),
+  limit: z
+    .string()
+    .regex(/^\d+$/)
+    .optional()
+    .default('20')
+    .transform((v: string) => Number(v)),
 });
 
 export const nearbyChallengesQuerySchema = z.object({
@@ -167,6 +212,8 @@ export const completionsListQuerySchema = z
   .object({
     userId: z.string().regex(/^\d+$/).transform((v: string) => Number(v)).optional(),
     challengeId: z.string().regex(/^\d+$/).transform((v: string) => Number(v)).optional(),
+    /** `global` = public feed (default); `friends` = signed-in user's friends only */
+    feed: z.enum(['global', 'friends']).optional().default('global'),
 
     startDate: z
       .string()
@@ -249,6 +296,7 @@ export const challengeSchema = z.object({
   longitude: z.number(),
   difficulty: z.string(),
   pointsReward: z.number(),
+  tags: z.array(z.enum(challengeCategoryValues)),
   createdAt: z.string().transform((str) => new Date(str)),
 });
 

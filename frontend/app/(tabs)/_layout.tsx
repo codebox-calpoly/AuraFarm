@@ -1,27 +1,24 @@
 import { Tabs, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Image,
   View,
   ActivityIndicator,
   useWindowDimensions,
   StyleSheet,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { TabBarGlyph } from "@/components/tab-bar-glyph";
+import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { isAuthenticated } from "@/lib/auth";
 
-const BASE_WIDTH = 414;
-
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
   const router = useRouter();
   const [checking, setChecking] = useState(true);
 
   const { width } = useWindowDimensions();
-  const scale = width / BASE_WIDTH;
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     isAuthenticated().then((loggedIn) => {
@@ -43,18 +40,25 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tabIconSelected,
-        tabBarInactiveTintColor: Colors[colorScheme ?? "light"].tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
+        tabBarHideOnKeyboard: false,
+        tabBarActiveTintColor: tailwindColors["aura-green"],
+        tabBarInactiveTintColor: tailwindColors["aura-gray-400"],
+        tabBarLabelStyle: {
+          fontFamily: tailwindFonts["semibold"],
+          fontSize: 10,
+          marginTop: 2,
+        },
+        tabBarItemStyle: styles.tabBarItem,
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: "#E7E5E4",
-          height: 88 * scale,
-          paddingBottom: 12,
-          paddingTop: 10,
+          minHeight: 56 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
+          paddingTop: 8,
           shadowColor: "#0F172A",
           shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.04,
@@ -67,15 +71,13 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
+          tabBarAccessibilityLabel: "Home",
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={
-                focused ?
-                  require("@/assets/images/home tab.png")
-                : require("@/assets/images/home tab_grey.png")
-              }
-              style={{ width: 43 * scale }}
-              resizeMode="contain"
+            <TabBarGlyph
+              tab="home"
+              focused={focused}
+              windowWidth={width}
+              accessibilityLabel="Home"
             />
           ),
         }}
@@ -84,15 +86,13 @@ export default function TabLayout() {
         name="ranks"
         options={{
           title: "Ranks",
+          tabBarAccessibilityLabel: "Ranks",
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={
-                focused ?
-                  require("@/assets/images/ranks tab.png")
-                : require("@/assets/images/ranks tab_grey.png")
-              }
-              style={{ width: 76 * scale }}
-              resizeMode="contain"
+            <TabBarGlyph
+              tab="ranks"
+              focused={focused}
+              windowWidth={width}
+              accessibilityLabel="Ranks"
             />
           ),
         }}
@@ -101,15 +101,28 @@ export default function TabLayout() {
         name="aura"
         options={{
           title: "Aura",
+          tabBarAccessibilityLabel: "Aura",
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={
-                focused ?
-                  require("@/assets/images/aura tab.png")
-                : require("@/assets/images/aura tab_grey.png")
-              }
-              style={{ width: 75 * scale }}
-              resizeMode="contain"
+            <TabBarGlyph
+              tab="aura"
+              focused={focused}
+              windowWidth={width}
+              accessibilityLabel="Aura"
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="friends"
+        options={{
+          title: "Friends",
+          tabBarAccessibilityLabel: "Friends",
+          tabBarIcon: ({ focused }) => (
+            <TabBarGlyph
+              tab="friends"
+              focused={focused}
+              windowWidth={width}
+              accessibilityLabel="Friends"
             />
           ),
         }}
@@ -118,15 +131,13 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
+          tabBarAccessibilityLabel: "Settings",
           tabBarIcon: ({ focused }) => (
-            <Image
-              source={
-                focused ?
-                  require("@/assets/images/settings tab.png")
-                : require("@/assets/images/settings tab_grey.png")
-              }
-              style={{ width: 47 * scale }}
-              resizeMode="contain"
+            <TabBarGlyph
+              tab="settings"
+              focused={focused}
+              windowWidth={width}
+              accessibilityLabel="Settings"
             />
           ),
         }}
@@ -134,3 +145,9 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarItem: {
+    flex: 1,
+  },
+});

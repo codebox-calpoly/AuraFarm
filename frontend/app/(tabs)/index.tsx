@@ -1,4 +1,4 @@
-import { Alert, StyleSheet, ScrollView } from "react-native";
+import { Alert, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -6,6 +6,10 @@ import { ThemedView } from "@/components/themed-view";
 import { ThemedText } from "@/components/themed-text";
 import { Header } from "@/components/home/Header";
 import { TabSwitcher } from "@/components/home/TabSwitcher";
+import {
+  FeedScopeSwitcher,
+  type FeedScope,
+} from "@/components/home/FeedScopeSwitcher";
 import { AuraProgressBar } from "@/components/home/AuraProgressBar";
 import { ChallengeCard } from "@/components/home/ChallengeCard";
 import { ChallengeDetailModal } from "@/components/home/ChallengeDetailModal";
@@ -21,9 +25,30 @@ import {
   likeCompletion,
   unlikeCompletion,
   flagCompletion,
+  type Challenge,
 } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { uploadCompletionImage } from "@/lib/storage";
+import { uploadCompletionMedia } from "@/lib/storage";
+import {
+  CHALLENGE_CATEGORY_LABEL,
+  CHALLENGE_FILTER_CHIPS,
+  type ChallengeCategory,
+  type ChallengeFilterId,
+} from "@/constants/challengeCategories";
+import { CHALLENGE_TAGS_BY_TITLE } from "@/constants/challengeTagsByTitle";
+
+/**
+ * Tags for UI + client-side filtering.
+ * Prefer the title map first: the DB often still has only `["campus"]` from migration backfill,
+ * which would otherwise look like every challenge is Campus-only.
+ */
+function tagsFromChallengePayload(c: Challenge): ChallengeCategory[] {
+  const byTitle = CHALLENGE_TAGS_BY_TITLE[c.title];
+  if (byTitle?.length) return byTitle;
+  if (Array.isArray(c.tags) && c.tags.length > 0) return c.tags;
+  if (c.category) return [c.category];
+  return ["campus"];
+}
 
 type FeedPost = {
   id: number;
@@ -46,6 +71,8 @@ export default function HomeScreen() {
   const [activeTab, setActiveTab] = useState<"my-challenges" | "feed">(
     "my-challenges",
   );
+  const [feedScope, setFeedScope] = useState<FeedScope>("global");
+  const [feedError, setFeedError] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState<{
     id: number;
@@ -56,6 +83,7 @@ export default function HomeScreen() {
     photoGuidelines?: string;
     latitude: number;
     longitude: number;
+    tags: ChallengeCategory[];
   } | null>(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
@@ -72,10 +100,12 @@ export default function HomeScreen() {
       photoGuidelines?: string;
       latitude: number;
       longitude: number;
+      tags: ChallengeCategory[];
     }[]
   >([]);
   const [challengesLoading, setChallengesLoading] = useState(true);
   const [challengesError, setChallengesError] = useState<string | null>(null);
+  const [challengeFilter, setChallengeFilter] = useState<ChallengeFilterId>("all");
   const [auraCurrent, setAuraCurrent] = useState(0);
 
   const formatFeedDate = (date: Date): string => {
@@ -94,8 +124,9 @@ export default function HomeScreen() {
     return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
   };
 
-  const refetchFeed = async () => {
-    const feedRes = await getFeedCompletionsFromApi();
+  const refetchFeed = async (scope: FeedScope = feedScope) => {
+    setFeedError(null);
+    const feedRes = await getFeedCompletionsFromApi(scope);
     if (feedRes.success) {
       setRemoteFeedPosts(
         feedRes.data.map((c) => ({
@@ -111,6 +142,9 @@ export default function HomeScreen() {
           postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || undefined,
         })),
       );
+    } else {
+      setRemoteFeedPosts([]);
+      setFeedError(feedRes.error ?? "Could not load feed");
     }
   };
 
@@ -119,12 +153,24 @@ export default function HomeScreen() {
       if (session?.userId) setCurrentUserId(session.userId);
     });
 
+    getUserProfileFromApi().then((res) => {
+      if (res.success) setAuraCurrent(res.data.auraPoints);
+    });
+
+    refetchFeed();
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     const loadChallenges = async () => {
       try {
+        setChallengesLoading(true);
+        // Always fetch full list: server `?category=` filters on DB tags, which may still be
+        // legacy `["campus"]` only — then Sports/Outdoors would return zero rows. We filter
+        // client-side using `tagsFromChallengePayload` (title map + API tags).
         const res = await Promise.race([
-          getChallenges(),
+          getChallenges({ limit: 100 }),
           new Promise<Awaited<ReturnType<typeof getChallenges>>>((_, reject) =>
             setTimeout(() => reject(new Error("challenges-timeout")), 20_000),
           ),
@@ -142,8 +188,6 @@ export default function HomeScreen() {
 
         setChallengesError(null);
 
-        // Completions are optional for showing incoming list; never block loading forever
-        // if this request hangs, throws, or times out (TestFlight / bad API URL).
         let compRes: Awaited<ReturnType<typeof getUserCompletionsFromApi>>;
         try {
           compRes = await Promise.race([
@@ -159,22 +203,31 @@ export default function HomeScreen() {
         if (cancelled) return;
 
         const completedIds = new Set(
-          compRes.success ? compRes.data.map((c) => c.challenge.id) : []
+          compRes.success ? compRes.data.map((c) => c.challenge.id) : [],
         );
-        setIncomingChallenges(
-          res.data
-            .filter((c) => !completedIds.has(c.id))
-            .map((c) => ({
-              id: c.id,
-              title: c.title,
-              points: c.pointsReward,
-              timeLeft: "3 days 2 hrs 3 min",
-              description: c.description,
-              photoGuidelines: c.photoGuidelines,
-              latitude: c.latitude,
-              longitude: c.longitude,
-            })),
-        );
+
+        const open = res.data.filter((c) => !completedIds.has(c.id));
+        const withTags = open.map((c) => {
+          const ch = c as Challenge;
+          const tags = tagsFromChallengePayload(ch);
+          return {
+            id: c.id,
+            title: c.title,
+            points: c.pointsReward,
+            timeLeft: "3 days 2 hrs 3 min",
+            description: c.description,
+            photoGuidelines: c.photoGuidelines,
+            latitude: c.latitude,
+            longitude: c.longitude,
+            tags,
+          };
+        });
+        const filtered =
+          challengeFilter === "all"
+            ? withTags
+            : withTags.filter((row) => row.tags.includes(challengeFilter));
+
+        setIncomingChallenges(filtered);
         if (compRes.success) {
           setCompletedChallenges(
             compRes.data.map((c) => ({
@@ -203,26 +256,20 @@ export default function HomeScreen() {
 
     loadChallenges();
 
-    getUserProfileFromApi().then((res) => {
-      if (res.success) setAuraCurrent(res.data.auraPoints);
-    });
-
-    refetchFeed();
-
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [challengeFilter]);
 
-  // Refetch feed when user switches to feed tab so they see fresh posts
+  // Refetch feed when user switches to feed tab or changes Global / Friends
   useEffect(() => {
     if (activeTab === "feed") {
-      refetchFeed();
+      refetchFeed(feedScope);
     }
-  }, [activeTab]);
+  }, [activeTab, feedScope]);
 
   const [completedChallenges, setCompletedChallenges] = useState<
-    Array<{
+    {
       id: number;
       title: string;
       points: number;
@@ -231,7 +278,7 @@ export default function HomeScreen() {
       postImage: string;
       caption: string;
       likes: number;
-    }>
+    }[]
   >([]);
 
   const handleViewChallenge = (challenge: {
@@ -243,6 +290,7 @@ export default function HomeScreen() {
     photoGuidelines?: string;
     latitude: number;
     longitude: number;
+    tags: ChallengeCategory[];
   }) => {
     setSelectedChallenge(challenge);
     setModalVisible(true);
@@ -253,7 +301,11 @@ export default function HomeScreen() {
     setSelectedChallenge(null);
   };
 
-  const handleSubmit = async (imageUri: string, caption: string) => {
+  const handleSubmit = async (
+    mediaUri: string,
+    caption: string,
+    meta?: { mimeType?: string },
+  ) => {
     if (!selectedChallenge) return false;
 
     const challengeToComplete = incomingChallenges.find(
@@ -262,11 +314,13 @@ export default function HomeScreen() {
     if (!challengeToComplete) return false;
 
     try {
-      const imageUrl = await uploadCompletionImage(imageUri);
+      const imageUrl = await uploadCompletionMedia(mediaUri, {
+        mimeType: meta?.mimeType,
+      });
       if (!imageUrl) {
         Alert.alert(
           "Upload failed",
-          "Could not upload your image. Please try again.",
+          "Could not upload your photo or video. Please try again.",
         );
         return false;
       }
@@ -302,7 +356,7 @@ export default function HomeScreen() {
           points: challengeToComplete.points,
           date: formattedDate,
           description: challengeToComplete.description,
-          postImage: imageUrl || imageUri,
+          postImage: imageUrl || mediaUri,
           caption,
           likes: 0,
         },
@@ -310,7 +364,7 @@ export default function HomeScreen() {
       ]);
 
       // Refetch feed so the new post appears and persists after reload
-      await refetchFeed();
+      await refetchFeed(feedScope);
 
       // Aura is granted on the server only after admin approval — do not bump the bar here
       // (avoid implying points landed immediately). Bar refreshes on next screen focus / pull.
@@ -369,6 +423,36 @@ export default function HomeScreen() {
               {/* Progress Bar */}
               <AuraProgressBar points={auraCurrent} />
 
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterChipsContent}
+                style={styles.filterChipsScroll}
+              >
+                {CHALLENGE_FILTER_CHIPS.map((chip) => {
+                  const selected = challengeFilter === chip.id;
+                  return (
+                    <Pressable
+                      key={chip.id}
+                      onPress={() => setChallengeFilter(chip.id)}
+                      style={[
+                        styles.filterChip,
+                        selected && styles.filterChipSelected,
+                      ]}
+                    >
+                      <ThemedText
+                        style={[
+                          styles.filterChipText,
+                          selected && styles.filterChipTextSelected,
+                        ]}
+                      >
+                        {chip.label}
+                      </ThemedText>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+
               {/* Incoming Section */}
               <ThemedText style={styles.sectionTitle}>Incoming</ThemedText>
               {challengesLoading ? (
@@ -385,12 +469,17 @@ export default function HomeScreen() {
                     title={challenge.title}
                     points={challenge.points}
                     timeLeft={challenge.timeLeft}
+                    categoryLabels={challenge.tags.map(
+                      (t) => CHALLENGE_CATEGORY_LABEL[t],
+                    )}
                     onPress={() => handleViewChallenge(challenge)}
                   />
                 ))
               ) : (
                 <ThemedText style={styles.emptyState}>
-                  No incoming challenges
+                  {challengeFilter === "all"
+                    ? "No incoming challenges"
+                    : "No challenges in this category — try All or another filter"}
                 </ThemedText>
               )}
 
@@ -413,6 +502,13 @@ export default function HomeScreen() {
             </>
           ) : (
             <>
+              <FeedScopeSwitcher
+                scope={feedScope}
+                onScopeChange={setFeedScope}
+              />
+              {feedError ? (
+                <ThemedText style={styles.challengesError}>{feedError}</ThemedText>
+              ) : null}
               {feedPosts.length > 0 ? (
                 feedPosts.map((post) => {
                   const isOwnPost = currentUserId !== null && post.userId === currentUserId;
@@ -489,6 +585,37 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     paddingBottom: 28,
+  },
+  filterChipsScroll: {
+    marginBottom: 8,
+    flexGrow: 0,
+  },
+  filterChipsContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 4,
+    paddingRight: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: tailwindColors["aura-surface"],
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-border"],
+  },
+  filterChipSelected: {
+    backgroundColor: tailwindColors["aura-green"],
+    borderColor: tailwindColors["aura-green"],
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-gray-600"],
+  },
+  filterChipTextSelected: {
+    color: tailwindColors["aura-white"],
   },
   sectionTitle: {
     fontSize: 13,

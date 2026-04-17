@@ -24,6 +24,16 @@ exports.createFlagSchema = zod_1.z.object({
     completionId: zod_1.z.number().int().positive(),
     reason: zod_1.z.string().optional(),
 });
+const challengeCategoryValues = [
+    'sports',
+    'outdoors',
+    'clubs',
+    'campus',
+    'beach',
+    'volunteering',
+    'arts_culture',
+    'misc',
+];
 exports.createChallengeSchema = zod_1.z.object({
     title: zod_1.z.string().min(1).max(200),
     description: zod_1.z.string().min(1).max(1000),
@@ -32,6 +42,7 @@ exports.createChallengeSchema = zod_1.z.object({
     longitude: zod_1.z.number().min(-180).max(180),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']),
     pointsReward: zod_1.z.number().int().positive(),
+    tags: zod_1.z.array(zod_1.z.enum(challengeCategoryValues)).min(1).max(16),
 });
 exports.updateUserSchema = zod_1.z.object({
     name: zod_1.z.string().min(1).max(100).optional(),
@@ -42,6 +53,7 @@ exports.queryParamsSchema = zod_1.z.object({
     limit: zod_1.z.string().regex(/^\d+$/).transform(Number).optional(),
     difficulty: zod_1.z.enum(['easy', 'medium', 'hard']).optional(),
     search: zod_1.z.string().min(1).max(100).optional(),
+    category: zod_1.z.enum(challengeCategoryValues).optional(),
 });
 exports.nearbyChallengesQuerySchema = zod_1.z.object({
     latitude: zod_1.z.string().transform(Number).pipe(zod_1.z.number().min(-90).max(90)),
@@ -120,6 +132,7 @@ exports.challengeSchema = zod_1.z.object({
     longitude: zod_1.z.number(),
     difficulty: zod_1.z.string(),
     pointsReward: zod_1.z.number(),
+    tags: zod_1.z.array(zod_1.z.enum(challengeCategoryValues)),
     createdAt: zod_1.z.string().transform((str) => new Date(str)),
 });
 exports.challengeWithCompletionsSchema = exports.challengeSchema.extend({

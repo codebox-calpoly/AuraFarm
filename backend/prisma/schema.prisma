@@ -2,6 +2,7 @@ datasource db {
   provider = "postgresql"
   /// Supabase: use the **Transaction** pooler URI + `?pgbouncer=true&connection_limit=1`.
   /// Do not use Session mode for Prisma — you will hit MaxClientsInSessionMode.
+  /// For migrations, set DIRECT_URL in root `.env` — see `prisma.config.ts` (not required in this file).
   url      = env("DATABASE_URL")
 }
 
@@ -20,6 +21,18 @@ enum ChallengeReviewStatus {
   rejected
 }
 
+/// Tags for discovery filters; a challenge can have multiple.
+enum ChallengeCategory {
+  sports
+  outdoors
+  clubs
+  campus
+  beach
+  volunteering
+  arts_culture
+  misc
+}
+
 model User {
   id              Int                   @id @default(autoincrement())
   supabaseId      String?               @unique
@@ -29,12 +42,36 @@ model User {
   auraPoints      Int                   @default(0)
   streak          Int                   @default(0)
   lastCompletedAt DateTime? // For streak tracking
+  /// When false, approved completions are hidden from global and friends feeds (own profile still lists them).
+  shareCompletionsInFeed Boolean         @default(true)
   createdAt       DateTime              @default(now())
   completions     ChallengeCompletion[] // Reverse relation
   likes           CompletionLike[]      // Reverse relation
   flags           Flag[] // Flags they've submitted
+  friendshipsSent     Friendship[]      @relation("FriendshipRequester")
+  friendshipsReceived Friendship[]      @relation("FriendshipAddressee")
 
   @@index([auraPoints])
+}
+
+enum FriendshipStatus {
+  pending
+  accepted
+}
+
+model Friendship {
+  id          Int              @id @default(autoincrement())
+  requesterId Int
+  addresseeId Int
+  status      FriendshipStatus @default(pending)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
 }
 
 model Challenge {
@@ -47,12 +84,15 @@ model Challenge {
   longitude       Float
   difficulty      String
   pointsReward    Int
+  /// One or more theme tags (filters match if any tag matches).
+  tags            ChallengeCategory[]
   createdAt       DateTime              @default(now())
   completions  ChallengeCompletion[] // Reverse relation
 
   @@index([latitude, longitude])
   @@index([createdAt])
   @@index([difficulty])
+  @@index([tags], type: Gin)
 }
 
 model ChallengeCompletion {

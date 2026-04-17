@@ -5,6 +5,7 @@ import { ApiResponse } from '../types';
 import { prisma } from '../prisma';
 import { ChallengeReviewStatus, Prisma } from '@prisma/client';
 import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
+import { getAcceptedFriendIds } from '../utils/friendship';
 
 function viewerMaySeeCompletion(
   completion: { userId: number; reviewStatus: ChallengeReviewStatus },
@@ -347,14 +348,27 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
     limit,
     sortBy,
     sortOrder,
-  } = req.query as any;
+    feed,
+  } = req.query as {
+    userId?: number;
+    challengeId?: number;
+    startDate?: Date;
+    endDate?: Date;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+    feed?: 'global' | 'friends';
+  };
 
   const where: Prisma.ChallengeCompletionWhereInput = {};
 
   const userIdNum =
-    userId !== undefined && userId !== null && userId !== ''
+    userId !== undefined && userId !== null && !Number.isNaN(Number(userId))
       ? Number(userId)
       : undefined;
+
+  const feedScope = feed === 'friends' ? 'friends' : 'global';
 
   if (userIdNum !== undefined && !Number.isNaN(userIdNum)) {
     where.userId = userIdNum;
@@ -363,9 +377,35 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
     const isAdmin = req.user?.role === 'admin';
     if (!isOwner && !isAdmin) {
       where.reviewStatus = ChallengeReviewStatus.approved;
+      where.user = { shareCompletionsInFeed: true };
     }
   } else {
     where.reviewStatus = ChallengeReviewStatus.approved;
+
+    if (feedScope === 'friends') {
+      if (!req.user) {
+        throw new AppError('Sign in to view your friends feed', 401);
+      }
+      const friendIds = await getAcceptedFriendIds(req.user.id);
+      if (friendIds.length === 0) {
+        const pageNum = Number(page ?? 1);
+        const limitNum = Number(limit ?? 20);
+        res.json({
+          success: true,
+          data: [],
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: 0,
+            totalPages: 1,
+          },
+        });
+        return;
+      }
+      where.userId = { in: friendIds };
+    }
+
+    where.user = { shareCompletionsInFeed: true };
   }
 
   if (challengeId) where.challengeId = challengeId;

@@ -3,7 +3,7 @@ import { asyncHandler } from '../middleware/asyncHandler';
 import { AppError } from '../middleware/errorHandler';
 import { Challenge, ChallengeWithCompletions, ChallengeWithDistance, ApiResponse, PaginatedResponse } from '../types';
 import { prisma } from '../prisma';
-import { Prisma } from '@prisma/client';
+import { ChallengeCategory, Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 /**
@@ -11,9 +11,10 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
  * Get all challenges with optional filtering
  */
 export const getChallenges = asyncHandler(async (req: Request, res: Response) => {
-  const { difficulty, search, page = '1', limit = '20' } = req.query as {
+  const { difficulty, search, category, page = '1', limit = '20' } = req.query as {
     difficulty?: string;
     search?: string;
+    category?: ChallengeCategory;
     page?: string;
     limit?: string;
   }
@@ -22,12 +23,13 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
   const limitNum = Math.min(Number(limit) || 20, 100);
   const skip = (pageNum - 1) * limitNum;
 
-  const where: {
-    difficulty?: string;
-    OR?: Array<{ title?: { contains: string; mode: 'insensitive' } } | { description?: { contains: string; mode: 'insensitive' } }>;
-  } = {};
+  const where: Prisma.ChallengeWhereInput = {};
   if (difficulty) {
     where.difficulty = difficulty;
+  }
+
+  if (category) {
+    where.tags = { has: category };
   }
 
   if (search) {
@@ -65,7 +67,7 @@ export const getChallenges = asyncHandler(async (req: Request, res: Response) =>
  * Create a new challenge (admin only)
  */
 export const createChallenge = asyncHandler(async (req: Request, res: Response) => {
-  const { title, description, photoGuidelines, latitude, longitude, difficulty, pointsReward } = req.body;
+  const { title, description, photoGuidelines, latitude, longitude, difficulty, pointsReward, tags } = req.body;
 
   try {
     const newChallenge = await prisma.challenge.create({
@@ -77,6 +79,7 @@ export const createChallenge = asyncHandler(async (req: Request, res: Response) 
         longitude,
         difficulty,
         pointsReward,
+        tags,
       },
     });
 
@@ -186,6 +189,7 @@ export const getNearbyChallenges = asyncHandler(async (req: Request, res: Respon
         c.longitude,
         c.difficulty,
         c."pointsReward",
+        c."tags",
         c."createdAt",
         6371000 * 2 * ASIN(SQRT(
           POWER(SIN(RADIANS(c.latitude - ${latitude}) / 2), 2) +

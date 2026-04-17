@@ -11,28 +11,55 @@ function mimeForExtension(ext: string): string {
       return "image/webp";
     case "heic":
       return "image/heic";
+    case "mov":
+    case "m4v":
+      return "video/quicktime";
+    case "mp4":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mkv":
+      return "video/x-matroska";
     default:
       return "image/jpeg";
   }
 }
 
-export async function uploadCompletionImage(localUri: string): Promise<string | null> {
+function extForMime(mime: string): string {
+  if (mime === "video/quicktime") return "mov";
+  if (mime === "video/mp4") return "mp4";
+  if (mime === "video/webm") return "webm";
+  if (mime.startsWith("video/")) return "mp4";
+  if (mime === "image/png") return "png";
+  if (mime === "image/gif") return "gif";
+  if (mime === "image/webp") return "webp";
+  return "jpg";
+}
+
+/**
+ * Upload completion proof (photo or video) to `/api/upload`.
+ * Field name stays `image` for backend compatibility.
+ */
+export async function uploadCompletionMedia(
+  localUri: string,
+  opts?: { mimeType?: string },
+): Promise<string | null> {
   const session = await getValidSession();
   if (!session?.accessToken) {
-    console.warn("[storage] No session – cannot upload image");
+    console.warn("[storage] No session – cannot upload media");
     return null;
   }
 
-  try {
-    const ext = localUri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
-    const mime = mimeForExtension(ext);
+  const ext =
+    localUri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
+  const mime = opts?.mimeType || mimeForExtension(ext);
+  const safeName = `upload.${extForMime(mime)}`;
 
-    // React Native: `fetch(fileUri).blob()` often yields an empty blob for library / ph://
-    // URIs, which produced 0-byte Supabase objects. Append the file reference instead.
+  try {
     const formData = new FormData();
     formData.append("image", {
       uri: localUri,
-      name: `photo.${ext}`,
+      name: safeName,
       type: mime,
     } as unknown as Blob);
 
@@ -50,9 +77,12 @@ export async function uploadCompletionImage(localUri: string): Promise<string | 
       return null;
     }
 
-    return json.data.imageUrl;
+    return json.data.imageUrl as string;
   } catch (err) {
     console.warn("[storage] Upload exception:", err);
     return null;
   }
 }
+
+/** @deprecated Use `uploadCompletionMedia` */
+export const uploadCompletionImage = uploadCompletionMedia;

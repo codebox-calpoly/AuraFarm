@@ -1,0 +1,52 @@
+import type { ChallengeCategory } from "@/constants/challengeCategories";
+
+/**
+ * Mirrors `backend/prisma/challengeTagsByTitle.ts` — used for labels/filters when the API
+ * still returns only `["campus"]` (legacy DB backfill) or omits `tags`.
+ * Keep in sync when seed titles/tags change.
+ */
+export const CHALLENGE_TAGS_BY_TITLE: Record<string, ChallengeCategory[]> = {
+  "Campus scavenger hunt": ["outdoors", "campus"],
+  "Where's Waldo": ["misc", "campus"],
+  "Hike the P": ["outdoors"],
+  "Professor thumbs up": ["campus"],
+  "AuraFarm logo on a whiteboard": ["arts_culture", "campus"],
+  "Beach sandcastle": ["beach", "outdoors"],
+  "Ice bucket (with consent)": ["misc", "campus"],
+  "Grubhub order name: Aura Farm": ["misc"],
+  "Find the Carrot Guy": ["campus", "misc"],
+  "Hot sauce shot": ["misc"],
+  "Submit a challenge idea": ["campus", "misc"],
+  "Make your bed": ["misc", "campus"],
+  "Climb a tree": ["outdoors"],
+  "Selfie with the Aglish cow": ["arts_culture", "campus"],
+  "Intramural win": ["sports", "clubs"],
+  "StairMaster session": ["sports", "campus"],
+  "Pet a dog": ["misc", "campus"],
+  "Wordle in four or fewer": ["misc"],
+  "AuraFarm logo in Minecraft": ["arts_culture", "misc"],
+  "Dexter Lawn (face down)": ["outdoors", "campus"],
+  "Eat a vegetable": ["misc"],
+  "Pick up trash": ["volunteering", "outdoors"],
+  "Temporary AuraFarm “tattoo”": ["arts_culture", "misc"],
+  "Paint a nail red": ["misc"],
+  "Headstand": ["sports", "misc"],
+  "Backwards shirt in class": ["campus", "misc"],
+  "Five pairs of sunglasses": ["misc"],
+  "100 upvotes on Cal Poly Yik Yak": ["misc", "campus"],
+  "Under three hours screen time": ["misc"],
+  "Jump in the ocean": ["beach", "outdoors"],
+  "Parallel park": ["misc", "campus"],
+  "Donate five dollars to charity": ["volunteering"],
+  "Eight-minute mile": ["sports", "outdoors"],
+  "Selfie with a campus turkey": ["outdoors", "campus"],
+  "Basketball dunk": ["sports"],
+  "Cal Poly sports event": ["sports", "clubs"],
+  "25,000 steps in one day": ["sports", "outdoors"],
+  "“Weird Al” bathroom plaque": ["misc", "campus"],
+  "Einstein bench": ["arts_culture", "outdoors", "campus"],
+  "Cal Poly Creamery ice cream": ["campus", "misc"],
+  "San Luis Obispo sign": ["outdoors"],
+  "SLO DoCo donut": ["outdoors", "misc"],
+  "ASI trivia night": ["clubs", "campus"],
+};

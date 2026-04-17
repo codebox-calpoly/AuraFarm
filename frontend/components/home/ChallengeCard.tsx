@@ -11,6 +11,8 @@ export interface ChallengeCardProps {
   points: number;
   timeLeft?: string;
   dateCompleted?: string;
+  /** Theme labels (e.g. Sports, Beach) — one pill per tag */
+  categoryLabels?: string[];
   onPress?: () => void;
 }
 
@@ -20,6 +22,7 @@ export function ChallengeCard({
   points,
   timeLeft,
   dateCompleted,
+  categoryLabels,
   onPress,
 }: ChallengeCardProps) {
   if (type === "incoming") {
@@ -36,6 +39,16 @@ export function ChallengeCard({
               />
               <ThemedText style={styles.timerText}>{timeLeft}</ThemedText>
             </View>
+
+            {categoryLabels && categoryLabels.length > 0 ? (
+              <View style={styles.categoryPillsRow}>
+                {categoryLabels.map((label, i) => (
+                  <View key={`${label}-${i}`} style={styles.categoryPill}>
+                    <ThemedText style={styles.categoryPillText}>{label}</ThemedText>
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             <ThemedText type="subtitle" style={styles.incomingTitle}>
               {title}
@@ -103,7 +116,26 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    marginBottom: spacing.xs,
+  },
+  categoryPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
     marginBottom: spacing.sm,
+  },
+  categoryPill: {
+    alignSelf: "flex-start",
+    backgroundColor: tailwindColors["aura-gray-100"],
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+  },
+  categoryPillText: {
+    fontSize: 11,
+    fontFamily: "Poppins_600SemiBold",
+    color: tailwindColors["aura-gray-600"],
+    letterSpacing: 0.3,
   },
   timerText: {
     color: tailwindColors["aura-gray-600"],

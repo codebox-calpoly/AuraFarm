@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { CHALLENGE_SEED_DATA } from './challengeSeedData';
+import { CHALLENGE_TAGS_BY_TITLE } from './challengeTagsByTitle';
 
 const prisma = new PrismaClient();
 
@@ -48,6 +49,10 @@ async function main() {
   console.log('🎯 Creating challenges...');
   const createdChallenges = [];
   for (const c of CHALLENGE_SEED_DATA) {
+    const tags = CHALLENGE_TAGS_BY_TITLE[c.title];
+    if (!tags?.length) {
+      throw new Error(`Missing tags mapping for challenge title: ${c.title}`);
+    }
     const row = await prisma.challenge.create({
       data: {
         title: c.title,
@@ -57,6 +62,7 @@ async function main() {
         longitude: c.longitude,
         difficulty: c.difficulty,
         pointsReward: c.pointsReward,
+        tags,
       },
     });
     createdChallenges.push(row);

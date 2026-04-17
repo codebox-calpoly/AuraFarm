@@ -88,6 +88,7 @@ jest.mock('../../prisma', () => ({
         latitude: 40.7128,
         longitude: -74.0060,
         pointsReward: 10,
+        tags: ['campus'],
       });
 
       // Default: no existing completion

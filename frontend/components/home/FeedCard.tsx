@@ -1,15 +1,10 @@
-import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  type LayoutChangeEvent,
-} from "react-native";
-import { Image } from "expo-image";
+import { StyleSheet, View, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { PostMedia } from "@/components/home/PostMedia";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { cardShadow, radius, spacing } from "@/constants/design";
 
 export interface FeedCardProps {
@@ -25,43 +20,6 @@ export interface FeedCardProps {
   onPress?: () => void;
   onOptionsPress?: () => void;
   onLikePress?: (liked: boolean) => void;
-}
-
-/**
- * Remote images need explicit pixel width/height on iOS. Nesting `absoluteFill` under
- * `aspectRatio` often paints a grey box only (0×0 bitmap layer).
- */
-function PostImage({ uri }: { uri: string }) {
-  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
-
-  const onImageFrameLayout = useCallback((e: LayoutChangeEvent) => {
-    const { width, height } = e.nativeEvent.layout;
-    if (width <= 0 || height <= 0) return;
-    setSize((prev) =>
-      prev && prev.w === width && prev.h === height ? prev : { w: width, h: height },
-    );
-  }, []);
-
-  return (
-    <View style={styles.imageFrame} onLayout={onImageFrameLayout}>
-      {size ? (
-        <Image
-          source={{ uri: uri.trim() }}
-          style={{ width: size.w, height: size.h }}
-          contentFit="cover"
-          transition={200}
-          accessibilityLabel="Challenge photo"
-          onError={(event) => {
-            console.warn(
-              "[FeedCard] image failed:",
-              uri.slice(0, 96),
-              "error" in event ? event.error : event,
-            );
-          }}
-        />
-      ) : null}
-    </View>
-  );
 }
 
 export function FeedCard({
@@ -116,7 +74,7 @@ export function FeedCard({
         </View>
 
         {mainUri ? (
-          <PostImage uri={mainUri} />
+          <PostMedia uri={mainUri} frameStyle={styles.imageFrame} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons

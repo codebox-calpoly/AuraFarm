@@ -11,13 +11,16 @@ const library_1 = require("@prisma/client/runtime/library");
  * Get all challenges with optional filtering
  */
 exports.getChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { difficulty, search, page = '1', limit = '20' } = req.query;
+    const { difficulty, search, category, page = '1', limit = '20' } = req.query;
     const pageNum = Number(page) || 1;
     const limitNum = Math.min(Number(limit) || 20, 100);
     const skip = (pageNum - 1) * limitNum;
     const where = {};
     if (difficulty) {
         where.difficulty = difficulty;
+    }
+    if (category) {
+        where.tags = { has: category };
     }
     if (search) {
         where.OR = [
@@ -51,7 +54,7 @@ exports.getChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
  * Create a new challenge (admin only)
  */
 exports.createChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
-    const { title, description, photoGuidelines, latitude, longitude, difficulty, pointsReward } = req.body;
+    const { title, description, photoGuidelines, latitude, longitude, difficulty, pointsReward, tags } = req.body;
     try {
         const newChallenge = await prisma_1.prisma.challenge.create({
             data: {
@@ -62,6 +65,7 @@ exports.createChallenge = (0, asyncHandler_1.asyncHandler)(async (req, res) => {
                 longitude,
                 difficulty,
                 pointsReward,
+                tags,
             },
         });
         const response = {
@@ -149,6 +153,7 @@ exports.getNearbyChallenges = (0, asyncHandler_1.asyncHandler)(async (req, res) 
         c.longitude,
         c.difficulty,
         c."pointsReward",
+        c."tags",
         c."createdAt",
         6371000 * 2 * ASIN(SQRT(
           POWER(SIN(RADIANS(c.latitude - ${latitude}) / 2), 2) +

@@ -40,6 +40,12 @@ const router = Router();
  *           type: string
  *           enum: [easy, medium, hard]
  *         description: Filter by difficulty
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [sports, outdoors, clubs, campus, beach, volunteering, arts_culture, misc]
+ *         description: Return challenges that include this tag (multi-tag challenges match any listed tag)
  *     responses:
  *       200:
  *         description: List of challenges

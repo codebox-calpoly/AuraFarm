@@ -1,6 +1,9 @@
 import Constants from "expo-constants";
 import axios from "axios";
+import type { ChallengeCategory } from "@/constants/challengeCategories";
 import { getValidSession, refreshSession } from "@/lib/auth";
+
+export type { ChallengeCategory };
 
 type ApiOk<T> = { success: true; data: T; message?: string };
 type ApiErr = { success: false; error?: string; message?: string };
@@ -15,6 +18,9 @@ export type Challenge = {
   longitude: number;
   difficulty: string;
   pointsReward: number;
+  tags?: ChallengeCategory[];
+  /** Legacy single-theme field from older API responses */
+  category?: ChallengeCategory;
   createdAt: string;
 };
 
@@ -30,6 +36,7 @@ export type UserProfile = {
 /** GET /api/users/me — includes email (unlike public profile by id) */
 export type CurrentUserProfile = UserProfile & {
   email: string;
+  shareCompletionsInFeed?: boolean;
 };
 
 export type UserCompletion = {
@@ -132,11 +139,16 @@ async function authedFetch(
   return res;
 }
 
-export async function getChallenges(): Promise<ApiResponse<Challenge[]>> {
-  // Backend defaults to limit=20; request enough to show the full catalog
-  const res = await fetch(
-    `${apiBaseUrl()}/api/challenges?limit=100`,
-  );
+export async function getChallenges(options?: {
+  limit?: number;
+  category?: ChallengeCategory;
+}): Promise<ApiResponse<Challenge[]>> {
+  const limit = options?.limit ?? 100;
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (options?.category) {
+    params.set("category", options.category);
+  }
+  const res = await fetch(`${apiBaseUrl()}/api/challenges?${params.toString()}`);
   const json = await res.json();
   if (!res.ok) {
     return {
@@ -193,6 +205,7 @@ export async function getCurrentUserFromApi(): Promise<
 
 export async function updateCurrentUserProfile(body: {
   name?: string;
+  shareCompletionsInFeed?: boolean;
 }): Promise<ApiResponse<{ id: number; name: string; email: string }>> {
   const res = await authedFetch(`${apiBaseUrl()}/api/users/me`, {
     method: "PATCH",
@@ -247,10 +260,175 @@ export async function getUserCompletionsFromApi(): Promise<
   return json;
 }
 
-export async function getFeedCompletionsFromApi(): Promise<
-  ApiResponse<FeedCompletion[]>
+export async function getFeedCompletionsFromApi(
+  feed: "global" | "friends" = "global",
+): Promise<ApiResponse<FeedCompletion[]>> {
+  const params = new URLSearchParams({ limit: "20", feed });
+  const res =
+    feed === "friends"
+      ? await authedFetch(`${apiBaseUrl()}/api/completions?${params.toString()}`)
+      : await fetch(`${apiBaseUrl()}/api/completions?${params.toString()}`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export type FriendSummary = {
+  id: number;
+  name: string;
+  auraPoints: number;
+  since: string;
+};
+
+export type UserSearchHit = {
+  id: number;
+  name: string;
+  auraPoints: number;
+};
+
+export async function searchUsersFromApi(
+  q: string,
+): Promise<ApiResponse<UserSearchHit[]>> {
+  const params = new URLSearchParams({ q: q.trim(), limit: "20" });
+  const res = await authedFetch(
+    `${apiBaseUrl()}/api/users/search?${params.toString()}`,
+  );
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function getFriendsFromApi(): Promise<ApiResponse<FriendSummary[]>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function getIncomingFriendRequestsFromApi(): Promise<
+  ApiResponse<
+    { id: number; requester: UserSearchHit; createdAt: string }[]
+  >
 > {
-  const res = await fetch(`${apiBaseUrl()}/api/completions?limit=20`);
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/incoming`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function getOutgoingFriendRequestsFromApi(): Promise<
+  ApiResponse<
+    { id: number; addressee: UserSearchHit; createdAt: string }[]
+  >
+> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/outgoing`);
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function sendFriendRequestToUser(
+  targetUserId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ targetUserId }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function acceptFriendRequestFromApi(
+  requesterId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requesterId }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function declineFriendRequestFromApi(
+  requesterId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/decline`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requesterId }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function cancelOutgoingFriendRequest(
+  targetUserId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(
+    `${apiBaseUrl()}/api/friends/outgoing/${targetUserId}`,
+    { method: "DELETE" },
+  );
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function removeFriendFromApi(
+  userId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/friends/${userId}`, {
+    method: "DELETE",
+  });
   const json = await res.json();
   if (!res.ok) {
     return {

@@ -21,6 +21,7 @@ import flagsRoutes from './routes/flags.routes';
 import usersRoutes from './routes/users.routes';
 import leaderboardRoutes from './routes/leaderboard.routes';
 import uploadRoutes from './routes/upload.routes';
+import friendsRoutes from './routes/friends.routes';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/challenges', rateLimiter.publicLimiter, challengesRoutes);
 app.use('/api/completions', completionsRoutes);
 app.use('/api/flags', flagsRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/friends', friendsRoutes);
 app.use('/api/leaderboard', rateLimiter.publicLimiter, leaderboardRoutes);
 app.use('/api/upload', uploadRoutes);
 

@@ -27,6 +27,9 @@ export default {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
+    android: {
+      package: 'com.codebox.aurafarm',
+    },
     extra: {
       supabaseUrl:
         process.env.EXPO_PUBLIC_SUPABASE_URL ??

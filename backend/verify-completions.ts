@@ -39,6 +39,7 @@ async function testCompletions() {
                 longitude: -122.4194,
                 difficulty: 'easy',
                 pointsReward: 100,
+                tags: ['campus'],
             },
         });
         console.log('   Challenge ID:', challenge.id);
@@ -97,6 +98,7 @@ async function testCompletions() {
                 longitude: 0,
                 difficulty: 'hard',
                 pointsReward: 50,
+                tags: ['campus'],
             },
         });
 

@@ -5,18 +5,20 @@ import {
   Modal,
   TouchableOpacity,
   Pressable,
-  Image,
   TextInput,
   Keyboard,
   TouchableWithoutFeedback,
   SafeAreaView,
   ScrollView,
 } from "react-native";
+import { Image } from "expo-image";
+import { Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
+import { isVideoUrl } from "@/lib/media";
 
 export interface ChallengeDetailModalProps {
   visible: boolean;
@@ -27,7 +29,11 @@ export interface ChallengeDetailModalProps {
   photoGuidelines?: string;
   points: number;
   timeLeft: string;
-  onSubmit: (imageUri: string, caption: string) => void | Promise<boolean | void>;
+  onSubmit: (
+    mediaUri: string,
+    caption: string,
+    meta?: { mimeType?: string },
+  ) => void | Promise<boolean | void>;
 }
 
 export function ChallengeDetailModal({
@@ -46,7 +52,11 @@ export function ChallengeDetailModal({
       .map((s) => s.trim())
       .filter(Boolean) ?? [];
   const [showUploadOptions, setShowUploadOptions] = useState(false);
-  const [image, setImage] = useState<string | null>(null);
+  const [mediaUri, setMediaUri] = useState<string | null>(null);
+  const [isVideoMedia, setIsVideoMedia] = useState(false);
+  const [pickedMimeType, setPickedMimeType] = useState<string | undefined>(
+    undefined,
+  );
   const [caption, setCaption] = useState("");
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -54,7 +64,9 @@ export function ChallengeDetailModal({
   // Reset state when modal closes
   const handleClose = () => {
     setShowUploadOptions(false);
-    setImage(null);
+    setMediaUri(null);
+    setIsVideoMedia(false);
+    setPickedMimeType(undefined);
     setCaption("");
     setShowActionSheet(false);
     onClose();
@@ -64,16 +76,25 @@ export function ChallengeDetailModal({
     setShowUploadOptions(true);
   };
 
-  const pickImage = async () => {
+  const pickPhotoOrVideoFromLibrary = async () => {
+    const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!lib.granted) {
+      alert("Allow photo library access to choose a photo or video.");
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
       quality: 1,
+      videoMaxDuration: 180,
     });
 
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      const a = result.assets[0];
+      setMediaUri(a.uri);
+      setIsVideoMedia(a.type === "video" || isVideoUrl(a.uri));
+      setPickedMimeType(a.mimeType ?? undefined);
       setShowActionSheet(false);
     }
   };
@@ -87,22 +108,55 @@ export function ChallengeDetailModal({
     }
 
     const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
     });
 
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
+    if (!result.canceled && result.assets[0]) {
+      const a = result.assets[0];
+      setMediaUri(a.uri);
+      setIsVideoMedia(false);
+      setPickedMimeType(a.mimeType ?? undefined);
+      setShowActionSheet(false);
+    }
+  };
+
+  const recordVideo = async () => {
+    const cam = await ImagePicker.requestCameraPermissionsAsync();
+    if (!cam.granted) {
+      alert("Camera access is required to record a video.");
+      return;
+    }
+    const mic = await ImagePicker.requestMicrophonePermissionsAsync();
+    if (!mic.granted) {
+      alert("Microphone access is needed to record video with audio.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      videoMaxDuration: 180,
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const a = result.assets[0];
+      setMediaUri(a.uri);
+      setIsVideoMedia(true);
+      setPickedMimeType(a.mimeType ?? undefined);
       setShowActionSheet(false);
     }
   };
 
   const handlePost = async () => {
-    if (!image) return;
+    if (!mediaUri) return;
     setSubmitting(true);
     try {
-      const result = await onSubmit(image, caption);
+      const result = await onSubmit(mediaUri, caption, {
+        mimeType: pickedMimeType,
+      });
       if (result !== false) handleClose();
     } finally {
       setSubmitting(false);
@@ -160,7 +214,7 @@ export function ChallengeDetailModal({
                 {guidelineLines.length > 0 && (
                   <View style={styles.guidelinesBlock}>
                     <ThemedText style={styles.guidelinesHeading}>
-                      Photo guidelines
+                      Submission guidelines
                     </ThemedText>
                     {guidelineLines.map((line, i) => (
                       <View key={i} style={styles.guidelineRow}>
@@ -211,34 +265,48 @@ export function ChallengeDetailModal({
                 <View style={{ width: 24 }} />
               </View>
 
-              {/* Image Area */}
+              {/* Media preview (photo or video) */}
               <TouchableOpacity
                 style={styles.imagePlaceholder}
                 onPress={() => setShowActionSheet(true)}
+                activeOpacity={0.9}
               >
-                {image ?
-                  <Image source={{ uri: image }} style={styles.uploadedImage} />
+                {mediaUri ?
+                  isVideoMedia ?
+                    <Video
+                      source={{ uri: mediaUri }}
+                      style={styles.uploadedImage}
+                      useNativeControls
+                      resizeMode={ResizeMode.CONTAIN}
+                      shouldPlay={false}
+                      isLooping={false}
+                    />
+                  : <Image
+                      source={{ uri: mediaUri }}
+                      style={styles.uploadedImage}
+                      contentFit="cover"
+                    />
+
                 : <View style={styles.placeholderContent}>
                     <Ionicons
-                      name="camera"
+                      name="images-outline"
                       size={48}
                       color={tailwindColors["aura-gray-300"]}
                     />
                     <ThemedText style={styles.placeholderText}>
-                      Upload Photo
+                      Photo or video
                     </ThemedText>
                   </View>
                 }
               </TouchableOpacity>
 
-              {/* Change Photo Button */}
-              {image && (
+              {mediaUri && (
                 <TouchableOpacity
                   style={styles.changePhotoButton}
                   onPress={() => setShowActionSheet(true)}
                 >
                   <ThemedText style={styles.changePhotoText}>
-                    Change Photo
+                    Change photo or video
                   </ThemedText>
                 </TouchableOpacity>
               )}
@@ -261,19 +329,19 @@ export function ChallengeDetailModal({
               <TouchableOpacity
                 style={[
                   styles.postButton,
-                  (!image || submitting) && styles.disabledButton,
+                  (!mediaUri || submitting) && styles.disabledButton,
                 ]} 
                 onPress={handlePost}
-                disabled={!image || submitting}
+                disabled={!mediaUri || submitting}
               >
                 <ThemedText style={styles.postButtonText}>
                   {submitting ? "Submitting…" : "Post"}
                 </ThemedText>
               </TouchableOpacity>
 
-              {!image && (
+              {!mediaUri && (
                 <ThemedText style={styles.warningText}>
-                  You cannot post until you upload a picture
+                  Add a photo or video to submit
                 </ThemedText>
               )}
             </View>
@@ -287,10 +355,10 @@ export function ChallengeDetailModal({
                 <View style={styles.actionSheet}>
                   <TouchableOpacity
                     style={styles.actionSheetButton}
-                    onPress={pickImage}
+                    onPress={pickPhotoOrVideoFromLibrary}
                   >
                     <ThemedText style={styles.actionSheetText}>
-                      Photo Gallery
+                      Photo or video from library
                     </ThemedText>
                   </TouchableOpacity>
                   <View style={styles.separator} />
@@ -299,7 +367,16 @@ export function ChallengeDetailModal({
                     onPress={takePhoto}
                   >
                     <ThemedText style={styles.actionSheetText}>
-                      Camera
+                      Take photo
+                    </ThemedText>
+                  </TouchableOpacity>
+                  <View style={styles.separator} />
+                  <TouchableOpacity
+                    style={styles.actionSheetButton}
+                    onPress={recordVideo}
+                  >
+                    <ThemedText style={styles.actionSheetText}>
+                      Record video
                     </ThemedText>
                   </TouchableOpacity>
                   <View style={styles.separator} />

@@ -23,6 +23,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   useWindowDimensions,
@@ -45,6 +46,8 @@ export default function SettingsScreen() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [shareCompletionsInFeed, setShareCompletionsInFeed] = useState(true);
+  const [shareFeedLoaded, setShareFeedLoaded] = useState(false);
 
   const usernameInputRef = useRef<TextInput>(null);
   const { width } = useWindowDimensions();
@@ -73,6 +76,8 @@ export default function SettingsScreen() {
           setUsername(d.name ?? "");
           setOriginalUsername(d.name ?? "");
           setEmail(d.email ?? "");
+          setShareCompletionsInFeed(d.shareCompletionsInFeed !== false);
+          setShareFeedLoaded(true);
           const fresh = await getValidSession();
           if (fresh) {
             await storeSession({
@@ -170,6 +175,21 @@ export default function SettingsScreen() {
       setConfirmPassword("");
     } catch {
       setError("Something went wrong. Please try again.");
+    }
+  };
+
+  const handleShareFeedToggle = async (value: boolean) => {
+    const prev = shareCompletionsInFeed;
+    setShareCompletionsInFeed(value);
+    try {
+      const json = await updateCurrentUserProfile({ shareCompletionsInFeed: value });
+      if (!json.success) {
+        setShareCompletionsInFeed(prev);
+        Alert.alert("Could not update", json.error ?? "Try again.");
+      }
+    } catch {
+      setShareCompletionsInFeed(prev);
+      Alert.alert("Error", "Network error. Please try again.");
     }
   };
 
@@ -303,6 +323,36 @@ export default function SettingsScreen() {
                 </Text>
               </View>
               <ThemedText style={styles.hint}>Email cannot be changed here</ThemedText>
+            </View>
+          </ThemedView>
+
+          {/* Privacy */}
+          <ThemedText style={styles.sectionLabel}>Privacy</ThemedText>
+          <ThemedView
+            style={[styles.card, cardShadow(2)]}
+            lightColor={tailwindColors["aura-surface"]}
+          >
+            <View style={styles.privacyRow}>
+              <View style={styles.privacyCopy}>
+                <ThemedText style={styles.privacyTitle}>Show in feed</ThemedText>
+                <ThemedText style={styles.privacySubtitle}>
+                  When off, your approved challenge posts stay on your profile but are hidden from
+                  the Global and Friends feeds. You can change this anytime.
+                </ThemedText>
+              </View>
+              <Switch
+                value={shareFeedLoaded ? shareCompletionsInFeed : true}
+                onValueChange={handleShareFeedToggle}
+                trackColor={{
+                  false: tailwindColors["aura-gray-300"],
+                  true: tailwindColors["aura-green-light"],
+                }}
+                thumbColor={
+                  shareFeedLoaded && shareCompletionsInFeed
+                    ? tailwindColors["aura-green"]
+                    : tailwindColors["aura-gray-100"]
+                }
+              />
             </View>
           </ThemedView>
 
@@ -537,6 +587,24 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: tailwindColors["aura-border"],
     marginVertical: spacing.md,
+  },
+  privacyRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: spacing.md,
+  },
+  privacyCopy: { flex: 1 },
+  privacyTitle: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+    marginBottom: spacing.xs,
+  },
+  privacySubtitle: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-500"],
+    lineHeight: 20,
   },
   readOnlyBlock: {},
   readOnlyRow: {
