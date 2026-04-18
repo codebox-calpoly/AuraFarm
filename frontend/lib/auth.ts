@@ -70,14 +70,28 @@ export async function refreshSession(): Promise<Session | null> {
   }
 }
 
+/**
+ * Session usable for API calls and gating. If the access token is expired, tries refresh.
+ * If refresh fails but a refresh token remains, still returns the stored session so
+ * `authedFetch` can send the token, get 401, and retry refresh — same rules as
+ * `isAuthenticated()` (avoids “tabs with 0 aura” while Settings thinks there’s no session).
+ */
 export async function getValidSession(): Promise<Session | null> {
   const session = await getSession();
-  if (!session) return null;
-  if (isTokenExpired(session.accessToken)) {
-    const refreshed = await refreshSession();
-    return refreshed;
+  if (!session?.userId || !session.accessToken) return null;
+
+  if (!isTokenExpired(session.accessToken)) {
+    return session;
   }
-  return session;
+
+  const refreshed = await refreshSession();
+  if (refreshed) return refreshed;
+
+  if (session.refreshToken) {
+    return session;
+  }
+
+  return null;
 }
 
 export async function clearSession(): Promise<void> {
@@ -89,15 +103,12 @@ export async function clearSession(): Promise<void> {
   }
 }
 
+/**
+ * Same bar as `getValidSession()` — must not disagree or splash opens tabs while
+ * screens using `getValidSession()` send you to login (phantom 0-aura shell).
+ */
 export async function isAuthenticated(): Promise<boolean> {
-  const session = await getSession();
-  if (session?.accessToken) return true;
-  try {
-    const { data: { session: sb } } = await supabase.auth.getSession();
-    return !!sb;
-  } catch {
-    return false;
-  }
+  return (await getValidSession()) !== null;
 }
 
 export async function setAuthenticated(value: boolean): Promise<void> {

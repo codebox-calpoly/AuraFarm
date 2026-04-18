@@ -169,32 +169,6 @@ export default function RanksScreen() {
           </ScrollView>
         </ThemedView>
 
-        {/* Point ranges — wrapped pills */}
-        <View style={styles.rangesBlock}>
-          <ThemedText style={styles.rangesHeading}>Point ranges</ThemedText>
-          <View style={styles.pillWrap}>
-            {TIER_SECTIONS.map((s) => (
-              <View
-                key={s.id}
-                style={[
-                  styles.rangePill,
-                  {
-                    borderColor: hexToRgba(s.color, 0.35),
-                    backgroundColor: hexToRgba(s.color, 0.1),
-                  },
-                ]}
-              >
-                <Text style={[styles.rangePillLabel, { color: s.color }]}>
-                  {s.label.replace(" Aura", "")}{" "}
-                  <Text style={styles.rangePillMuted}>
-                    {TIER_RANGE_LABEL[s.id]}
-                  </Text>
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
         {/* Leaderboard card */}
         <ThemedView
           style={[styles.leaderboardCard, cardShadow(4)]}
@@ -339,37 +313,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
-  },
-  rangesBlock: {
-    marginBottom: spacing.md,
-  },
-  rangesHeading: {
-    fontFamily: tailwindFonts["semibold"],
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-    color: tailwindColors["aura-gray-500"],
-    marginBottom: spacing.sm,
-    marginLeft: 2,
-  },
-  pillWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  rangePill: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: radius.full,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  rangePillLabel: {
-    fontFamily: tailwindFonts["semibold"],
-    fontSize: 12,
-  },
-  rangePillMuted: {
-    fontFamily: tailwindFonts["regular"],
-    opacity: 0.92,
   },
   leaderboardCard: {
     borderRadius: radius.xl,
