@@ -115,19 +115,34 @@ async function getUserIdFromSession(): Promise<number | null> {
     : parseInt(String(session.userId), 10) || null;
 }
 
+async function safeFetch(url: string | URL | globalThis.Request, options?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, options);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Request failed";
+    const errorMsg = msg.includes("fetch") || msg.includes("network")
+      ? "Cannot reach server. Make sure the backend is running and you're on the same network."
+      : msg;
+    return new Response(JSON.stringify({ success: false, error: errorMsg }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
 async function authedFetch(
   url: string,
   options: RequestInit = {}
 ): Promise<Response> {
   const headers = await authHeader();
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     ...options,
     headers: { ...headers, ...(options.headers as Record<string, string> ?? {}) },
   });
   if (res.status === 401) {
     const refreshed = await refreshSession();
     if (refreshed?.accessToken) {
-      return fetch(url, {
+      return safeFetch(url, {
         ...options,
         headers: {
           Authorization: `Bearer ${refreshed.accessToken}`,
@@ -148,7 +163,7 @@ export async function getChallenges(options?: {
   if (options?.category) {
     params.set("category", options.category);
   }
-  const res = await fetch(`${apiBaseUrl()}/api/challenges?${params.toString()}`);
+  const res = await safeFetch(`${apiBaseUrl()}/api/challenges?${params.toString()}`);
   const json = await res.json();
   if (!res.ok) {
     return {
@@ -267,7 +282,7 @@ export async function getFeedCompletionsFromApi(
   const res =
     feed === "friends"
       ? await authedFetch(`${apiBaseUrl()}/api/completions?${params.toString()}`)
-      : await fetch(`${apiBaseUrl()}/api/completions?${params.toString()}`);
+      : await safeFetch(`${apiBaseUrl()}/api/completions?${params.toString()}`);
   const json = await res.json();
   if (!res.ok) {
     return {
@@ -449,7 +464,7 @@ export type LeaderboardEntry = {
 };
 
 export async function getLeaderboardFromApi(limit = 50): Promise<ApiResponse<LeaderboardEntry[]>> {
-  const res = await fetch(`${apiBaseUrl()}/api/leaderboard?limit=${limit}`);
+  const res = await safeFetch(`${apiBaseUrl()}/api/leaderboard?limit=${limit}`);
   const json = await res.json();
   if (!res.ok) {
     return {
@@ -537,7 +552,7 @@ async function authFetch<T>(
   body: object
 ): Promise<ApiResponse<T>> {
   try {
-    const res = await fetch(`${apiBaseUrl()}/api/auth/${path}`, {
+    const res = await safeFetch(`${apiBaseUrl()}/api/auth/${path}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

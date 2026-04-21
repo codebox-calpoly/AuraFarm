@@ -136,10 +136,12 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     throw new AppError('User not found', 404);
   }
 
-  const higherRankedUsers = await prisma.user.count({
+  const higherRankedScores = await prisma.user.findMany({
     where: { auraPoints: { gt: user.auraPoints } },
+    select: { auraPoints: true },
+    distinct: ['auraPoints'],
   });
-  const rank = higherRankedUsers + 1;
+  const rank = higherRankedScores.length + 1;
 
   const userProfile: UserProfile = {
     id: user.id,

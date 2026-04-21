@@ -22,7 +22,7 @@ function buildDenseRankByAura(
 export const getLeaderboard = asyncHandler(
   async (req: Request, res: Response) => {
     const pageNum = Math.max(1, Number(req.query.page ?? 1));
-    const limitNum = Math.max(1, Number(req.query.limit ?? 20));
+    const limitNum = Math.min(100, Math.max(1, Number(req.query.limit ?? 20)));
     const startIndex = (pageNum - 1) * limitNum;
 
     // No $queryRaw — works cleanly with PgBouncer transaction mode and avoids

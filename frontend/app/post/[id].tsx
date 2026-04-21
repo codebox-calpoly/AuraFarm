@@ -22,6 +22,7 @@ export default function PostDetailScreen() {
     title: paramTitle,
     points: paramPoints,
     isOwnPost: paramIsOwnPost,
+    userName: paramUserName,
   } = useLocalSearchParams<{
     id: string;
     imageUri?: string;
@@ -30,6 +31,7 @@ export default function PostDetailScreen() {
     title?: string;
     points?: string;
     isOwnPost?: string;
+    userName?: string;
   }>();
 
   const router = useRouter();
@@ -87,7 +89,16 @@ export default function PostDetailScreen() {
 
     const nowLiked = !isLiked;
     setIsLiked(nowLiked);
-    likeMutation.mutate(nowLiked);
+    // Optimistically update likes count to match the UI
+    setLikes((prev) => (nowLiked ? prev + 1 : prev - 1));
+
+    likeMutation.mutate(nowLiked, {
+      onError: () => {
+        // Revert on error
+        setIsLiked(!nowLiked);
+        setLikes((prev) => (!nowLiked ? prev + 1 : prev - 1));
+      }
+    });
   };
 
   if (completionId > 0 && isLoading && !completion) {
@@ -108,7 +119,8 @@ export default function PostDetailScreen() {
     postImage: completion?.imageUri || completion?.imageUrl || paramImageUri || null,
     caption: completion?.caption || caption || "",
     likes: completion?.likes ?? (likeMutation.data?.likes ?? likes),
-    isOwnPost: paramIsOwnPost === 'true'
+    isOwnPost: paramIsOwnPost === 'true',
+    userName: completion?.user?.name || paramUserName || "Auranaut",
   };
 
   return (
@@ -133,6 +145,9 @@ export default function PostDetailScreen() {
             </ThemedText>
             <ThemedText style={styles.pointsText}>
               +{post.points} Aura
+            </ThemedText>
+            <ThemedText style={styles.userNameText}>
+              by {post.userName}
             </ThemedText>
           </View>
 
@@ -236,6 +251,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: tailwindFonts["semibold"],
     color: tailwindColors["aura-orange"],
+  },
+  userNameText: {
+    fontSize: 12,
+    fontFamily: tailwindFonts["regular"],
+    color: tailwindColors["aura-gray-500"],
+    marginTop: 2,
   },
   editButton: {
     padding: 4,

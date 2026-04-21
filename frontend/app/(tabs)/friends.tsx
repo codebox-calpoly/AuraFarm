@@ -76,14 +76,19 @@ export default function FriendsScreen() {
       setSearchHits([]);
       return;
     }
+    let cancelled = false;
     const t = setTimeout(async () => {
       setSearching(true);
       const res = await searchUsersFromApi(q);
+      if (cancelled) return;
       setSearching(false);
       if (res.success) setSearchHits(res.data);
       else setSearchHits([]);
     }, 350);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [searchQ]);
 
   const friendIds = new Set(friends.map((x) => x.id));

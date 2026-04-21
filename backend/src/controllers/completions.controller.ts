@@ -6,6 +6,7 @@ import { prisma } from '../prisma';
 import { ChallengeReviewStatus, Prisma } from '@prisma/client';
 import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
 import { getAcceptedFriendIds } from '../utils/friendship';
+import { calculateDistance } from '../utils/geo';
 
 function viewerMaySeeCompletion(
   completion: { userId: number; reviewStatus: ChallengeReviewStatus },
@@ -47,14 +48,22 @@ export const completeChallenge = asyncHandler(async (req: Request, res: Response
     throw new AppError('Challenge not found', 404);
   }
 
-  const lat =
-    latitude !== undefined && latitude !== null && !Number.isNaN(Number(latitude))
-      ? Number(latitude)
-      : challenge.latitude;
-  const lng =
-    longitude !== undefined && longitude !== null && !Number.isNaN(Number(longitude))
-      ? Number(longitude)
-      : challenge.longitude;
+  if (
+    latitude === undefined || latitude === null || Number.isNaN(Number(latitude)) ||
+    longitude === undefined || longitude === null || Number.isNaN(Number(longitude))
+  ) {
+    throw new AppError('Valid latitude and longitude are required to complete this challenge', 400);
+  }
+
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  const distance = calculateDistance(lat, lng, challenge.latitude, challenge.longitude);
+  const MAX_DISTANCE_METERS = 1000; // Allows some GPS drift
+
+  if (distance > MAX_DISTANCE_METERS) {
+    throw new AppError(`You are too far from the challenge location. Please get closer. (${Math.round(distance)}m away)`, 400);
+  }
 
   const existingCompletion = await prisma.challengeCompletion.findUnique({
     where: {
@@ -417,8 +426,8 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
     };
   }
 
-  const pageNum = Number(page ?? 1);
-  const limitNum = Number(limit ?? 20);
+  const pageNum = Math.max(1, Number(page ?? 1));
+  const limitNum = Math.min(100, Math.max(1, Number(limit ?? 20)));
   const skip = (pageNum - 1) * limitNum;
 
   const orderBy: Prisma.ChallengeCompletionOrderByWithRelationInput = {

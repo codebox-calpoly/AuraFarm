@@ -30,10 +30,12 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     'video/webm': 'webm',
     'video/x-matroska': 'mkv',
   };
-  const ext =
-    mimeToExt[file.mimetype] ||
-    file.originalname.split('.').pop()?.toLowerCase() ||
-    (file.mimetype.startsWith('video/') ? 'mp4' : 'jpg');
+  
+  if (!mimeToExt[file.mimetype]) {
+    throw new AppError('Unsupported file type. Please upload a valid image or video.', 400);
+  }
+  
+  const ext = mimeToExt[file.mimetype];
   const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   const { data, error } = await supabaseAdmin.storage

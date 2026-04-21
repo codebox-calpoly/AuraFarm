@@ -169,11 +169,20 @@ export default function HomeScreen() {
         // Always fetch full list: server `?category=` filters on DB tags, which may still be
         // legacy `["campus"]` only — then Sports/Outdoors would return zero rows. We filter
         // client-side using `tagsFromChallengePayload` (title map + API tags).
-        const res = await Promise.race([
-          getChallenges({ limit: 100 }),
-          new Promise<Awaited<ReturnType<typeof getChallenges>>>((_, reject) =>
-            setTimeout(() => reject(new Error("challenges-timeout")), 20_000),
-          ),
+        const [res, compResSettled] = await Promise.all([
+          Promise.race([
+            getChallenges({ limit: 100 }),
+            new Promise<Awaited<ReturnType<typeof getChallenges>>>((_, reject) =>
+              setTimeout(() => reject(new Error("challenges-timeout")), 20_000),
+            ),
+          ]).catch(() => ({ success: false as const, error: "Could not load challenges" })),
+          Promise.race([
+            getUserCompletionsFromApi(),
+            new Promise<Awaited<ReturnType<typeof getUserCompletionsFromApi>>>(
+              (_, reject) =>
+                setTimeout(() => reject(new Error("completions-timeout")), 15_000),
+            ),
+          ]).catch(() => ({ success: false as const, error: "Could not load completions" }))
         ]);
         if (cancelled) return;
 
@@ -187,19 +196,7 @@ export default function HomeScreen() {
         }
 
         setChallengesError(null);
-
-        let compRes: Awaited<ReturnType<typeof getUserCompletionsFromApi>>;
-        try {
-          compRes = await Promise.race([
-            getUserCompletionsFromApi(),
-            new Promise<Awaited<ReturnType<typeof getUserCompletionsFromApi>>>(
-              (_, reject) =>
-                setTimeout(() => reject(new Error("completions-timeout")), 15_000),
-            ),
-          ]);
-        } catch {
-          compRes = { success: false, error: "Could not load completions" };
-        }
+        let compRes = compResSettled;
         if (cancelled) return;
 
         const completedIds = new Set(
@@ -341,6 +338,11 @@ export default function HomeScreen() {
         return false;
       }
 
+      Alert.alert(
+        "Challenge Submitted!",
+        res.message || "Your post is under review. It will appear on the feed once approved by an admin.",
+      );
+
       const completionId = res.data?.id;
       setIncomingChallenges((prev) =>
         prev.filter((c) => c.id !== challengeToComplete.id),
@@ -363,8 +365,8 @@ export default function HomeScreen() {
         ...prev,
       ]);
 
-      // Refetch feed so the new post appears and persists after reload
-      await refetchFeed(feedScope);
+      // We don't need to refetch the feed immediately since the post is pending review
+      // and won't appear until an admin approves it.
 
       // Aura is granted on the server only after admin approval — do not bump the bar here
       // (avoid implying points landed immediately). Bar refreshes on next screen focus / pull.
@@ -526,10 +528,10 @@ export default function HomeScreen() {
                       onPress={() =>
                         isOwnPost
                           ? router.push(
-                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&isOwnPost=true`
+                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&userName=${encodeURIComponent(post.userName)}&isOwnPost=true`
                             )
                           : router.push(
-                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&isOwnPost=false`,
+                              `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&userName=${encodeURIComponent(post.userName)}&isOwnPost=false`,
                             )
                       }
                       onOptionsPress={() => handleOpenReportModal(post.id)}
