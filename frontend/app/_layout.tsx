@@ -1,4 +1,4 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,7 +14,8 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from "react";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { View } from 'react-native';
+import { tailwindColors } from '@/constants/tailwind-colors';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,7 +24,6 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
     Poppins_600SemiBold,
@@ -48,13 +48,21 @@ export default function RootLayout() {
   }, [fontsLoaded]);
 
   if (!fontsLoaded) {
-    return null;
+    // Avoid Android default black window while fonts load (React Navigation DarkTheme + system dark mode also used to paint the stack black).
+    return (
+      <View style={{ flex: 1, backgroundColor: tailwindColors['aura-page'] }} />
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack screenOptions={{ headerShown: false }}>
+      <ThemeProvider value={DefaultTheme}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: tailwindColors['aura-page'] },
+          }}
+        >
           <Stack.Screen name="splash" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="signup" />
