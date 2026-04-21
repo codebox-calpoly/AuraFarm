@@ -20,7 +20,6 @@ SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   initialRouteName: 'splash',
-  anchor: '(tabs)',
 };
 
 export default function RootLayout() {
@@ -63,10 +62,6 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="post" />
-          <Stack.Screen
-            name="modal"
-            options={{ headerShown: true, presentation: 'modal', title: 'Modal' }}
-          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

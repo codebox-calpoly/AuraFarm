@@ -11,6 +11,9 @@ export default function SplashScreen() {
   const router = useRouter();
 
   useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     const checkAndNavigate = async () => {
       try {
         const [hasCompletedOnboarding, loggedIn] = await Promise.all([
@@ -18,7 +21,10 @@ export default function SplashScreen() {
           isAuthenticated(),
         ]);
 
-        setTimeout(() => {
+        if (cancelled) return;
+
+        timer = setTimeout(() => {
+          if (cancelled) return;
           if (hasCompletedOnboarding !== "true") {
             router.replace("/onboarding");
           } else if (!loggedIn) {
@@ -29,11 +35,16 @@ export default function SplashScreen() {
         }, 1500);
       } catch (error) {
         console.error("Error checking auth state:", error);
-        router.replace("/onboarding");
+        if (!cancelled) router.replace("/onboarding");
       }
     };
 
     checkAndNavigate();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, []);
 
   return (

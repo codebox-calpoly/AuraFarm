@@ -5,6 +5,9 @@ CLAUDE.md
 # dependencies
 node_modules/
 
+# stray path artifact (colon in dirname)
+exp:/
+
 # Expo
 .expo/
 dist/
