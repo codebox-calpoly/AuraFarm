@@ -7,7 +7,7 @@ loadEnv({ path: path.resolve(__dirname, '..', '.env') });
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: config.name ?? 'Aura Farm',
-  slug: config.slug ?? 'aurafarm-frontend',
+  slug: config.slug ?? 'my-app',
   extra: {
     ...config.extra,
     supabaseUrl:

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Aura Farm",
-    "slug": "aurafarm-frontend",
+    "slug": "my-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
