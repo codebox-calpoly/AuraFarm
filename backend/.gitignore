@@ -6,4 +6,4 @@ API.md
 /src/generated/prisma
 error.txt
 *.log
-dist/dist/
+dist/
