@@ -1,8 +1,7 @@
-import { View, Image, StyleSheet } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect } from "react";
 import { useRouter } from "expo-router";
-import Animated, { FadeIn } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { tailwindColors } from "@/constants/tailwind-colors";
 import {
@@ -64,13 +63,7 @@ export default function SplashScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Animated.View entering={FadeIn.duration(800)}>
-          <Image
-            source={require("../assets/images/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </Animated.View>
+        <ActivityIndicator size="small" color={tailwindColors["aura-white"]} />
       </View>
     </SafeAreaView>
   );
@@ -85,9 +78,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-  },
-  logo: {
-    width: 256,
-    height: 256,
   },
 });
