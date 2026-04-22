@@ -86,10 +86,17 @@ export type FeedCompletion = {
   };
 };
 
+/** Ensures host-only env values (e.g. from .env) work: `api.example.com` -> `https://api.example.com` */
+function normalizeApiOrigin(raw: string): string {
+  const s = raw.trim().replace(/\/$/, "");
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  return `https://${s}`;
+}
+
 export function apiBaseUrl(): string {
   const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
   const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl;
-  if (envUrl) return envUrl;
+  if (envUrl) return normalizeApiOrigin(envUrl);
   const hostUri: string | undefined =
     (Constants.expoConfig as any)?.hostUri ??
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ??
