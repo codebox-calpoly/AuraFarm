@@ -15,7 +15,7 @@ import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { apiVerify, apiResend } from "@/lib/api";
-import { storeSession } from "@/lib/auth";
+import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
 
 export default function VerificationScreen() {
   const router = useRouter();
@@ -78,6 +78,7 @@ export default function VerificationScreen() {
           userId: res.data.user.id,
           user: res.data.user,
         });
+        await markExplicitAuthCompleted();
       }
 
       router.replace("/(tabs)");

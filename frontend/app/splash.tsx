@@ -5,7 +5,11 @@ import { useRouter } from "expo-router";
 import Animated, { FadeIn } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { tailwindColors } from "@/constants/tailwind-colors";
-import { isAuthenticated } from "@/lib/auth";
+import {
+  clearSession,
+  hasCompletedExplicitAuth,
+  isAuthenticated,
+} from "@/lib/auth";
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -16,23 +20,33 @@ export default function SplashScreen() {
 
     const checkAndNavigate = async () => {
       try {
-        const [hasCompletedOnboarding, loggedIn] = await Promise.all([
+        const startedAt = Date.now();
+        const [hasCompletedOnboarding, hasCompletedAuth, loggedIn] = await Promise.all([
           AsyncStorage.getItem("hasCompletedOnboarding"),
-          isAuthenticated(),
+          hasCompletedExplicitAuth(),
+          Promise.race<boolean>([
+            isAuthenticated(),
+            new Promise((resolve) => setTimeout(() => resolve(false), 900)),
+          ]),
         ]);
 
         if (cancelled) return;
 
-        timer = setTimeout(() => {
+        // Keep the branded splash visible briefly, but don't block on slow auth refresh.
+        const remainingDelay = Math.max(0, 250 - (Date.now() - startedAt));
+        timer = setTimeout(async () => {
           if (cancelled) return;
           if (hasCompletedOnboarding !== "true") {
             router.replace("/onboarding");
+          } else if (!hasCompletedAuth) {
+            await clearSession();
+            if (!cancelled) router.replace("/login");
           } else if (!loggedIn) {
             router.replace("/login");
           } else {
             router.replace("/(tabs)");
           }
-        }, 1500);
+        }, remainingDelay);
       } catch (error) {
         console.error("Error checking auth state:", error);
         if (!cancelled) router.replace("/onboarding");
@@ -45,7 +59,7 @@ export default function SplashScreen() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [router]);
 
   return (
     <SafeAreaView style={styles.safeArea}>

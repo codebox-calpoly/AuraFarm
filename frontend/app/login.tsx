@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { apiLogin, apiForgotPassword } from "@/lib/api";
-import { storeSession } from "@/lib/auth";
+import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -69,6 +69,7 @@ export default function LogInScreen() {
           userId: res.data.user.id,
           user: res.data.user,
         });
+        await markExplicitAuthCompleted();
       }
 
       router.replace("/(tabs)");
@@ -224,7 +225,7 @@ export default function LogInScreen() {
             </TouchableOpacity>
 
             <View style={styles.bottomTextContainer}>
-              <Text style={styles.bottomText}>Don't have an account? </Text>
+              <Text style={styles.bottomText}>Don&apos;t have an account? </Text>
               <TouchableOpacity onPress={handleSignup} disabled={loading}>
                 <Text style={[styles.bottomText, styles.bottomTextButton]}>
                   Sign Up
@@ -271,7 +272,7 @@ export default function LogInScreen() {
             ) : (
               <>
                 <Text style={styles.modalDescription}>
-                  Enter your @calpoly.edu email and we'll send you a reset link.
+                  Enter your @calpoly.edu email and we&apos;ll send you a reset link.
                 </Text>
 
                 {forgotError ? (

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 
 const SESSION_KEY = '@aurafarm/session';
+const EXPLICIT_AUTH_KEY = '@aurafarm/explicit-auth-completed';
 
 export type Session = {
   accessToken: string;
@@ -48,6 +49,18 @@ export async function storeSession(session: Session): Promise<void> {
   } catch {
     // Supabase may not be configured; auth still works via backend
   }
+}
+
+export async function hasCompletedExplicitAuth(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(EXPLICIT_AUTH_KEY)) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export async function markExplicitAuthCompleted(): Promise<void> {
+  await AsyncStorage.setItem(EXPLICIT_AUTH_KEY, 'true');
 }
 
 export async function refreshSession(): Promise<Session | null> {
