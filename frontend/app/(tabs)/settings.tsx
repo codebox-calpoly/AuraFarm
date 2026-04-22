@@ -7,6 +7,7 @@ import { cardShadow, layout, radius, spacing } from "@/constants/design";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import {
   changePassword as apiChangePassword,
+  deleteCurrentUserAccount,
   getCurrentUserFromApi,
   updateCurrentUserProfile,
 } from "@/lib/api";
@@ -19,6 +20,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -48,6 +50,11 @@ export default function SettingsScreen() {
   const [error, setError] = useState("");
   const [shareCompletionsInFeed, setShareCompletionsInFeed] = useState(true);
   const [shareFeedLoaded, setShareFeedLoaded] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const usernameInputRef = useRef<TextInput>(null);
   const { width } = useWindowDimensions();
@@ -190,6 +197,46 @@ export default function SettingsScreen() {
     } catch {
       setShareCompletionsInFeed(prev);
       Alert.alert("Error", "Network error. Please try again.");
+    }
+  };
+
+  const openDeleteModal = () => {
+    setDeleteConfirmText("");
+    setDeleteError("");
+    setShowDeleteModal(true);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setShowDeleteModal(false);
+    setDeleteConfirmText("");
+    setDeleteError("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText.trim().toUpperCase() !== "DELETE") {
+      setDeleteError('Please type DELETE to confirm.');
+      return;
+    }
+    setDeleteError("");
+    setDeleting(true);
+    try {
+      const res = await deleteCurrentUserAccount();
+      if (!res.success) {
+        setDeleteError(res.error ?? "Could not delete account. Please try again.");
+        setDeleting(false);
+        return;
+      }
+      await clearSession();
+      setShowDeleteModal(false);
+      setDeleting(false);
+      // Small delay so the modal fully dismisses before navigation.
+      setTimeout(() => {
+        router.replace("/login");
+      }, 150);
+    } catch {
+      setDeleteError("Network error. Please try again.");
+      setDeleting(false);
     }
   };
 
@@ -445,8 +492,95 @@ export default function SettingsScreen() {
             <Ionicons name="log-out-outline" size={22} color={tailwindColors["aura-red"]} />
             <Text style={styles.logoutLabel}>Log out</Text>
           </Pressable>
+
+          {/* Danger zone — permanent account deletion */}
+          {!showPasswordEditor ? (
+            <>
+              <ThemedText style={styles.sectionLabel}>Danger zone</ThemedText>
+              <ThemedView
+                style={[styles.card, cardShadow(2)]}
+                lightColor={tailwindColors["aura-surface"]}
+              >
+                <ThemedText style={styles.deleteTitle}>Delete account</ThemedText>
+                <ThemedText style={styles.deleteSubtitle}>
+                  Permanently remove your account, profile, completions, photos, likes, and friend
+                  connections. This cannot be undone.
+                </ThemedText>
+                <Pressable style={styles.deleteBtn} onPress={openDeleteModal}>
+                  <Ionicons name="trash-outline" size={18} color="#fff" />
+                  <Text style={styles.deleteBtnText}>Delete account</Text>
+                </Pressable>
+              </ThemedView>
+            </>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        visible={showDeleteModal}
+        animationType="fade"
+        transparent
+        onRequestClose={closeDeleteModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconWrap}>
+              <Ionicons
+                name="warning-outline"
+                size={28}
+                color={tailwindColors["aura-red"]}
+              />
+            </View>
+            <Text style={styles.modalTitle}>Delete your account?</Text>
+            <Text style={styles.modalBody}>
+              This will permanently delete your profile, all challenge completions, uploaded
+              photos, likes, friendships, and your sign-in credentials. This action cannot be
+              undone.
+            </Text>
+            <Text style={styles.modalPrompt}>
+              Type <Text style={styles.modalPromptStrong}>DELETE</Text> to confirm.
+            </Text>
+            <TextInput
+              value={deleteConfirmText}
+              onChangeText={setDeleteConfirmText}
+              placeholder="DELETE"
+              placeholderTextColor={tailwindColors["aura-gray-400"]}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              editable={!deleting}
+              style={styles.modalInput}
+            />
+            {deleteError ? <Text style={styles.errorText}>{deleteError}</Text> : null}
+            <View style={styles.modalActions}>
+              <Pressable
+                style={[styles.secondaryBtn, deleting && styles.btnDisabled]}
+                onPress={closeDeleteModal}
+                disabled={deleting}
+              >
+                <Text style={styles.secondaryBtnText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[
+                  styles.modalDeleteBtn,
+                  (deleting ||
+                    deleteConfirmText.trim().toUpperCase() !== "DELETE") &&
+                    styles.btnDisabled,
+                ]}
+                onPress={handleConfirmDelete}
+                disabled={
+                  deleting || deleteConfirmText.trim().toUpperCase() !== "DELETE"
+                }
+              >
+                {deleting ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Text style={styles.modalDeleteBtnText}>Delete account</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -700,5 +834,120 @@ const styles = StyleSheet.create({
     fontFamily: tailwindFonts["semibold"],
     fontSize: 16,
     color: tailwindColors["aura-red"],
+  },
+  deleteTitle: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+    marginBottom: spacing.xs,
+  },
+  deleteSubtitle: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-500"],
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+    backgroundColor: tailwindColors["aura-red"],
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: radius.md,
+    alignSelf: "flex-start",
+  },
+  deleteBtnText: {
+    color: "#fff",
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 15,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    backgroundColor: tailwindColors["aura-surface"],
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border"],
+  },
+  modalIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "rgba(196, 30, 58, 0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontFamily: tailwindFonts["bold"],
+    fontSize: 20,
+    color: tailwindColors["aura-black"],
+    marginBottom: spacing.sm,
+  },
+  modalBody: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 14,
+    color: tailwindColors["aura-gray-600"],
+    lineHeight: 20,
+    marginBottom: spacing.md,
+  },
+  modalPrompt: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-600"],
+    marginBottom: spacing.sm,
+  },
+  modalPromptStrong: {
+    fontFamily: tailwindFonts["semibold"],
+    color: tailwindColors["aura-red"],
+  },
+  modalInput: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border-strong"],
+    backgroundColor: tailwindColors["aura-gray-50"],
+    paddingHorizontal: spacing.md,
+    paddingVertical: Platform.OS === "ios" ? 14 : 10,
+    borderRadius: radius.md,
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+  },
+  modalActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    justifyContent: "flex-end",
+  },
+  modalDeleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: tailwindColors["aura-red"],
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: radius.md,
+    minWidth: 140,
+  },
+  modalDeleteBtnText: {
+    color: "#fff",
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 15,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
 });

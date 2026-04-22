@@ -243,6 +243,96 @@ export const updateCurrentUser = asyncHandler(async (req: Request, res: Response
   }
 });
 
+const STORAGE_BUCKET = 'completion-images';
+
+async function deleteUserStorageFolder(userId: number): Promise<void> {
+  try {
+    const { data, error } = await supabaseAdmin.storage
+      .from(STORAGE_BUCKET)
+      .list(String(userId), { limit: 1000 });
+    if (error) {
+      logger.warn('Failed to list user storage folder during account deletion', { error, userId });
+      return;
+    }
+    if (!data || data.length === 0) return;
+    const paths = data.map((f) => `${userId}/${f.name}`);
+    const { error: removeError } = await supabaseAdmin.storage.from(STORAGE_BUCKET).remove(paths);
+    if (removeError) {
+      logger.warn('Failed to remove user storage files during account deletion', { error: removeError, userId });
+    }
+  } catch (err) {
+    logger.warn('Unexpected error clearing user storage folder', { error: err, userId });
+  }
+}
+
+export const deleteCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw new AppError('Not authenticated', 401);
+  }
+
+  const userId = req.user.id;
+  const supabaseUserId = req.user.supabaseId;
+
+  const userExists = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+
+  if (!userExists) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Unwind related records manually where cascades aren't configured on the schema.
+  // Flags created by this user + flags on their completions are not auto-cascaded.
+  await prisma.$transaction(async (tx) => {
+    const userCompletions = await tx.challengeCompletion.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const completionIds = userCompletions.map((c) => c.id);
+
+    await tx.flag.deleteMany({
+      where: {
+        OR: [
+          { flaggedById: userId },
+          ...(completionIds.length > 0 ? [{ completionId: { in: completionIds } }] : []),
+        ],
+      },
+    });
+
+    // CompletionLike cascades on completion delete, so we don't need to delete per-completion likes here.
+    await tx.challengeCompletion.deleteMany({ where: { userId } });
+
+    // Remaining relations (CompletionLike by this user, Friendships) cascade on user delete.
+    await tx.user.delete({ where: { id: userId } });
+  });
+
+  await deleteUserStorageFolder(userId);
+
+  try {
+    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(supabaseUserId);
+    if (authDeleteError) {
+      logger.error('Failed to delete Supabase auth user after Prisma delete', {
+        error: authDeleteError,
+        userId,
+        supabaseUserId,
+      });
+    }
+  } catch (err) {
+    logger.error('Unexpected error deleting Supabase auth user', { error: err, userId, supabaseUserId });
+  }
+
+  logger.info('User account deleted', { userId, supabaseUserId });
+
+  const response: ApiResponse<{ id: number }> = {
+    success: true,
+    data: { id: userId },
+    message: 'Account deleted successfully',
+  };
+
+  res.json(response);
+});
+
 export const getUserCompletions = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
   const userId = parseInt(id);

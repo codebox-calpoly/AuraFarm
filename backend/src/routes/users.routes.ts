@@ -3,6 +3,7 @@ import {
   getUserById,
   getCurrentUser,
   updateCurrentUser,
+  deleteCurrentUser,
   getUserCompletions,
   getUserStats,
   searchUsers,
@@ -88,6 +89,22 @@ router.patch(
   validateBody(updateUserSchema),
   updateCurrentUser
 );
+
+/**
+ * @swagger
+ * /users/me:
+ *   delete:
+ *     summary: Permanently delete the authenticated user's account and all associated data
+ *     tags: [Users]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted
+ *       401:
+ *         description: Unauthorized
+ */
+router.delete('/me', authenticate, deleteCurrentUser);
 
 /**
  * @swagger

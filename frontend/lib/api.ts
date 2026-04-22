@@ -237,6 +237,21 @@ export async function updateCurrentUserProfile(body: {
   return json;
 }
 
+/** Permanently deletes the signed-in user's account and all associated data. */
+export async function deleteCurrentUserAccount(): Promise<ApiResponse<{ id: number }>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/users/me`, {
+    method: "DELETE",
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
 export async function getUserProfileFromApi(): Promise<
   ApiResponse<UserProfile>
 > {
