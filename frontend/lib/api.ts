@@ -1,5 +1,5 @@
 import Constants from "expo-constants";
-import axios from "axios";
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { ChallengeCategory } from "@/constants/challengeCategories";
 import { getValidSession, refreshSession } from "@/lib/auth";
 
@@ -630,6 +630,10 @@ export async function apiForgotPassword(email: string): Promise<ApiResponse<{ me
 
 const apiClient = axios.create();
 
+type RetriableAxiosConfig = InternalAxiosRequestConfig & {
+  _aurafarmRetry?: boolean;
+};
+
 apiClient.interceptors.request.use(async (config) => {
   // Resolve on each request so device LAN / Metro host is correct (import-time URL is often localhost).
   config.baseURL = `${apiBaseUrl()}/api`;
@@ -639,5 +643,21 @@ apiClient.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error: AxiosError) => {
+    const config = error.config as RetriableAxiosConfig | undefined;
+    if (error.response?.status === 401 && config && !config._aurafarmRetry) {
+      config._aurafarmRetry = true;
+      const refreshed = await refreshSession();
+      if (refreshed?.accessToken) {
+        config.headers.Authorization = `Bearer ${refreshed.accessToken}`;
+        return apiClient(config);
+      }
+    }
+    return Promise.reject(error);
+  },
+);
 
 export default apiClient;

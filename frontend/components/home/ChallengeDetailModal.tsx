@@ -12,7 +12,7 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Video, ResizeMode } from "expo-av";
+import { Audio, Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ThemedText } from "@/components/themed-text";
@@ -129,7 +129,7 @@ export function ChallengeDetailModal({
       alert("Camera access is required to record a video.");
       return;
     }
-    const mic = await ImagePicker.requestMicrophonePermissionsAsync();
+    const mic = await Audio.requestPermissionsAsync();
     if (!mic.granted) {
       alert("Microphone access is needed to record video with audio.");
       return;

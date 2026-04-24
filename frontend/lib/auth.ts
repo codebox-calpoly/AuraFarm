@@ -22,7 +22,7 @@ function getTokenExpiry(token: string): number | null {
 
 export function isTokenExpired(token: string): boolean {
   const exp = getTokenExpiry(token);
-  if (!exp) return false;
+  if (!exp) return true;
   return Date.now() / 1000 > exp - 30; // 30 second buffer
 }
 
@@ -38,14 +38,58 @@ export async function getSession(): Promise<Session | null> {
   }
 }
 
+function isInvalidRefreshError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  const lower = msg.toLowerCase();
+  return (
+    lower.includes('invalid refresh token') ||
+    lower.includes('already used') ||
+    lower.includes('invalid_grant') ||
+    lower.includes('refresh token not found')
+  );
+}
+
+/**
+ * Puts the current stored tokens into the in-memory Supabase client (we disabled
+ * persistSession so this must run after a cold start before refresh/upload flows).
+ * Returns false if storage was cleared (e.g. invalid / reused refresh token).
+ */
+export async function rehydrateSupabaseClient(session: Session): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+    });
+    if (error) {
+      if (isInvalidRefreshError(error)) {
+        await clearSession();
+      }
+      return false;
+    }
+    if (!data.session) {
+      await clearSession();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+      return false;
+    }
+    return true;
+  } catch (err) {
+    if (isInvalidRefreshError(err)) {
+      await clearSession();
+      return false;
+    }
+    return true;
+  }
+}
+
 export async function storeSession(session: Session): Promise<void> {
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
   // Sync to Supabase so storage uploads work (uses same tokens)
   try {
-    await supabase.auth.setSession({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
-    });
+    await rehydrateSupabaseClient(session);
   } catch {
     // Supabase may not be configured; auth still works via backend
   }
@@ -70,7 +114,16 @@ export async function refreshSession(): Promise<Session | null> {
     const { data, error } = await supabase.auth.refreshSession({
       refresh_token: current.refreshToken,
     });
-    if (error || !data.session) return null;
+    if (error) {
+      if (isInvalidRefreshError(error)) {
+        await clearSession();
+        await supabase.auth.signOut();
+      }
+      return null;
+    }
+    if (!data.session) {
+      return null;
+    }
     const refreshed: Session = {
       ...current,
       accessToken: data.session.access_token,
@@ -78,33 +131,39 @@ export async function refreshSession(): Promise<Session | null> {
     };
     await storeSession(refreshed);
     return refreshed;
-  } catch {
+  } catch (err) {
+    if (isInvalidRefreshError(err)) {
+      await clearSession();
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore
+      }
+    }
     return null;
   }
 }
 
 /**
- * Session usable for API calls and gating. If the access token is expired, tries refresh.
- * If refresh fails but a refresh token remains, still returns the stored session so
- * `authedFetch` can send the token, get 401, and retry refresh — same rules as
- * `isAuthenticated()` (avoids “tabs with 0 aura” while Settings thinks there’s no session).
+ * Session usable for API calls and gating. If the access token is expired, tries a single
+ * explicit refresh. If the refresh token is invalid or already used, storage is cleared and
+ * this returns null so the app can send the user to sign in.
  */
 export async function getValidSession(): Promise<Session | null> {
   const session = await getSession();
   if (!session?.userId || !session.accessToken) return null;
 
-  if (!isTokenExpired(session.accessToken)) {
-    return session;
+  if (isTokenExpired(session.accessToken)) {
+    const refreshed = await refreshSession();
+    if (refreshed) return refreshed;
+    return null;
   }
 
-  const refreshed = await refreshSession();
-  if (refreshed) return refreshed;
-
-  if (session.refreshToken) {
-    return session;
+  if (!(await rehydrateSupabaseClient(session))) {
+    return null;
   }
 
-  return null;
+  return (await getSession()) ?? null;
 }
 
 export async function clearSession(): Promise<void> {
