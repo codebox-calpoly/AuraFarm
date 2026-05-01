@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-export const OTP_LENGTH = 6;
+export const OTP_LENGTH = 8;
 export const OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
 export const OTP_MAX_ATTEMPTS = 5;
 
@@ -10,7 +10,7 @@ const OTP_SECRET =
     'aurafarm-dev-otp-secret';
 
 export function generateOtp(): string {
-    return String(crypto.randomInt(0, 1_000_000)).padStart(OTP_LENGTH, '0');
+    return String(crypto.randomInt(0, 100_000_000)).padStart(OTP_LENGTH, '0');
 }
 
 export function hashOtp(code: string): string {

@@ -15,7 +15,7 @@ import {
 import { sendVerificationEmail } from '../utils/email';
 
 /**
- * Generate, persist, and email a fresh 6-digit OTP for `email`.
+ * Generate, persist, and email a fresh 8-digit OTP for `email`.
  * Replaces any existing pending verification for that address.
  */
 async function issueAndSendOtp(email: string): Promise<void> {

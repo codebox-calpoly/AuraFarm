@@ -36,7 +36,7 @@ const forgotPasswordSchema = z.object({
 
 const verifyOtpSchema = z.object({
     email: z.string().email(),
-    code: z.string().regex(/^\d{6}$/, 'code must be a 6-digit number'),
+    code: z.string().regex(/^\d{8}$/, 'code must be an 8-digit number'),
     password: z.string().min(1).max(72).optional(),
 });
 

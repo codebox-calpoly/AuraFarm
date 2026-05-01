@@ -25,7 +25,7 @@ import {
   getPendingSignupPassword,
 } from "@/lib/pendingSignup";
 
-const OTP_LENGTH = 6;
+const OTP_LENGTH = 8;
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerificationScreen() {
