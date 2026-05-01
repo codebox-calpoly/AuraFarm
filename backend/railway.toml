@@ -1,0 +1,7 @@
+[build]
+buildCommand = "npm ci && npm run build"
+watchPatterns = ["/backend/**"]
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
