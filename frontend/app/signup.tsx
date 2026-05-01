@@ -15,7 +15,9 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { apiSignUp } from "@/lib/api";
+import { apiSignUp, isPendingVerification } from "@/lib/api";
+import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
+import { setPendingSignup } from "@/lib/pendingSignup";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -44,8 +46,8 @@ export default function SignUpScreen() {
     setShowInputErrors(false);
     setServerError(null);
 
-    const validEmailRegex = /.+(@calpoly\.edu)$/;
-    setValidEmail(text.length >= 13 && validEmailRegex.test(text));
+    const normalizedEmail = text.trim().toLowerCase();
+    setValidEmail(normalizedEmail.endsWith("@calpoly.edu"));
   };
 
   const [password, setPassword] = useState("");
@@ -76,17 +78,37 @@ export default function SignUpScreen() {
     setServerError(null);
 
     try {
-      const res = await apiSignUp({ email, password, username });
+      const normalizedEmail = email.trim().toLowerCase();
+      const res = await apiSignUp({
+        email: normalizedEmail,
+        password,
+        username: username.trim(),
+      });
 
       if (!res.success) {
         setServerError(res.error ?? "Sign up failed");
         return;
       }
 
-      router.replace({
-        pathname: "/verification",
-        params: { email },
-      });
+      if (res.data && isPendingVerification(res.data)) {
+        setPendingSignup(normalizedEmail, password);
+        router.replace(
+          `/verification?email=${encodeURIComponent(res.data.email)}` as never,
+        );
+        return;
+      }
+
+      if (res.data) {
+        await storeSession({
+          accessToken: res.data.accessToken,
+          refreshToken: res.data.refreshToken,
+          userId: res.data.user.id,
+          user: res.data.user,
+        });
+        await markExplicitAuthCompleted();
+      }
+
+      router.replace("/(tabs)");
     } finally {
       setLoading(false);
     }

@@ -70,7 +70,7 @@ export default function SettingsScreen() {
           router.replace("/login");
           return;
         }
-        // Show cached identity immediately (login/verify store user on device)
+        // Show cached identity immediately (login/signup store user on device)
         if (session.user?.name || session.user?.email) {
           setUsername(session.user.name ?? "");
           setOriginalUsername(session.user.name ?? "");

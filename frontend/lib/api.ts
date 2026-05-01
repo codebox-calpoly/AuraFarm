@@ -569,6 +569,29 @@ export type AuthSession = {
   user: { id: number; email: string; name: string; auraPoints?: number; streak?: number };
 };
 
+export type PendingVerification = {
+  requiresVerification: true;
+  email: string;
+};
+
+export type SignUpResult = AuthSession | PendingVerification;
+
+export function isPendingVerification(
+  data: SignUpResult,
+): data is PendingVerification {
+  return (data as PendingVerification).requiresVerification === true;
+}
+
+export type VerifyOtpResult =
+  | AuthSession
+  | { verified: true; requiresLogin: true };
+
+export function verifyOtpRequiresLogin(
+  data: VerifyOtpResult,
+): data is { verified: true; requiresLogin: true } {
+  return (data as { requiresLogin?: boolean }).requiresLogin === true;
+}
+
 async function authFetch<T>(
   path: string,
   body: object
@@ -602,7 +625,7 @@ export async function apiSignUp(input: {
   email: string;
   password: string;
   username: string;
-}): Promise<ApiResponse<{ id: number; email: string; name: string }>> {
+}): Promise<ApiResponse<SignUpResult>> {
   return authFetch("signup", input);
 }
 
@@ -613,15 +636,18 @@ export async function apiLogin(input: {
   return authFetch("login", input);
 }
 
-export async function apiVerify(input: {
+export async function apiVerifyOtp(input: {
   email: string;
-  token: string;
-}): Promise<ApiResponse<AuthSession>> {
-  return authFetch("verify", input);
+  code: string;
+  password?: string;
+}): Promise<ApiResponse<VerifyOtpResult>> {
+  return authFetch("verify-otp", input);
 }
 
-export async function apiResend(email: string): Promise<ApiResponse<{ message: string }>> {
-  return authFetch("resend", { email });
+export async function apiResendOtp(
+  email: string,
+): Promise<ApiResponse<{ message?: string }>> {
+  return authFetch("resend-otp", { email });
 }
 
 export async function apiForgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {

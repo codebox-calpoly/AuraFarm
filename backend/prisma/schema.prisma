@@ -150,3 +150,17 @@ model Flag {
   @@index([completionId]) // Index for faster completion flag queries
   @@index([flaggedById]) // Index for faster user flag queries
 }
+
+/// One row per email currently going through OTP verification.
+/// Created on signup / resend, deleted on success or expiry.
+model EmailVerification {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email, expiresAt])
+}

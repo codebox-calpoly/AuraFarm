@@ -3,184 +3,263 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Image,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState } from "react";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
-import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { apiVerify, apiResend } from "@/lib/api";
+import {
+  apiResendOtp,
+  apiVerifyOtp,
+  verifyOtpRequiresLogin,
+} from "@/lib/api";
 import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
+import {
+  clearPendingSignup,
+  getPendingSignupPassword,
+} from "@/lib/pendingSignup";
+
+const OTP_LENGTH = 6;
+const RESEND_COOLDOWN_SECONDS = 30;
 
 export default function VerificationScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams<{ email: string }>();
+  const params = useLocalSearchParams<{ email?: string }>();
+  const email = useMemo(
+    () => (params.email ? String(params.email).trim().toLowerCase() : ""),
+    [params.email],
+  );
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
-  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   const onChangeCode = (text: string) => {
-    if (text.length <= 8) {
-      setCode(text);
-      setServerError(null);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!email) return;
-    setResendLoading(true);
-    setResendMessage(null);
+    const digits = text.replace(/\D/g, "").slice(0, OTP_LENGTH);
+    setCode(digits);
     setServerError(null);
-
-    const res = await apiResend(email);
-    if (res.success) {
-      setResendMessage(res.message ?? "A new code has been sent to your email.");
-    } else {
-      setServerError(res.error ?? "Could not resend code. Please try again.");
-    }
-    setResendLoading(false);
+    setInfo(null);
   };
 
-  const handleContinue = async () => {
+  const handleVerify = async () => {
     if (!email) {
-      setServerError("Missing email. Please try signing up again.");
+      setServerError("Missing email. Please sign up again.");
       return;
     }
-
-    if (code.length < 4) {
-      setServerError("Please enter the full verification code.");
+    if (code.length !== OTP_LENGTH) {
+      setServerError(`Enter the ${OTP_LENGTH}-digit code from your email.`);
       return;
     }
 
     setLoading(true);
     setServerError(null);
+    setInfo(null);
 
     try {
-      const res = await apiVerify({ email, token: code });
+      const password = getPendingSignupPassword(email) ?? undefined;
+      const res = await apiVerifyOtp({ email, code, password });
 
       if (!res.success) {
-        setServerError(res.error ?? "Invalid or expired code.");
+        setServerError(res.error ?? "Verification failed");
         return;
       }
 
-      if (res.success && res.data) {
-        await storeSession({
-          accessToken: res.data.accessToken,
-          refreshToken: res.data.refreshToken,
-          userId: res.data.user.id,
-          user: res.data.user,
-        });
-        await markExplicitAuthCompleted();
+      if (verifyOtpRequiresLogin(res.data)) {
+        clearPendingSignup();
+        setInfo("Email verified! Please log in to continue.");
+        setTimeout(() => router.replace("/login"), 600);
+        return;
       }
 
+      await storeSession({
+        accessToken: res.data.accessToken,
+        refreshToken: res.data.refreshToken,
+        userId: res.data.user.id,
+        user: res.data.user,
+      });
+      await markExplicitAuthCompleted();
+      clearPendingSignup();
       router.replace("/(tabs)");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResend = async () => {
+    if (!email || resendCooldown > 0 || resending) return;
+    setResending(true);
+    setServerError(null);
+    setInfo(null);
+    try {
+      const res = await apiResendOtp(email);
+      if (!res.success) {
+        setServerError(res.error ?? "Could not resend code.");
+        return;
+      }
+      setInfo("New code sent. Check your email.");
+      setResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const goBackToSignup = () => router.replace("/signup");
+
+  const obscured = email
+    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a: string, b: string, c: string) =>
+        `${a}${"•".repeat(Math.max(b.length, 1))}${c}`,
+      )
+    : "your email";
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 48 : 0}
+        style={styles.container}
       >
-        <View style={styles.container}>
-          {/* Header */}
-          <View style={styles.header}>
-            {/* Back Button */}
-            <TouchableOpacity onPress={() => router.replace("/signup")}>
-              <IconSymbol name="chevron.left" size={35} color="#000000" />
-            </TouchableOpacity>
+        <View style={styles.header}>
+          <Image
+            style={styles.logo}
+            source={require("../assets/images/red-logo.png")}
+            resizeMode="contain"
+          />
+        </View>
+
+        {serverError ? (
+          <View style={styles.serverErrorContainer}>
+            <Text style={styles.serverErrorText}>{serverError}</Text>
+          </View>
+        ) : null}
+        {info ? (
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>{info}</Text>
+          </View>
+        ) : null}
+
+        <ScrollView
+          style={styles.contentContainer}
+          contentContainerStyle={{ paddingBottom: 48 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.textContainer}>
+            <Text style={styles.title}>Check your email</Text>
+            <Text style={styles.description}>
+              We sent a {OTP_LENGTH}-digit code to{" "}
+              <Text style={styles.emailEmph}>{obscured}</Text>. Enter it below
+              to finish creating your account.
+            </Text>
           </View>
 
-          {/* Content Area */}
-          <Animated.View
-            entering={FadeInRight.duration(400)}
-            exiting={FadeOutLeft.duration(400)}
-            style={styles.contentContainer}
-          >
-            {/* Text Content */}
-            <View style={styles.textContainer}>
-              <Text style={styles.title}>
-                Enter verification code sent to{" "}
-                <Text style={styles.bold}>{email ?? "your email"}</Text>
-              </Text>
-            </View>
+          <View style={styles.credentialsContainer}>
+            <Text style={styles.inputLabel}>Verification code</Text>
 
-            {/* Server Error */}
-            {serverError ? (
-              <View style={styles.messageContainer}>
-                <Text style={styles.errorText}>{serverError}</Text>
-              </View>
-            ) : null}
-
-            {/* Resend success */}
-            {resendMessage ? (
-              <View style={[styles.messageContainer, styles.successContainer]}>
-                <Text style={styles.successText}>{resendMessage}</Text>
-              </View>
-            ) : null}
-
-            {/* Code Input */}
-            <View style={styles.credentialsContainer}>
-              <Text style={styles.inputLabel}>Code</Text>
-
-              <View style={styles.inputContainer}>
-                <TextInput
-                  style={styles.input}
-                  onChangeText={onChangeCode}
-                  value={code}
-                  placeholder="--------"
-                  placeholderTextColor="#c2c2c2"
-                  keyboardType="numeric"
-                  maxLength={8}
-                  editable={!loading}
-                />
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Bottom Section */}
-          <View style={styles.bottomSection}>
-            <TouchableOpacity onPress={handleResendCode} disabled={resendLoading || loading}>
-              {resendLoading ? (
-                <ActivityIndicator color={tailwindColors['aura-green']} />
-              ) : (
-                <Text style={[styles.bottomText, styles.bottomButtonText]}>
-                  Resend Code
-                </Text>
-              )}
+            <TouchableOpacity
+              activeOpacity={1}
+              style={styles.otpRow}
+              onPress={() => inputRef.current?.focus()}
+            >
+              {Array.from({ length: OTP_LENGTH }).map((_, i) => {
+                const char = code[i] ?? "";
+                const isActive = i === code.length;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.otpBox,
+                      isActive && styles.otpBoxActive,
+                      char ? styles.otpBoxFilled : null,
+                    ]}
+                  >
+                    <Text style={styles.otpChar}>{char}</Text>
+                  </View>
+                );
+              })}
             </TouchableOpacity>
 
-            {/* Continue Button */}
+            <TextInput
+              ref={inputRef}
+              style={styles.hiddenInput}
+              value={code}
+              onChangeText={onChangeCode}
+              keyboardType="number-pad"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              textContentType="oneTimeCode"
+              maxLength={OTP_LENGTH}
+              editable={!loading}
+              autoFocus
+            />
+          </View>
+
+          <View style={styles.bottomSection}>
             <TouchableOpacity
-              onPress={handleContinue}
-              style={[styles.buttonCircle, styles.buttonPrimary, loading && styles.buttonDisabled]}
-              disabled={loading}
+              onPress={handleVerify}
+              style={[
+                styles.button,
+                styles.buttonPrimary,
+                (loading || code.length !== OTP_LENGTH) && styles.buttonDisabled,
+              ]}
+              disabled={loading || code.length !== OTP_LENGTH}
             >
               {loading ? (
-                <ActivityIndicator color="#ffffff" size="small" />
+                <ActivityIndicator color="#ffffff" />
               ) : (
-                <IconSymbol
-                  size={35}
-                  name="chevron.right"
-                  color="#ffffff"
-                  style={styles.continueIcon}
-                />
+                <Text style={styles.buttonTextPrimary}>Verify</Text>
               )}
             </TouchableOpacity>
+
+            <View style={styles.resendRow}>
+              <Text style={styles.bottomText}>Didn&apos;t get a code? </Text>
+              <TouchableOpacity
+                onPress={handleResend}
+                disabled={resendCooldown > 0 || resending}
+              >
+                <Text
+                  style={[
+                    styles.bottomText,
+                    styles.bottomTextButton,
+                    (resendCooldown > 0 || resending) && styles.disabledLink,
+                  ]}
+                >
+                  {resending
+                    ? "Sending..."
+                    : resendCooldown > 0
+                      ? `Resend in ${resendCooldown}s`
+                      : "Resend code"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity onPress={goBackToSignup} style={styles.backRow}>
+              <Text style={styles.backText}>Wrong email? Sign up again</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -189,73 +268,132 @@ export default function VerificationScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 24,
-    paddingBottom: 32,
   },
   header: {
     width: "100%",
-    alignItems: "flex-start",
-    paddingTop: 32,
-    marginBottom: 24,
+    alignItems: "center",
+    paddingTop: 48,
+    paddingBottom: 0,
+  },
+  logo: {
+    marginTop: -52,
+    width: 225,
+    height: 225,
   },
   contentContainer: {
     flex: 1,
     width: "100%",
-    alignItems: "center",
   },
   textContainer: {
     width: "100%",
     paddingHorizontal: 16,
-    display: "flex",
-    flexDirection: "row",
   },
   title: {
     fontSize: 24,
-    fontFamily: tailwindFonts["regular"],
-    color: "#1F2937",
     textAlign: "left",
-    marginBottom: 12,
-    flexShrink: 1,
-  },
-  bold: {
     fontFamily: tailwindFonts["semibold"],
   },
-  messageContainer: {
-    width: "100%",
-    marginHorizontal: 0,
-    marginTop: 12,
+  description: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "left",
+    fontFamily: tailwindFonts["regular"],
+    marginTop: 4,
+  },
+  emailEmph: {
+    color: tailwindColors["aura-black"] ?? "#0f0f0f",
+    fontFamily: tailwindFonts["semibold"],
+  },
+  serverErrorContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
     padding: 12,
     backgroundColor: "#FEF2F2",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: tailwindColors['aura-red'],
+    borderColor: tailwindColors["aura-red"],
   },
-  successContainer: {
-    backgroundColor: "#F0FDF4",
-    borderColor: tailwindColors['aura-green'],
-  },
-  errorText: {
+  serverErrorText: {
     fontSize: 13,
-    color: tailwindColors['aura-red'],
+    color: tailwindColors["aura-red"],
     textAlign: "center",
   },
-  successText: {
+  infoContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-green"],
+  },
+  infoText: {
     fontSize: 13,
-    color: tailwindColors['aura-green'],
+    color: tailwindColors["aura-green"],
     textAlign: "center",
+    fontFamily: tailwindFonts["semibold"],
+  },
+  credentialsContainer: {
+    width: "100%",
+    paddingHorizontal: 16,
+    marginTop: 36,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 12,
+    fontFamily: tailwindFonts["semibold"],
+  },
+  otpRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  otpBox: {
+    flex: 1,
+    height: 56,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#e1e2e3",
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  otpBoxActive: {
+    borderColor: tailwindColors["aura-green"],
+    borderWidth: 2,
+  },
+  otpBoxFilled: {
+    borderColor: "#cbd5e1",
+  },
+  otpChar: {
+    fontSize: 22,
+    fontFamily: tailwindFonts["semibold"],
+    color: "#0f0f0f",
+  },
+  hiddenInput: {
+    position: "absolute",
+    opacity: 0,
+    height: 1,
+    width: 1,
   },
   bottomSection: {
     width: "100%",
     alignItems: "center",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "space-between",
+    marginTop: 36,
+    paddingHorizontal: 16,
+  },
+  button: {
+    width: "100%",
+    paddingVertical: 20,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "transparent",
   },
   buttonPrimary: {
     backgroundColor: tailwindColors["aura-green"],
@@ -263,51 +401,32 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
   },
-  buttonCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 999,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+  buttonTextPrimary: {
+    textAlign: "center",
+    fontSize: 18,
+    fontFamily: tailwindFonts["semibold"],
+    color: "#ffffff",
   },
-  credentialsContainer: {
-    width: "100%",
-    paddingHorizontal: 16,
-    marginTop: 36,
+  resendRow: {
+    flexDirection: "row",
+    marginTop: 24,
   },
   bottomText: {
-    marginTop: 24,
-    fontSize: 18,
-    fontFamily: tailwindFonts["regular"],
-  },
-  bottomButtonText: {
-    color: tailwindColors["aura-green"],
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
+    fontSize: 16,
     fontFamily: tailwindFonts["semibold"],
   },
-  inputContainer: {
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    borderColor: "#e1e2e3",
-    borderBottomWidth: 1.5,
-    gap: 12,
+  bottomTextButton: {
+    color: tailwindColors["aura-green"],
   },
-  input: {
-    width: "100%",
-    fontSize: 32,
-    height: 64,
-    letterSpacing: 5,
+  disabledLink: {
+    opacity: 0.5,
+  },
+  backRow: {
+    marginTop: 16,
+  },
+  backText: {
+    fontSize: 14,
+    color: "#6B7280",
     fontFamily: tailwindFonts["regular"],
-  },
-  continueIcon: {
-    color: "#ffffff",
   },
 });
