@@ -14,27 +14,66 @@ import {
 } from '../utils/otp';
 import { sendVerificationEmail } from '../utils/email';
 
+const OTP_EMAIL_MIN_INTERVAL_MS = (() => {
+    const raw = Number(process.env.OTP_EMAIL_MIN_INTERVAL_MS);
+    if (Number.isFinite(raw) && raw >= 0) return Math.floor(raw);
+    return 120_000; // 2 minutes default between sends per email
+})();
+
+/** True if Resend (or proxy) signaled rate/quota exhaustion. */
+function isProviderEmailRateLimited(message: string): boolean {
+    const m = message.toLowerCase();
+    return /\brate|quota|exceeded|too many requests/.test(m) || /\b429\b/.test(m);
+}
+
 /**
  * Generate, persist, and email a fresh 8-digit OTP for `email`.
- * Replaces any existing pending verification for that address.
+ * Email is sent before the DB row is updated so a failed send does not rotate the stored code.
+ * Replaces any existing pending verification for that address once send succeeds.
  */
 async function issueAndSendOtp(email: string): Promise<void> {
+    if (OTP_EMAIL_MIN_INTERVAL_MS > 0) {
+        const existing = await prisma.emailVerification.findUnique({
+            where: { email },
+            select: { lastOtpSentAt: true },
+        });
+        const lastAt = existing?.lastOtpSentAt;
+        if (lastAt) {
+            const elapsedMs = Date.now() - lastAt.getTime();
+            if (elapsedMs < OTP_EMAIL_MIN_INTERVAL_MS) {
+                const waitSec = Math.ceil((OTP_EMAIL_MIN_INTERVAL_MS - elapsedMs) / 1000);
+                throw new AppError(
+                    `Please wait ${waitSec} seconds before requesting another verification code.`,
+                    429,
+                );
+            }
+        }
+    }
+
     const code = generateOtp();
     const codeHash = hashOtp(code);
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    await prisma.emailVerification.upsert({
-        where: { email },
-        create: { email, codeHash, expiresAt, attempts: 0 },
-        update: { codeHash, expiresAt, attempts: 0 },
-    });
-
     try {
         await sendVerificationEmail(email, code);
     } catch (err) {
+        const raw = err instanceof Error ? err.message : String(err);
         logger.error('Failed to send verification email', { error: err, email });
+        if (isProviderEmailRateLimited(raw)) {
+            throw new AppError(
+                'Email sending is temporarily limited (provider quota). Wait a few minutes and try Resend Code again.',
+                429,
+            );
+        }
         throw new AppError('Could not send verification email. Please try again.', 502);
     }
+
+    const sentAt = new Date();
+    await prisma.emailVerification.upsert({
+        where: { email },
+        create: { email, codeHash, expiresAt, attempts: 0, lastOtpSentAt: sentAt },
+        update: { codeHash, expiresAt, attempts: 0, lastOtpSentAt: sentAt },
+    });
 }
 
 export const signUp = asyncHandler(async (req: Request, res: Response) => {

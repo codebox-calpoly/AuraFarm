@@ -154,13 +154,15 @@ model Flag {
 /// One row per email currently going through OTP verification.
 /// Created on signup / resend, deleted on success or expiry.
 model EmailVerification {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  codeHash  String
-  expiresAt DateTime
-  attempts  Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int       @id @default(autoincrement())
+  email          String    @unique
+  codeHash       String
+  expiresAt      DateTime
+  attempts       Int       @default(0)
+  /// Updated only after Resend confirms send; used to throttle resend/signup OTP spam.
+  lastOtpSentAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([email, expiresAt])
 }
