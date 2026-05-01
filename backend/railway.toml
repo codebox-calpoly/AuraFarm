@@ -1,6 +1,6 @@
 [build]
 buildCommand = "npm ci && npm run build"
-watchPatterns = ["/backend/**"]
+watchPatterns = ["backend/**"]
 
 [deploy]
 startCommand = "npm start"
