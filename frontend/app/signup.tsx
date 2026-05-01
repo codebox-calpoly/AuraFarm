@@ -91,24 +91,39 @@ export default function SignUpScreen() {
       }
 
       if (res.data && isPendingVerification(res.data)) {
-        setPendingSignup(normalizedEmail, password);
+        const verifyEmail =
+          typeof res.data.email === "string" && res.data.email.length > 0
+            ? res.data.email
+            : normalizedEmail;
+        setPendingSignup(verifyEmail, password);
         router.replace(
-          `/verification?email=${encodeURIComponent(res.data.email)}` as never,
+          `/verification?email=${encodeURIComponent(verifyEmail)}` as never,
         );
         return;
       }
 
-      if (res.data) {
+      const sessionData = res.data;
+      if (
+        sessionData &&
+        typeof sessionData.accessToken === "string" &&
+        typeof sessionData.refreshToken === "string" &&
+        sessionData.user &&
+        typeof sessionData.user.id === "number"
+      ) {
         await storeSession({
-          accessToken: res.data.accessToken,
-          refreshToken: res.data.refreshToken,
-          userId: res.data.user.id,
-          user: res.data.user,
+          accessToken: sessionData.accessToken,
+          refreshToken: sessionData.refreshToken,
+          userId: sessionData.user.id,
+          user: sessionData.user,
         });
         await markExplicitAuthCompleted();
+        router.replace("/(tabs)");
+        return;
       }
 
-      router.replace("/(tabs)");
+      setServerError(
+        "Could not read the sign-up response. If you used this email already, try Log In or sign up again to get a new code.",
+      );
     } finally {
       setLoading(false);
     }

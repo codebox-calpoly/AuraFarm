@@ -579,7 +579,23 @@ export type SignUpResult = AuthSession | PendingVerification;
 export function isPendingVerification(
   data: SignUpResult,
 ): data is PendingVerification {
-  return (data as PendingVerification).requiresVerification === true;
+  if (!data || typeof data !== "object") return false;
+  const d = data as Record<string, unknown>;
+  const flagTrue =
+    d.requiresVerification === true || d.requires_verification === true;
+  if (flagTrue) {
+    return typeof d.email === "string" && d.email.length > 0;
+  }
+  // OTP signup payload is { email } without session; if a proxy strips the flag, still route to verify.
+  if (
+    typeof d.email === "string" &&
+    d.email.length > 0 &&
+    !("accessToken" in d) &&
+    !("user" in d)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export type VerifyOtpResult =
