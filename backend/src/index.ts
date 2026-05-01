@@ -30,9 +30,13 @@ app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
 
-// Health check endpoint
+// Health check endpoint (Railway sets RAILWAY_GIT_COMMIT_SHA at runtime)
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    commit: process.env.RAILWAY_GIT_COMMIT_SHA ?? null,
+  });
 });
 
 // Swagger Documentation
