@@ -63,12 +63,12 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: tailwindColors['aura-page'] },
           }}
         >
-          <Stack.Screen name="splash" />
-          <Stack.Screen name="onboarding" />
-          <Stack.Screen name="signup" />
-          <Stack.Screen name="verification" />
-          <Stack.Screen name="login" />
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="splash" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="signup" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="verification" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="login" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
           <Stack.Screen name="post" />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
         </Stack>

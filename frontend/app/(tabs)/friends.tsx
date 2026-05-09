@@ -99,7 +99,6 @@ export default function FriendsScreen() {
     const res = await sendFriendRequestToUser(id);
     if (res.success) {
       await loadAll();
-      Alert.alert("Sent", "Friend request sent.");
     } else {
       Alert.alert("Could not send", res.error ?? "Try again.");
     }
