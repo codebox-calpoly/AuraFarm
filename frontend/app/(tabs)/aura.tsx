@@ -42,7 +42,7 @@ export default function AuraScreen() {
       await new Promise((res) => setTimeout(res, 100));
 
       const uri = await auraRef.current.capture?.();
-      if (!uri) throw new Error("Failed to capture aura view");
+      if (!uri) throw new Error("Failed to capture Aura view");
 
       try {
         await Share.share(
@@ -91,7 +91,7 @@ export default function AuraScreen() {
         >
           <AuraDiamondIcon color={tier.color} points={auraPoints ?? 0} width={270} height={426} style={{ marginTop: 24 }} />
           <ThemedText style={[styles.auraText, { color: tier.color }]}>
-            You have {tier.label} aura
+            You have {tier.label} Aura
           </ThemedText>
           {rank !== null && (
             <ThemedText style={[styles.pointsText, { color: tier.color }]}>

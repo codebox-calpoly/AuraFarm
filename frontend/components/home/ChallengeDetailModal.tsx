@@ -259,7 +259,7 @@ export function ChallengeDetailModal({
                 <View style={styles.headerTitleContainer}>
                   <ThemedText style={styles.headerTitle}>Your post</ThemedText>
                   <ThemedText style={styles.headerSubtitle}>
-                    +{points} points
+                    +{points} Aura
                   </ThemedText>
                 </View>
                 <View style={{ width: 24 }} />

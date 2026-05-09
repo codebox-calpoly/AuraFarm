@@ -187,8 +187,8 @@ export default function RanksScreen() {
                 <ThemedText style={styles.leaderboardTitle}>Leaderboard</ThemedText>
                 <ThemedText style={styles.leaderboardSubtitle}>
                   {activeSection.id === "all" ?
-                    "Everyone ranked by total aura points"
-                  : `${activeSection.label.replace(" Aura", "")} · ${TIER_RANGE_LABEL[activeSection.id as keyof typeof TIER_RANGE_LABEL]} aura pts`}
+                    "Everyone ranked by total Aura"
+                  : `${activeSection.label.replace(" Aura", "")} · ${TIER_RANGE_LABEL[activeSection.id as keyof typeof TIER_RANGE_LABEL]} Aura`}
                 </ThemedText>
               </View>
             </View>
@@ -259,7 +259,7 @@ export default function RanksScreen() {
                   </View>
                   <View style={styles.pointsPill}>
                     <Text style={styles.points}>{entry.points}</Text>
-                    <Text style={styles.pointsSuffix}>pts</Text>
+                    <Text style={styles.pointsSuffix}>Aura</Text>
                   </View>
                 </View>
               ))}

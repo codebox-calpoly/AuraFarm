@@ -12,13 +12,13 @@ const onboardingData = [
     id: 1,
     title: "Welcome to Aura Farm",
     description:
-      "Discover challenges, earn points, and grow your sustainable journey on campus.",
+      "Discover challenges, earn Aura, and grow your sustainable journey on campus.",
   },
   {
     id: 2,
     title: "Complete Challenges",
     description:
-      "Find challenges near you, complete them, and earn Aura points to climb the leaderboard.",
+      "Complete challenges near you and earn Aura to climb the leaderboard.",
   },
   {
     id: 3,

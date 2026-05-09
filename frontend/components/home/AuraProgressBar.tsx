@@ -11,7 +11,7 @@ import {
 import { radius, spacing } from "@/constants/design";
 
 interface AuraProgressBarProps {
-  /** Total aura points (same tiers as Aura tab). */
+  /** Total aura (same tiers as Aura tab). */
   points: number;
 }
 
