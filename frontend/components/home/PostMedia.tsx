@@ -7,9 +7,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
-import { Video, ResizeMode } from "expo-av";
 
-import { isVideoUrl } from "@/lib/media";
 import { tailwindColors } from "@/constants/tailwind-colors";
 
 type Props = {
@@ -20,7 +18,7 @@ type Props = {
 };
 
 /**
- * Renders a feed/post image or video from a remote URL (same `imageUri` field for both).
+ * Renders a feed/post image from a remote URL.
  */
 export function PostMedia({
   uri,
@@ -38,21 +36,10 @@ export function PostMedia({
   }, []);
 
   const trimmed = uri.trim();
-  const video = isVideoUrl(trimmed);
 
   return (
     <View style={[styles.baseFrame, frameStyle]} onLayout={onFrameLayout}>
-      {size && video ? (
-        <Video
-          source={{ uri: trimmed }}
-          style={{ width: size.w, height: size.h }}
-          useNativeControls
-          resizeMode={ResizeMode.CONTAIN}
-          shouldPlay={false}
-          isLooping={false}
-          accessibilityLabel={accessibilityLabel}
-        />
-      ) : size ? (
+      {size ? (
         <Image
           source={{ uri: trimmed }}
           style={{ width: size.w, height: size.h }}

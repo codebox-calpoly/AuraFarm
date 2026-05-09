@@ -11,33 +11,21 @@ function mimeForExtension(ext: string): string {
       return "image/webp";
     case "heic":
       return "image/heic";
-    case "mov":
-    case "m4v":
-      return "video/quicktime";
-    case "mp4":
-      return "video/mp4";
-    case "webm":
-      return "video/webm";
-    case "mkv":
-      return "video/x-matroska";
     default:
       return "image/jpeg";
   }
 }
 
 function extForMime(mime: string): string {
-  if (mime === "video/quicktime") return "mov";
-  if (mime === "video/mp4") return "mp4";
-  if (mime === "video/webm") return "webm";
-  if (mime.startsWith("video/")) return "mp4";
   if (mime === "image/png") return "png";
   if (mime === "image/gif") return "gif";
   if (mime === "image/webp") return "webp";
+  if (mime === "image/heic") return "heic";
   return "jpg";
 }
 
 /**
- * Upload completion proof (photo or video) to `/api/upload`.
+ * Upload completion proof photo to `/api/upload`.
  * Field name stays `image` for backend compatibility.
  */
 export async function uploadCompletionMedia(

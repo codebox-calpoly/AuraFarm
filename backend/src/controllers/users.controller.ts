@@ -9,6 +9,7 @@ import {
   User as PrismaUser,
   ChallengeReviewStatus,
 } from '@prisma/client';
+import { getBlockedAndBlockerIds } from '../utils/block';
 
 function toPublicUserProfile(
   user: Pick<PrismaUser, 'id' | 'name' | 'auraPoints' | 'streak' | 'lastCompletedAt' | 'createdAt' | 'role'> & { completionsCount: number; rank?: number }
@@ -32,6 +33,14 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
 
   if (isNaN(userId)) {
     throw new AppError('Invalid user ID', 400);
+  }
+
+  // If a block exists in either direction, hide the user entirely.
+  if (req.user && req.user.id !== userId) {
+    const blockedIds = await getBlockedAndBlockerIds(req.user.id);
+    if (blockedIds.includes(userId)) {
+      throw new AppError('User not found', 404);
+    }
   }
 
   const user = await prisma.user.findUnique({
@@ -87,9 +96,12 @@ export const searchUsers = asyncHandler(async (req: Request, res: Response) => {
   const rawLimit = Number(req.query.limit ?? 20);
   const take = Math.min(30, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 20));
 
+  const blockedIds = await getBlockedAndBlockerIds(req.user.id);
+  const excludeIds = [req.user.id, ...blockedIds];
+
   const users = await prisma.user.findMany({
     where: {
-      id: { not: req.user.id },
+      id: { notIn: excludeIds },
       name: { contains: q, mode: 'insensitive' },
     },
     select: {
@@ -303,7 +315,7 @@ export const deleteCurrentUser = asyncHandler(async (req: Request, res: Response
     // CompletionLike cascades on completion delete, so we don't need to delete per-completion likes here.
     await tx.challengeCompletion.deleteMany({ where: { userId } });
 
-    // Remaining relations (CompletionLike by this user, Friendships) cascade on user delete.
+    // Remaining relations (CompletionLike by this user, Friendships, Blocks) cascade on user delete.
     await tx.user.delete({ where: { id: userId } });
   });
 
@@ -339,6 +351,13 @@ export const getUserCompletions = asyncHandler(async (req: Request, res: Respons
 
   if (isNaN(userId)) {
     throw new AppError('Invalid user ID', 400);
+  }
+
+  if (req.user && req.user.id !== userId) {
+    const blockedIds = await getBlockedAndBlockerIds(req.user.id);
+    if (blockedIds.includes(userId)) {
+      throw new AppError('User not found', 404);
+    }
   }
 
   const userExists = await prisma.user.findUnique({

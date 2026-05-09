@@ -9,15 +9,20 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from "@expo/vector-icons";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { apiSignUp, isPendingVerification } from "@/lib/api";
 import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
 import { setPendingSignup } from "@/lib/pendingSignup";
+
+const TERMS_ACCEPTED_KEY = "aurafarm:acceptedTermsAt";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -64,6 +69,16 @@ export default function SignUpScreen() {
     );
   };
 
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState<string | null>(null);
+  const toggleAcceptedTerms = () => {
+    setAcceptedTerms((prev) => {
+      const next = !prev;
+      if (next) setTermsError(null);
+      return next;
+    });
+  };
+
   const handleLogin = async () => {
     router.replace("/login");
   };
@@ -71,6 +86,11 @@ export default function SignUpScreen() {
   const handleSignup = async () => {
     if (!validUsername || !validEmail || !validPassword) {
       setShowInputErrors(true);
+    }
+    if (!acceptedTerms) {
+      setTermsError("You must accept the Terms of Use to create an account.");
+    }
+    if (!validUsername || !validEmail || !validPassword || !acceptedTerms) {
       return;
     }
 
@@ -88,6 +108,15 @@ export default function SignUpScreen() {
       if (!res.success) {
         setServerError(res.error ?? "Sign up failed");
         return;
+      }
+
+      try {
+        await AsyncStorage.setItem(
+          TERMS_ACCEPTED_KEY,
+          new Date().toISOString(),
+        );
+      } catch {
+        // Best-effort persistence; auth flow must not fail because of storage.
       }
 
       if (res.data && isPendingVerification(res.data)) {
@@ -262,13 +291,52 @@ export default function SignUpScreen() {
               : null}
           </View>
 
+          {/* Terms acceptance */}
+          <View style={styles.termsRow}>
+            <Pressable
+              onPress={toggleAcceptedTerms}
+              hitSlop={10}
+              style={styles.termsCheckbox}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptedTerms }}
+              disabled={loading}
+            >
+              <Ionicons
+                name={acceptedTerms ? "checkbox" : "square-outline"}
+                size={24}
+                color={
+                  acceptedTerms
+                    ? tailwindColors["aura-green"]
+                    : tailwindColors["aura-gray-500"]
+                }
+              />
+            </Pressable>
+            <Text style={styles.termsText}>
+              I have read and agree to the{" "}
+              <Text
+                style={styles.termsLink}
+                onPress={() => router.push("/terms")}
+              >
+                Terms of Use
+              </Text>
+              .
+            </Text>
+          </View>
+          {termsError && !acceptedTerms ? (
+            <Text style={styles.termsErrorText}>{termsError}</Text>
+          ) : null}
+
           {/* Bottom Section */}
           <View style={styles.bottomSection}>
             {/* Sign Up Button */}
             <TouchableOpacity
               onPress={handleSignup}
-              style={[styles.button, styles.buttonPrimary, loading && styles.buttonDisabled]}
-              disabled={loading}
+              style={[
+                styles.button,
+                styles.buttonPrimary,
+                (loading || !acceptedTerms) && styles.buttonDisabled,
+              ]}
+              disabled={loading || !acceptedTerms}
             >
               {loading ? (
                 <ActivityIndicator color="#ffffff" />
@@ -424,6 +492,38 @@ const styles = StyleSheet.create({
   },
   invalidPasswordText: {
     marginTop: 4,
+    fontSize: 12,
+    color: tailwindColors["aura-red"],
+    fontFamily: tailwindFonts["regular"],
+  },
+  termsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 16,
+    marginTop: 32,
+  },
+  termsCheckbox: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  termsText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+    fontFamily: tailwindFonts["regular"],
+    lineHeight: 20,
+  },
+  termsLink: {
+    color: tailwindColors["aura-green"],
+    fontFamily: tailwindFonts["semibold"],
+    textDecorationLine: "underline",
+  },
+  termsErrorText: {
+    marginTop: 6,
+    paddingHorizontal: 16,
     fontSize: 12,
     color: tailwindColors["aura-red"],
     fontFamily: tailwindFonts["regular"],

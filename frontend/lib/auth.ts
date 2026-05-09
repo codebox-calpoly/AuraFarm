@@ -148,6 +148,10 @@ export async function refreshSession(): Promise<Session | null> {
  * Session usable for API calls and gating. If the access token is expired, tries a single
  * explicit refresh. If the refresh token is invalid or already used, storage is cleared and
  * this returns null so the app can send the user to sign in.
+ *
+ * Supabase rehydration is best-effort here: a transient Supabase failure (network, missing
+ * client config, etc.) must not invalidate an otherwise-valid backend session, or the user
+ * gets stuck in a login → tabs → login loop (e.g. TestFlight bug seen 2026-05).
  */
 export async function getValidSession(): Promise<Session | null> {
   const session = await getSession();
@@ -159,11 +163,11 @@ export async function getValidSession(): Promise<Session | null> {
     return null;
   }
 
-  if (!(await rehydrateSupabaseClient(session))) {
-    return null;
-  }
+  // Fire and forget — only `clearSession()` (called from inside on a confirmed-bad refresh
+  // token) can drop the session; transient errors leave it intact.
+  rehydrateSupabaseClient(session).catch(() => {});
 
-  return (await getSession()) ?? null;
+  return session;
 }
 
 export async function clearSession(): Promise<void> {

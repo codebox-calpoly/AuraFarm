@@ -12,11 +12,11 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
 
   const file = req.file;
   if (!file) {
-    throw new AppError('No media file provided', 400);
+    throw new AppError('No image file provided', 400);
   }
 
   if (!file.buffer?.length) {
-    throw new AppError('File is empty. Please try choosing the photo or video again.', 400);
+    throw new AppError('File is empty. Please try choosing the photo again.', 400);
   }
 
   const mimeToExt: Record<string, string> = {
@@ -25,16 +25,12 @@ export const uploadImage = asyncHandler(async (req: Request, res: Response) => {
     'image/gif': 'gif',
     'image/webp': 'webp',
     'image/heic': 'heic',
-    'video/mp4': 'mp4',
-    'video/quicktime': 'mov',
-    'video/webm': 'webm',
-    'video/x-matroska': 'mkv',
   };
-  
+
   if (!mimeToExt[file.mimetype]) {
-    throw new AppError('Unsupported file type. Please upload a valid image or video.', 400);
+    throw new AppError('Unsupported file type. Please upload a valid image.', 400);
   }
-  
+
   const ext = mimeToExt[file.mimetype];
   const fileName = `${req.user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 

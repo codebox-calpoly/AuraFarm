@@ -5,12 +5,12 @@ import { uploadImage } from '../controllers/upload.controller';
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 80 * 1024 * 1024 }, // 80 MB (short phone videos)
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB cap for photos
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+    if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image or video files are allowed'));
+      cb(new Error('Only image files are allowed'));
     }
   },
 });

@@ -93,14 +93,21 @@ function normalizeApiOrigin(raw: string): string {
   return `https://${s}`;
 }
 
+const PROD_API_URL = "https://aura-farm-two.vercel.app";
+
 export function apiBaseUrl(): string {
   const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
   const envUrl = process.env.EXPO_PUBLIC_API_URL ?? extra?.apiUrl;
   if (envUrl) return normalizeApiOrigin(envUrl);
+
+  // Production / TestFlight builds have no Metro hostUri. Never fall back to
+  // localhost there or login will loop (and iOS ATS would block plain http).
   const hostUri: string | undefined =
     (Constants.expoConfig as any)?.hostUri ??
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ??
     (Constants as any).manifest?.debuggerHost;
+  if (!__DEV__ && !hostUri) return PROD_API_URL;
+
   if (hostUri) {
     const host = hostUri.split(":")[0];
     return `http://${host}:3000`;
@@ -553,6 +560,64 @@ export async function flagCompletion(completionId: number, reason?: string): Pro
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ completionId, reason: reason ?? null }),
   });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export type BlockedUser = {
+  id: number;
+  blockedUserId: number;
+  blockedUserName: string;
+  reason: string | null;
+  reportedCompletionId: number | null;
+  createdAt: string;
+};
+
+export async function blockUser(input: {
+  blockedUserId: number;
+  reason?: string;
+  reportedCompletionId?: number;
+}): Promise<ApiResponse<{ id: number }>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/blocks`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function unblockUser(
+  blockedUserId: number,
+): Promise<ApiResponse<unknown>> {
+  const res = await authedFetch(
+    `${apiBaseUrl()}/api/blocks/${blockedUserId}`,
+    { method: "DELETE" },
+  );
+  const json = await res.json();
+  if (!res.ok) {
+    return {
+      success: false,
+      error: json?.error ?? json?.message ?? `Request failed (${res.status})`,
+    };
+  }
+  return json;
+}
+
+export async function getMyBlockedUsers(): Promise<ApiResponse<BlockedUser[]>> {
+  const res = await authedFetch(`${apiBaseUrl()}/api/blocks`);
   const json = await res.json();
   if (!res.ok) {
     return {

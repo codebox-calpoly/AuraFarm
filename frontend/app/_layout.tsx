@@ -70,6 +70,7 @@ export default function RootLayout() {
           <Stack.Screen name="login" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="post" />
+          <Stack.Screen name="terms" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="dark" />
       </ThemeProvider>

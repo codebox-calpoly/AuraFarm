@@ -10,6 +10,17 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM_EMAIL =
     process.env.RESEND_FROM_EMAIL || 'Aura Farm <onboarding@resend.dev>';
 
+/**
+ * Inbox that receives moderation notifications (block / flag events).
+ * Falls back to MODERATION_EMAIL or DEV_NOTIFICATION_EMAIL, then to the from
+ * address so the developer still gets a copy in test mode.
+ */
+const MODERATION_EMAIL =
+    process.env.MODERATION_EMAIL ||
+    process.env.DEV_NOTIFICATION_EMAIL ||
+    process.env.RESEND_FROM_EMAIL ||
+    'aurafarmapp@gmail.com';
+
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
 export function isEmailConfigured(): boolean {
@@ -86,4 +97,105 @@ export async function sendVerificationEmail(
         logger.error('Resend send failed', { error, toEmail });
         throw new Error(error.message || 'Failed to send verification email');
     }
+}
+
+export interface ModerationNotificationInput {
+    /** 'block' when the actor blocked another user; 'flag' when content was reported. */
+    kind: 'block' | 'flag';
+    actor: { id: number; email: string; name: string };
+    /** The user being blocked (for kind='block') or who authored the flagged content (for 'flag'). */
+    target: { id: number; email: string | null; name: string };
+    reason?: string | null;
+    completion?: {
+        id: number;
+        challengeTitle?: string | null;
+        caption?: string | null;
+        imageUrl?: string | null;
+    } | null;
+}
+
+/**
+ * Best-effort send of a moderation-team notification. Failures are logged but
+ * never thrown — moderation notifications must not break user-facing flows.
+ */
+export async function sendModerationNotification(
+    input: ModerationNotificationInput,
+): Promise<void> {
+    const subject =
+        input.kind === 'block'
+            ? `[Aura Farm] User block reported: ${input.target.name} (#${input.target.id})`
+            : `[Aura Farm] Content flagged on completion #${input.completion?.id ?? 'unknown'}`;
+
+    const lines: string[] = [];
+    lines.push(`A user just submitted a ${input.kind === 'block' ? 'block' : 'content flag'}.`);
+    lines.push('');
+    lines.push(`Reporter: ${input.actor.name} <${input.actor.email}> (id ${input.actor.id})`);
+    lines.push(
+        input.kind === 'block'
+            ? `Blocked user: ${input.target.name}${input.target.email ? ` <${input.target.email}>` : ''} (id ${input.target.id})`
+            : `Author: ${input.target.name}${input.target.email ? ` <${input.target.email}>` : ''} (id ${input.target.id})`,
+    );
+    if (input.reason && input.reason.trim().length > 0) {
+        lines.push('');
+        lines.push('Reason:');
+        lines.push(input.reason.trim());
+    }
+    if (input.completion) {
+        lines.push('');
+        lines.push(`Completion: #${input.completion.id}`);
+        if (input.completion.challengeTitle) {
+            lines.push(`Challenge: ${input.completion.challengeTitle}`);
+        }
+        if (input.completion.caption) {
+            lines.push(`Caption: ${input.completion.caption}`);
+        }
+        if (input.completion.imageUrl) {
+            lines.push(`Photo: ${input.completion.imageUrl}`);
+        }
+    }
+    lines.push('');
+    lines.push('Please review in the admin moderation queue.');
+    lines.push('— Aura Farm safety system');
+
+    const text = lines.join('\n');
+    const html = `<pre style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5;color:#0f0f0f;white-space:pre-wrap;">${escapeHtml(text)}</pre>`;
+
+    if (!resend) {
+        logger.warn('Moderation notification not sent (RESEND_API_KEY missing)', {
+            kind: input.kind,
+            actorId: input.actor.id,
+            targetId: input.target.id,
+            completionId: input.completion?.id,
+        });
+        return;
+    }
+
+    try {
+        const { error } = await resend.emails.send({
+            from: RESEND_FROM_EMAIL,
+            to: MODERATION_EMAIL,
+            subject,
+            html,
+            text,
+        });
+        if (error) {
+            logger.error('Failed to send moderation notification', {
+                error,
+                kind: input.kind,
+                actorId: input.actor.id,
+                targetId: input.target.id,
+            });
+        }
+    } catch (err) {
+        logger.error('Unexpected error sending moderation notification', { error: err });
+    }
+}
+
+function escapeHtml(s: string): string {
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }

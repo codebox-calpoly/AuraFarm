@@ -6,6 +6,7 @@ import { prisma } from '../prisma';
 import { ChallengeReviewStatus, Prisma } from '@prisma/client';
 import { isConsecutiveDay, isSameCalendarDay } from '../utils/date';
 import { getAcceptedFriendIds } from '../utils/friendship';
+import { getBlockedAndBlockerIds } from '../utils/block';
 import { calculateDistance } from '../utils/geo';
 
 function viewerMaySeeCompletion(
@@ -269,6 +270,14 @@ export const getCompletionById = asyncHandler(async (req: Request, res: Response
     throw new AppError('Completion not found', 404);
   }
 
+  // Hide content if there's a block in either direction between viewer and author.
+  if (req.user && completion.userId !== req.user.id) {
+    const blockedIds = await getBlockedAndBlockerIds(req.user.id);
+    if (blockedIds.includes(completion.userId)) {
+      throw new AppError('Completion not found', 404);
+    }
+  }
+
   const response: ApiResponse<typeof completion> = {
     success: true,
     data: completion,
@@ -379,7 +388,21 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
 
   const feedScope = feed === 'friends' ? 'friends' : 'global';
 
+  // Mutual block: hide content if either side has blocked the other.
+  const blockedIds = await getBlockedAndBlockerIds(req.user?.id);
+
   if (userIdNum !== undefined && !Number.isNaN(userIdNum)) {
+    if (blockedIds.includes(userIdNum)) {
+      // Treat as if user has no posts; never leak that they exist.
+      const pageNum = Number(page ?? 1);
+      const limitNum = Number(limit ?? 20);
+      res.json({
+        success: true,
+        data: [],
+        pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 1 },
+      });
+      return;
+    }
     where.userId = userIdNum;
     const viewerId = req.user?.id;
     const isOwner = viewerId === userIdNum;
@@ -395,7 +418,9 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
       if (!req.user) {
         throw new AppError('Sign in to view your friends feed', 401);
       }
-      const friendIds = await getAcceptedFriendIds(req.user.id);
+      const friendIds = (await getAcceptedFriendIds(req.user.id)).filter(
+        (id) => !blockedIds.includes(id),
+      );
       if (friendIds.length === 0) {
         const pageNum = Number(page ?? 1);
         const limitNum = Number(limit ?? 20);
@@ -412,6 +437,8 @@ export const getCompletions = asyncHandler(async (req: Request, res: Response) =
         return;
       }
       where.userId = { in: friendIds };
+    } else if (blockedIds.length > 0) {
+      where.userId = { notIn: blockedIds };
     }
 
     where.user = { shareCompletionsInFeed: true };

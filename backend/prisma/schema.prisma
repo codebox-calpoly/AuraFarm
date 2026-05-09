@@ -52,6 +52,10 @@ model User {
   flags           Flag[] // Flags they've submitted
   friendshipsSent     Friendship[]      @relation("FriendshipRequester")
   friendshipsReceived Friendship[]      @relation("FriendshipAddressee")
+  /// Blocks this user has created (the blocker side).
+  blocksMade      Block[]               @relation("BlockBlocker")
+  /// Blocks targeted at this user (the blocked side).
+  blocksReceived  Block[]               @relation("BlockBlocked")
 
   @@index([auraPoints])
 }
@@ -151,6 +155,25 @@ model Flag {
   @@unique([completionId, flaggedById]) // Prevent duplicate flags from same user
   @@index([completionId]) // Index for faster completion flag queries
   @@index([flaggedById]) // Index for faster user flag queries
+}
+
+/// User-initiated block. Blocker no longer sees blocked user's posts/profile and vice versa.
+/// Creating a Block also notifies the developer (email) so abusive content can be reviewed,
+/// and (optionally) carries a reportedCompletionId so the offending post is queued for moderation.
+model Block {
+  id                    Int       @id @default(autoincrement())
+  blockerId             Int
+  blockedId             Int
+  reason                String?
+  /// Optional: completion that prompted the block (helps moderation triage).
+  reportedCompletionId  Int?
+  createdAt             DateTime  @default(now())
+  blocker               User      @relation("BlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked               User      @relation("BlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
 }
 
 /// One row per email currently going through OTP verification.
