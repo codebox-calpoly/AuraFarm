@@ -14,7 +14,8 @@ export const AURA_TIERS_DESC: AuraTierDef[] = [
   { label: "yellow", color: tailwindColors["aura-yellow"], bg: "#FFFDE7", minPoints: 150 },
   { label: "green", color: tailwindColors["aura-green"], bg: tailwindColors["aura-green-light"], minPoints: 75 },
   { label: "blue", color: tailwindColors["aura-blue"], bg: "#EEF2FF", minPoints: 25 },
-  { label: "purple", color: tailwindColors["aura-purple"], bg: "#F5EEFF", minPoints: 0 },
+  { label: "purple", color: tailwindColors["aura-purple"], bg: "#F5EEFF", minPoints: 1 },
+  { label: "gray", color: tailwindColors["aura-black"], bg: "#F5F5F5", minPoints: 0 },
 ];
 
 export function getTierForPoints(points: number): AuraTierDef {
@@ -23,7 +24,7 @@ export function getTierForPoints(points: number): AuraTierDef {
 
 /** Next tier floor strictly above `points` (milestones 25 → 75 → 150 → …). Null if already at max. */
 export function getNextAuraThreshold(points: number): number | null {
-  const thresholds = [25, 75, 150, 300, 500];
+  const thresholds = [1, 25, 75, 150, 300, 500];
   const next = thresholds.find((t) => t > points);
   return next ?? null;
 }
