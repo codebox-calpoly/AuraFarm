@@ -29,7 +29,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 
 type Segment = "friends" | "requests";
 
@@ -100,11 +99,7 @@ export default function FriendsScreen() {
     const res = await sendFriendRequestToUser(id);
     if (res.success) {
       await loadAll();
-      Toast.show({
-        type: "success",
-        text1: "Sent",
-        text2: "Friend request sent.",
-      });
+      Alert.alert("Sent", "Friend request sent.");
     } else {
       Alert.alert("Could not send", res.error ?? "Try again.");
     }

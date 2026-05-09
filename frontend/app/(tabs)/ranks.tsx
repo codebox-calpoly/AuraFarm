@@ -10,6 +10,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -141,7 +142,11 @@ export default function RanksScreen() {
           lightColor={tailwindColors["aura-surface"]}
         >
           <ThemedText style={styles.tierPickerLabel}>Leaderboard view</ThemedText>
-          <View style={styles.tierChipsRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.tierScrollInner}
+          >
             {LEADERBOARD_TABS.map((section) => {
               const isActive = section.id === activeSectionId;
               const isAll = section.id === "all";
@@ -165,7 +170,7 @@ export default function RanksScreen() {
                 </Pressable>
               );
             })}
-          </View>
+          </ScrollView>
         </ThemedView>
 
         {/* Leaderboard card */}
@@ -298,18 +303,16 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     marginLeft: spacing.xs,
   },
-  tierChipsRow: {
+  tierScrollInner: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
     paddingHorizontal: spacing.xs,
     paddingVertical: 4,
-    gap: 8,
   },
   tierChip: {
-    flex: 1,
-    minWidth: 40,
-    height: 48,
+    width: 52,
+    height: 52,
     borderRadius: radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",

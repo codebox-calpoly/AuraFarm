@@ -641,7 +641,7 @@ export default function SettingsScreen() {
             <>
               <ThemedText style={styles.sectionLabel}>Danger zone</ThemedText>
               <ThemedView
-                style={[styles.dangerCard, cardShadow(2)]}
+                style={[styles.card, cardShadow(2)]}
                 lightColor={tailwindColors["aura-surface"]}
               >
                 <ThemedText style={styles.deleteTitle}>Delete account</ThemedText>
@@ -978,33 +978,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: tailwindColors["aura-red"],
   },
-  dangerCard: {
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    paddingVertical: spacing.xl,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: tailwindColors["aura-red"] + "44",
-    gap: spacing.md,
-  },
   deleteTitle: {
     fontFamily: tailwindFonts["semibold"],
-    fontSize: 17,
+    fontSize: 16,
     color: tailwindColors["aura-black"],
+    marginBottom: spacing.xs,
   },
   deleteSubtitle: {
     fontFamily: tailwindFonts["regular"],
-    fontSize: 14,
+    fontSize: 13,
     color: tailwindColors["aura-gray-500"],
-    lineHeight: 21,
+    lineHeight: 20,
+    marginBottom: spacing.md,
   },
   deleteBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.sm,
+    gap: spacing.xs,
     backgroundColor: tailwindColors["aura-red"],
-    paddingVertical: 14,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: radius.md,
     alignSelf: "flex-start",
