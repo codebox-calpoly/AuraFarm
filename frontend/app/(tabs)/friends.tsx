@@ -219,7 +219,7 @@ export default function FriendsScreen() {
                   <View key={u.id} style={styles.hitRow}>
                     <View style={{ flex: 1 }}>
                       <ThemedText style={styles.hitName}>{u.name}</ThemedText>
-                      <ThemedText style={styles.hitMeta}>{u.auraPoints} aura</ThemedText>
+                      <ThemedText style={styles.hitMeta}>{u.auraPoints} Aura</ThemedText>
                     </View>
                     {status === "friends" ? (
                       <ThemedText style={styles.pillMuted}>Friends</ThemedText>
@@ -260,7 +260,7 @@ export default function FriendsScreen() {
                 <ThemedView key={f.id} style={[styles.rowCard, cardShadow(1)]}>
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.hitName}>{f.name}</ThemedText>
-                    <ThemedText style={styles.hitMeta}>{f.auraPoints} aura</ThemedText>
+                    <ThemedText style={styles.hitMeta}>{f.auraPoints} Aura</ThemedText>
                   </View>
                   <Pressable
                     onPress={() => handleRemove(f.id, f.name)}
@@ -283,7 +283,7 @@ export default function FriendsScreen() {
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.hitName}>{r.requester.name}</ThemedText>
                     <ThemedText style={styles.hitMeta}>
-                      {r.requester.auraPoints} aura
+                      {r.requester.auraPoints} Aura
                     </ThemedText>
                   </View>
                   <View style={styles.reqActions}>
@@ -312,7 +312,7 @@ export default function FriendsScreen() {
                   <View style={{ flex: 1 }}>
                     <ThemedText style={styles.hitName}>{r.addressee.name}</ThemedText>
                     <ThemedText style={styles.hitMeta}>
-                      {r.addressee.auraPoints} aura
+                      {r.addressee.auraPoints} Aura
                     </ThemedText>
                   </View>
                   <Pressable onPress={() => handleCancelOutgoing(r.addressee.id)}>

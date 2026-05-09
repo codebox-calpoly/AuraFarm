@@ -83,7 +83,7 @@ export default function EditPostScreen() {
             <View style={styles.titleSection}>
               <ThemedText style={styles.challengeTitle}>Your Post</ThemedText>
               <ThemedText style={styles.pointsText}>
-                +{post.points} points
+                +{post.points} Aura
               </ThemedText>
             </View>
 

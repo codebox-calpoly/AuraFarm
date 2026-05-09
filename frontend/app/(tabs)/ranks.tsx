@@ -65,6 +65,10 @@ function sectionIdForAuraPoints(points: number): (typeof TIER_SECTIONS)[number][
   return "gray";
 }
 
+function colorForAuraPoints(points: number): string {
+  return LEADERBOARD_TABS.find((section) => section.id === sectionIdForAuraPoints(points))?.color ?? tailwindColors["aura-black"];
+}
+
 function hexToRgba(hex: string, alpha: number) {
   const cleaned = hex.replace("#", "");
   const value = parseInt(cleaned, 16);
@@ -119,8 +123,8 @@ export default function RanksScreen() {
   const emptyCopy =
     fetchError ? fetchError
     : leaderboard.length === 0 ?
-      "No one on the leaderboard yet. Complete challenges to appear here."
-    : "No players in this tier yet. Try “All” or another tier above.";
+      "No one is on the leaderboard yet. Complete challenges to appear here."
+    : "No players are in this tier yet. Try “All” or another tier above.";
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -182,8 +186,8 @@ export default function RanksScreen() {
                 <ThemedText style={styles.leaderboardTitle}>Leaderboard</ThemedText>
                 <ThemedText style={styles.leaderboardSubtitle}>
                   {activeSection.id === "all" ?
-                    "Everyone ranked by total aura points"
-                  : `${activeSection.label.replace(" Aura", "")} · ${TIER_RANGE_LABEL[activeSection.id as keyof typeof TIER_RANGE_LABEL]} aura pts`}
+                    "Everyone ranked by total Aura"
+                  : `${activeSection.label.replace(" Aura", "")} · ${TIER_RANGE_LABEL[activeSection.id as keyof typeof TIER_RANGE_LABEL]} Aura`}
                 </ThemedText>
               </View>
             </View>
@@ -217,7 +221,7 @@ export default function RanksScreen() {
                 />
               </View>
               <ThemedText style={styles.emptyTitle}>
-                {fetchError ? "Couldn’t load leaderboard" : "No entries yet"}
+                {fetchError ? "Couldn’t load leaderboard" : "No one here yet"}
               </ThemedText>
               <ThemedText style={[styles.emptyBody, fetchError && styles.emptyBodyError]}>
                 {emptyCopy}
@@ -237,12 +241,12 @@ export default function RanksScreen() {
                     style={[
                       styles.rankBadge,
                       {
-                        borderColor: hexToRgba(activeSection.color, 0.45),
-                        backgroundColor: hexToRgba(activeSection.color, 0.1),
+                        borderColor: activeSection.label == "All" ? hexToRgba(colorForAuraPoints(entry.points), 0.45) : hexToRgba(activeSection.color, 0.45),
+                        backgroundColor: activeSection.label == "All" ? hexToRgba(colorForAuraPoints(entry.points), 0.1) : hexToRgba(activeSection.color, 0.1)
                       },
                     ]}
                   >
-                    <Text style={[styles.rankNum, { color: activeSection.color }]}>
+                    <Text style={[styles.rankNum, { color: activeSection.label == "All" ? colorForAuraPoints(entry.points) : activeSection.color }]}>
                       {entry.displayRank}
                     </Text>
                   </View>
@@ -254,7 +258,7 @@ export default function RanksScreen() {
                   </View>
                   <View style={styles.pointsPill}>
                     <Text style={styles.points}>{entry.points}</Text>
-                    <Text style={styles.pointsSuffix}>pts</Text>
+                    <Text style={styles.pointsSuffix}>Aura</Text>
                   </View>
                 </View>
               ))}

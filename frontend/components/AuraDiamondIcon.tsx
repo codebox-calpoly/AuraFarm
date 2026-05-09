@@ -54,7 +54,7 @@ export function AuraDiamondIcon({ color, points, width = 270, height = 426, styl
     {points != null && (
       <View style={diamondStyles.overlay}>
         <Text style={[diamondStyles.pointsText, { color }]}>{points}</Text>
-        <Text style={[diamondStyles.ptsLabel, { color }]}>pts</Text>
+        <Text style={[diamondStyles.ptsLabel, { color }]}>Aura</Text>
       </View>
     )}
     </View>
