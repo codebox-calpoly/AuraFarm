@@ -98,6 +98,21 @@ export interface CreateFlagRequest {
   reason?: string;
 }
 
+export interface Block {
+  id: number;
+  blockerId: number;
+  blockedId: number;
+  reason: string | null;
+  reportedCompletionId: number | null;
+  createdAt: Date;
+}
+
+export interface CreateBlockRequest {
+  blockedUserId: number;
+  reason?: string;
+  reportedCompletionId?: number;
+}
+
 export interface LeaderboardEntry {
   userId: number;
   userName: string;
@@ -144,6 +159,16 @@ export const reviewCompletionSchema = z.object({
 export const createFlagSchema = z.object({
   completionId: z.number().int().positive(),
   reason: z.string().optional(),
+});
+
+export const createBlockSchema = z.object({
+  blockedUserId: z.number().int().positive(),
+  reason: z.string().max(1000).optional(),
+  reportedCompletionId: z.number().int().positive().optional(),
+});
+
+export const blockedUserIdParamSchema = z.object({
+  blockedUserId: z.string().regex(/^\d+$/).transform(Number),
 });
 
 const challengeCategoryValues = [

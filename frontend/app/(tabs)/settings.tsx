@@ -9,7 +9,10 @@ import {
   changePassword as apiChangePassword,
   deleteCurrentUserAccount,
   getCurrentUserFromApi,
+  getMyBlockedUsers,
+  unblockUser,
   updateCurrentUserProfile,
+  type BlockedUser,
 } from "@/lib/api";
 import { clearSession, getValidSession, storeSession } from "@/lib/auth";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,6 +58,11 @@ export default function SettingsScreen() {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(true);
+  const [blockedError, setBlockedError] = useState<string | null>(null);
+  const [unblockingIds, setUnblockingIds] = useState<Set<number>>(new Set());
 
   const usernameInputRef = useRef<TextInput>(null);
   const { width } = useWindowDimensions();
@@ -112,6 +120,55 @@ export default function SettingsScreen() {
       cancelled = true;
     };
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadBlocked = async () => {
+      try {
+        const res = await getMyBlockedUsers();
+        if (cancelled) return;
+        if (res.success) {
+          setBlockedUsers(res.data);
+          setBlockedError(null);
+        } else {
+          setBlockedError(res.error ?? "Could not load blocked users.");
+        }
+      } catch {
+        if (!cancelled) setBlockedError("Could not load blocked users.");
+      } finally {
+        if (!cancelled) setBlockedLoading(false);
+      }
+    };
+    loadBlocked();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleUnblockUser = async (entry: BlockedUser) => {
+    setUnblockingIds((prev) => new Set(prev).add(entry.blockedUserId));
+    setBlockedUsers((prev) =>
+      prev.filter((b) => b.blockedUserId !== entry.blockedUserId),
+    );
+    const res = await unblockUser(entry.blockedUserId);
+    if (!res.success) {
+      setBlockedUsers((prev) =>
+        [...prev, entry].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        ),
+      );
+      Alert.alert(
+        "Couldn't unblock",
+        res.error ?? "Please try again in a moment.",
+      );
+    }
+    setUnblockingIds((prev) => {
+      const next = new Set(prev);
+      next.delete(entry.blockedUserId);
+      return next;
+    });
+  };
 
   const handleSaveUsername = async () => {
     if (username === originalUsername) return;
@@ -403,6 +460,92 @@ export default function SettingsScreen() {
             </View>
           </ThemedView>
 
+          {/* Blocked users */}
+          <ThemedText style={styles.sectionLabel}>Blocked users</ThemedText>
+          <ThemedView
+            style={[styles.card, cardShadow(2)]}
+            lightColor={tailwindColors["aura-surface"]}
+          >
+            {blockedLoading ? (
+              <View style={styles.blockedLoadingRow}>
+                <ActivityIndicator
+                  size="small"
+                  color={tailwindColors["aura-green"]}
+                />
+                <ThemedText style={styles.blockedHint}>
+                  Loading blocked users…
+                </ThemedText>
+              </View>
+            ) : blockedError ? (
+              <Text style={styles.errorText}>{blockedError}</Text>
+            ) : blockedUsers.length === 0 ? (
+              <View style={styles.blockedEmptyWrap}>
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={22}
+                  color={tailwindColors["aura-gray-400"]}
+                />
+                <ThemedText style={styles.blockedEmptyText}>
+                  No blocked users
+                </ThemedText>
+                <ThemedText style={styles.blockedEmptyHint}>
+                  When you block someone from a post, they&apos;ll show up here
+                  so you can manage them later.
+                </ThemedText>
+              </View>
+            ) : (
+              <View style={styles.blockedList}>
+                {blockedUsers.map((entry, idx) => {
+                  const pending = unblockingIds.has(entry.blockedUserId);
+                  return (
+                    <View key={entry.id}>
+                      <View style={styles.blockedRow}>
+                        <View style={styles.blockedAvatar}>
+                          <Text style={styles.blockedAvatarLetter}>
+                            {(entry.blockedUserName || "?")
+                              .charAt(0)
+                              .toUpperCase()}
+                          </Text>
+                        </View>
+                        <View style={styles.blockedNameWrap}>
+                          <Text
+                            style={styles.blockedName}
+                            numberOfLines={1}
+                          >
+                            {entry.blockedUserName || "Unknown user"}
+                          </Text>
+                          {entry.reason ? (
+                            <Text
+                              style={styles.blockedReason}
+                              numberOfLines={2}
+                            >
+                              {entry.reason}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Pressable
+                          style={[
+                            styles.unblockBtn,
+                            pending && styles.btnDisabled,
+                          ]}
+                          onPress={() => handleUnblockUser(entry)}
+                          disabled={pending}
+                        >
+                          <Text style={styles.unblockBtnText}>
+                            {pending ? "Unblocking…" : "Unblock"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                      {idx < blockedUsers.length - 1 ? (
+                        <View style={styles.divider} />
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </ThemedView>
+
           {/* Security */}
           <ThemedText style={styles.sectionLabel}>Security</ThemedText>
           <ThemedView
@@ -498,7 +641,7 @@ export default function SettingsScreen() {
             <>
               <ThemedText style={styles.sectionLabel}>Danger zone</ThemedText>
               <ThemedView
-                style={[styles.card, cardShadow(2)]}
+                style={[styles.dangerCard, cardShadow(2)]}
                 lightColor={tailwindColors["aura-surface"]}
               >
                 <ThemedText style={styles.deleteTitle}>Delete account</ThemedText>
@@ -835,26 +978,33 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: tailwindColors["aura-red"],
   },
+  dangerCard: {
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    paddingVertical: spacing.xl,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: tailwindColors["aura-red"] + "44",
+    gap: spacing.md,
+  },
   deleteTitle: {
     fontFamily: tailwindFonts["semibold"],
-    fontSize: 16,
+    fontSize: 17,
     color: tailwindColors["aura-black"],
-    marginBottom: spacing.xs,
   },
   deleteSubtitle: {
     fontFamily: tailwindFonts["regular"],
-    fontSize: 13,
+    fontSize: 14,
     color: tailwindColors["aura-gray-500"],
-    lineHeight: 20,
-    marginBottom: spacing.md,
+    lineHeight: 21,
   },
   deleteBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: spacing.xs,
+    gap: spacing.sm,
     backgroundColor: tailwindColors["aura-red"],
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: radius.md,
     alignSelf: "flex-start",
@@ -949,5 +1099,82 @@ const styles = StyleSheet.create({
   },
   btnDisabled: {
     opacity: 0.5,
+  },
+  blockedLoadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  blockedHint: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 14,
+    color: tailwindColors["aura-gray-500"],
+  },
+  blockedEmptyWrap: {
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  blockedEmptyText: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 15,
+    color: tailwindColors["aura-gray-600"],
+  },
+  blockedEmptyHint: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-500"],
+    textAlign: "center",
+    lineHeight: 18,
+    paddingHorizontal: spacing.sm,
+  },
+  blockedList: {
+    gap: 0,
+  },
+  blockedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  blockedAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: tailwindColors["aura-red-tint"],
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  blockedAvatarLetter: {
+    fontFamily: tailwindFonts["bold"],
+    fontSize: 15,
+    color: tailwindColors["aura-red"],
+  },
+  blockedNameWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  blockedName: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 15,
+    color: tailwindColors["aura-black"],
+  },
+  blockedReason: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 12,
+    color: tailwindColors["aura-gray-500"],
+    marginTop: 2,
+  },
+  unblockBtn: {
+    backgroundColor: tailwindColors["aura-gray-200"],
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+  },
+  unblockBtnText: {
+    fontFamily: tailwindFonts["semibold"],
+    fontSize: 13,
+    color: tailwindColors["aura-gray-700"],
   },
 });

@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../middleware/asyncHandler";
 import { LeaderboardEntry, PaginatedResponse } from "../types";
 import { prisma } from "../prisma";
-import { ChallengeReviewStatus } from "@prisma/client";
+import { ChallengeReviewStatus, Prisma } from "@prisma/client";
 import { toJsonSafe } from "../utils/jsonSafe";
+import { getBlockedAndBlockerIds } from "../utils/block";
 
 /**
  * DENSE_RANK over auraPoints DESC: each distinct score tier gets rank 1, 2, 3…
@@ -25,16 +26,23 @@ export const getLeaderboard = asyncHandler(
     const limitNum = Math.min(100, Math.max(1, Number(req.query.limit ?? 20)));
     const startIndex = (pageNum - 1) * limitNum;
 
+    // Hide users who have any block in either direction with the viewer.
+    const blockedIds = await getBlockedAndBlockerIds(req.user?.id);
+    const userWhere: Prisma.UserWhereInput =
+      blockedIds.length > 0 ? { id: { notIn: blockedIds } } : {};
+
     // No $queryRaw — works cleanly with PgBouncer transaction mode and avoids
     // holding extra pooled connections. Rank map is one small DISTINCT query.
     const [total, distinctAurasDesc, pageRows] = await prisma.$transaction([
-      prisma.user.count(),
+      prisma.user.count({ where: userWhere }),
       prisma.user.findMany({
+        where: userWhere,
         select: { auraPoints: true },
         distinct: ["auraPoints"],
         orderBy: { auraPoints: "desc" },
       }),
       prisma.user.findMany({
+        where: userWhere,
         orderBy: [{ auraPoints: "desc" }, { id: "asc" }],
         skip: startIndex,
         take: limitNum,

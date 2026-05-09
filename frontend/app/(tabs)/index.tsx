@@ -25,6 +25,7 @@ import {
   likeCompletion,
   unlikeCompletion,
   flagCompletion,
+  blockUser,
   type Challenge,
 } from "@/lib/api";
 import { getSession } from "@/lib/auth";
@@ -88,6 +89,8 @@ export default function HomeScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
   const [reportedPosts, setReportedPosts] = useState<Set<number>>(new Set());
+  // Locally-filtered users so a stale refetch can't temporarily resurrect their posts.
+  const [blockedUserIds, setBlockedUserIds] = useState<Set<number>>(new Set());
 
   // State for challenges
   const [incomingChallenges, setIncomingChallenges] = useState<
@@ -129,18 +132,20 @@ export default function HomeScreen() {
     const feedRes = await getFeedCompletionsFromApi(scope);
     if (feedRes.success) {
       setRemoteFeedPosts(
-        feedRes.data.map((c) => ({
-          id: c.id,
-          userId: c.userId,
-          challengeTitle: c.challenge.title,
-          points: c.challenge.pointsReward,
-          userName: c.user.name ?? "Auranaut",
-          userImage: undefined,
-          caption: c.caption ?? "",
-          date: formatFeedDate(new Date(c.completedAt)),
-          likes: c.likes ?? 0,
-          postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || undefined,
-        })),
+        feedRes.data
+          .filter((c) => !blockedUserIds.has(c.userId))
+          .map((c) => ({
+            id: c.id,
+            userId: c.userId,
+            challengeTitle: c.challenge.title,
+            points: c.challenge.pointsReward,
+            userName: c.user.name ?? "Auranaut",
+            userImage: undefined,
+            caption: c.caption ?? "",
+            date: formatFeedDate(new Date(c.completedAt)),
+            likes: c.likes ?? 0,
+            postImage: (c.imageUri?.trim() || c.imageUrl?.trim()) || undefined,
+          })),
       );
     } else {
       setRemoteFeedPosts([]);
@@ -317,7 +322,7 @@ export default function HomeScreen() {
       if (!imageUrl) {
         Alert.alert(
           "Upload failed",
-          "Could not upload your photo or video. Please try again.",
+          "Could not upload your photo. Please try again.",
         );
         return false;
       }
@@ -397,6 +402,70 @@ export default function HomeScreen() {
       // Silently ignore duplicate flags; warn on other errors
       console.warn("Flag failed:", res.error);
     }
+  };
+
+  const performBlockUser = async (post: FeedPost) => {
+    const res = await blockUser({
+      blockedUserId: post.userId,
+      reportedCompletionId: post.id >= 0 ? post.id : undefined,
+    });
+    if (!res.success) {
+      Alert.alert(
+        "Couldn't block user",
+        res.error ?? "Please try again in a moment.",
+      );
+      return;
+    }
+    setBlockedUserIds((prev) => {
+      const next = new Set(prev);
+      next.add(post.userId);
+      return next;
+    });
+    setRemoteFeedPosts((prev) => prev.filter((p) => p.userId !== post.userId));
+  };
+
+  const handlePostOptionsPress = (post: FeedPost) => {
+    const isOwnPost =
+      currentUserId !== null && post.userId === currentUserId;
+
+    if (isOwnPost) {
+      // Own post: skip block option entirely; go straight to report flow.
+      handleOpenReportModal(post.id);
+      return;
+    }
+
+    Alert.alert(
+      "Post options",
+      undefined,
+      [
+        {
+          text: "Report post",
+          onPress: () => handleOpenReportModal(post.id),
+        },
+        {
+          text: "Block this user",
+          style: "destructive",
+          onPress: () => {
+            Alert.alert(
+              `Block @${post.userName}?`,
+              "You won't see their posts anymore. The developer will be notified to review their content.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Block",
+                  style: "destructive",
+                  onPress: () => {
+                    void performBlockUser(post);
+                  },
+                },
+              ],
+            );
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ],
+      { cancelable: true },
+    );
   };
 
   const handleLikePost = async (postId: number, liked: boolean) => {
@@ -534,7 +603,7 @@ export default function HomeScreen() {
                               `/post/${post.id}?imageUri=${encodeURIComponent(post.postImage ?? "")}&title=${encodeURIComponent(post.challengeTitle)}&points=${post.points}&caption=${encodeURIComponent(post.caption)}&likes=${post.likes}&userName=${encodeURIComponent(post.userName)}&isOwnPost=false`,
                             )
                       }
-                      onOptionsPress={() => handleOpenReportModal(post.id)}
+                      onOptionsPress={() => handlePostOptionsPress(post)}
                       onLikePress={(liked) => handleLikePost(post.id, liked)}
                     />
                   );

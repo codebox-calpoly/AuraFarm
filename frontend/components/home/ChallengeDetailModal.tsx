@@ -12,13 +12,11 @@ import {
   ScrollView,
 } from "react-native";
 import { Image } from "expo-image";
-import { Audio, Video, ResizeMode } from "expo-av";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { isVideoUrl } from "@/lib/media";
 
 export interface ChallengeDetailModalProps {
   visible: boolean;
@@ -53,7 +51,6 @@ export function ChallengeDetailModal({
       .filter(Boolean) ?? [];
   const [showUploadOptions, setShowUploadOptions] = useState(false);
   const [mediaUri, setMediaUri] = useState<string | null>(null);
-  const [isVideoMedia, setIsVideoMedia] = useState(false);
   const [pickedMimeType, setPickedMimeType] = useState<string | undefined>(
     undefined,
   );
@@ -61,11 +58,9 @@ export function ChallengeDetailModal({
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset state when modal closes
   const handleClose = () => {
     setShowUploadOptions(false);
     setMediaUri(null);
-    setIsVideoMedia(false);
     setPickedMimeType(undefined);
     setCaption("");
     setShowActionSheet(false);
@@ -76,24 +71,22 @@ export function ChallengeDetailModal({
     setShowUploadOptions(true);
   };
 
-  const pickPhotoOrVideoFromLibrary = async () => {
+  const pickPhotoFromLibrary = async () => {
     const lib = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!lib.granted) {
-      alert("Allow photo library access to choose a photo or video.");
+      alert("Allow photo library access to choose a photo.");
       return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       quality: 1,
-      videoMaxDuration: 180,
     });
 
     if (!result.canceled && result.assets[0]) {
       const a = result.assets[0];
       setMediaUri(a.uri);
-      setIsVideoMedia(a.type === "video" || isVideoUrl(a.uri));
       setPickedMimeType(a.mimeType ?? undefined);
       setShowActionSheet(false);
     }
@@ -117,34 +110,6 @@ export function ChallengeDetailModal({
     if (!result.canceled && result.assets[0]) {
       const a = result.assets[0];
       setMediaUri(a.uri);
-      setIsVideoMedia(false);
-      setPickedMimeType(a.mimeType ?? undefined);
-      setShowActionSheet(false);
-    }
-  };
-
-  const recordVideo = async () => {
-    const cam = await ImagePicker.requestCameraPermissionsAsync();
-    if (!cam.granted) {
-      alert("Camera access is required to record a video.");
-      return;
-    }
-    const mic = await Audio.requestPermissionsAsync();
-    if (!mic.granted) {
-      alert("Microphone access is needed to record video with audio.");
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-      videoMaxDuration: 180,
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const a = result.assets[0];
-      setMediaUri(a.uri);
-      setIsVideoMedia(true);
       setPickedMimeType(a.mimeType ?? undefined);
       setShowActionSheet(false);
     }
@@ -265,39 +230,30 @@ export function ChallengeDetailModal({
                 <View style={{ width: 24 }} />
               </View>
 
-              {/* Media preview (photo or video) */}
+              {/* Photo preview */}
               <TouchableOpacity
                 style={styles.imagePlaceholder}
                 onPress={() => setShowActionSheet(true)}
                 activeOpacity={0.9}
               >
-                {mediaUri ?
-                  isVideoMedia ?
-                    <Video
-                      source={{ uri: mediaUri }}
-                      style={styles.uploadedImage}
-                      useNativeControls
-                      resizeMode={ResizeMode.CONTAIN}
-                      shouldPlay={false}
-                      isLooping={false}
-                    />
-                  : <Image
-                      source={{ uri: mediaUri }}
-                      style={styles.uploadedImage}
-                      contentFit="cover"
-                    />
-
-                : <View style={styles.placeholderContent}>
+                {mediaUri ? (
+                  <Image
+                    source={{ uri: mediaUri }}
+                    style={styles.uploadedImage}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View style={styles.placeholderContent}>
                     <Ionicons
                       name="images-outline"
                       size={48}
                       color={tailwindColors["aura-gray-300"]}
                     />
                     <ThemedText style={styles.placeholderText}>
-                      Photo or video
+                      Photo
                     </ThemedText>
                   </View>
-                }
+                )}
               </TouchableOpacity>
 
               {mediaUri && (
@@ -306,7 +262,7 @@ export function ChallengeDetailModal({
                   onPress={() => setShowActionSheet(true)}
                 >
                   <ThemedText style={styles.changePhotoText}>
-                    Change photo or video
+                    Change photo
                   </ThemedText>
                 </TouchableOpacity>
               )}
@@ -341,7 +297,7 @@ export function ChallengeDetailModal({
 
               {!mediaUri && (
                 <ThemedText style={styles.warningText}>
-                  Add a photo or video to submit
+                  Add a photo to submit
                 </ThemedText>
               )}
             </View>
@@ -355,10 +311,10 @@ export function ChallengeDetailModal({
                 <View style={styles.actionSheet}>
                   <TouchableOpacity
                     style={styles.actionSheetButton}
-                    onPress={pickPhotoOrVideoFromLibrary}
+                    onPress={pickPhotoFromLibrary}
                   >
                     <ThemedText style={styles.actionSheetText}>
-                      Photo or video from library
+                      Photo from library
                     </ThemedText>
                   </TouchableOpacity>
                   <View style={styles.separator} />
@@ -368,15 +324,6 @@ export function ChallengeDetailModal({
                   >
                     <ThemedText style={styles.actionSheetText}>
                       Take photo
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={styles.actionSheetButton}
-                    onPress={recordVideo}
-                  >
-                    <ThemedText style={styles.actionSheetText}>
-                      Record video
                     </ThemedText>
                   </TouchableOpacity>
                   <View style={styles.separator} />

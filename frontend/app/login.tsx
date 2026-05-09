@@ -14,10 +14,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 import { apiLogin, apiForgotPassword } from "@/lib/api";
 import { markExplicitAuthCompleted, storeSession } from "@/lib/auth";
+
+const TERMS_ACCEPTED_KEY = "aurafarm:acceptedTermsAt";
 
 export default function LogInScreen() {
   const router = useRouter();
@@ -70,6 +73,17 @@ export default function LogInScreen() {
           user: res.data.user,
         });
         await markExplicitAuthCompleted();
+        try {
+          const existing = await AsyncStorage.getItem(TERMS_ACCEPTED_KEY);
+          if (!existing) {
+            await AsyncStorage.setItem(
+              TERMS_ACCEPTED_KEY,
+              new Date().toISOString(),
+            );
+          }
+        } catch {
+          // Best-effort persistence; don't block login on storage errors.
+        }
       }
 
       router.replace("/(tabs)");
@@ -223,6 +237,17 @@ export default function LogInScreen() {
                 <Text style={styles.buttonTextPrimary}>Log In</Text>
               )}
             </TouchableOpacity>
+
+            <Text style={styles.termsLine}>
+              By logging in, you agree to our{" "}
+              <Text
+                style={styles.termsLink}
+                onPress={() => router.push("/terms")}
+              >
+                Terms of Use
+              </Text>
+              .
+            </Text>
 
             <View style={styles.bottomTextContainer}>
               <Text style={styles.bottomText}>Don&apos;t have an account? </Text>
@@ -455,6 +480,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: tailwindColors["aura-red"],
     fontFamily: tailwindFonts["regular"],
+  },
+  termsLine: {
+    marginTop: 16,
+    fontSize: 13,
+    color: "#6B7280",
+    fontFamily: tailwindFonts["regular"],
+    textAlign: "center",
+    paddingHorizontal: 16,
+  },
+  termsLink: {
+    color: tailwindColors["aura-green"],
+    fontFamily: tailwindFonts["semibold"],
+    textDecorationLine: "underline",
   },
   modalOverlay: {
     flex: 1,

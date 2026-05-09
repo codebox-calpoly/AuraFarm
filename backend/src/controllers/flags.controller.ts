@@ -4,6 +4,8 @@ import { AppError } from '../middleware/errorHandler';
 import { Flag, CreateFlagRequest, ApiResponse } from '../types';
 import { prisma } from '../prisma';
 import { ChallengeReviewStatus } from '@prisma/client';
+import { sendModerationNotification } from '../utils/email';
+import logger from '../utils/logger';
 
 /**
  * POST /api/flags
@@ -56,6 +58,43 @@ export const flagCompletion = asyncHandler(async (req: Request, res: Response) =
       reason: reason || null,
     },
   });
+
+  // Fire-and-forget moderation notification — never block the user response on email.
+  Promise.all([
+    prisma.user.findUnique({
+      where: { id: flaggedById },
+      select: { id: true, email: true, name: true },
+    }),
+    prisma.challengeCompletion.findUnique({
+      where: { id: completionId },
+      select: {
+        id: true,
+        caption: true,
+        imageUrl: true,
+        imageUri: true,
+        user: { select: { id: true, email: true, name: true } },
+        challenge: { select: { title: true } },
+      },
+    }),
+  ])
+    .then(([actor, full]) => {
+      if (!actor || !full) return;
+      return sendModerationNotification({
+        kind: 'flag',
+        actor,
+        target: full.user,
+        reason: reason || null,
+        completion: {
+          id: full.id,
+          challengeTitle: full.challenge?.title ?? null,
+          caption: full.caption,
+          imageUrl: full.imageUrl ?? full.imageUri ?? null,
+        },
+      });
+    })
+    .catch((err) =>
+      logger.error('Flag notification email failed', { error: err, completionId, flaggedById }),
+    );
 
   const response: ApiResponse<Flag> = {
     success: true,

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getLeaderboard } from '../controllers/leaderboard.controller';
 import { validateQuery } from '../middleware/validate';
 import { queryParamsSchema } from '../types';
+import { optionalAuthenticate } from '../middleware/auth';
 
 const router = Router();
 
@@ -46,6 +47,7 @@ const router = Router();
  */
 router.get(
   '/',
+  optionalAuthenticate,
   validateQuery(queryParamsSchema),
   getLeaderboard
 );
