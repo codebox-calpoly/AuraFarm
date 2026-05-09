@@ -16,6 +16,7 @@ import { useEffect } from "react";
 
 import { View } from 'react-native';
 import { tailwindColors } from '@/constants/tailwind-colors';
+import Toast from "react-native-toast-message";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -72,6 +73,7 @@ export default function RootLayout() {
           <Stack.Screen name="post" />
           <Stack.Screen name="terms" options={{ headerShown: false }} />
         </Stack>
+        <Toast />
         <StatusBar style="dark" />
       </ThemeProvider>
     </QueryClientProvider>
