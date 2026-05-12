@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   Pressable,
   TextInput,
-  Keyboard,
-  TouchableWithoutFeedback,
   SafeAreaView,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -57,6 +57,27 @@ export function ChallengeDetailModal({
   const [caption, setCaption] = useState("");
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const postScrollRef = useRef<ScrollView>(null);
+  const captionBlockY = useRef(0);
+
+  /** Gap from top of scroll content to caption when scrolled into view */
+  const CAPTION_TOP_INSET = 48;
+  /** Nudge scroll offset down a bit so the field sits clearer above the keyboard */
+  const CAPTION_FOCUS_EXTRA_SCROLL = 40;
+
+  const scrollCaptionIntoView = () => {
+    const scroll = () => {
+      const y = Math.max(
+        0,
+        captionBlockY.current - CAPTION_TOP_INSET + CAPTION_FOCUS_EXTRA_SCROLL,
+      );
+      postScrollRef.current?.scrollTo({ y, animated: true });
+    };
+    requestAnimationFrame(scroll);
+    // Retry after keyboard / KeyboardAvoidingView layout settles (esp. iOS)
+    setTimeout(scroll, Platform.OS === "ios" ? 280 : 140);
+  };
 
   const handleClose = () => {
     setShowUploadOptions(false);
@@ -209,9 +230,20 @@ export function ChallengeDetailModal({
             </ThemedView>
           </Pressable>
         </Pressable>
-      : <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <SafeAreaView style={styles.fullScreenContainer}>
-            <View style={styles.postContainer}>
+      : <SafeAreaView style={styles.fullScreenContainer}>
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoiding}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+          >
+            <ScrollView
+              ref={postScrollRef}
+              style={styles.postScroll}
+              contentContainerStyle={styles.postScrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              showsVerticalScrollIndicator={false}
+            >
               {/* Header */}
               <View style={styles.postHeader}>
                 <TouchableOpacity onPress={() => setShowUploadOptions(false)}>
@@ -268,7 +300,13 @@ export function ChallengeDetailModal({
               )}
 
               {/* Caption Input */}
-              <View style={styles.captionContainer}>
+              <View
+                style={styles.captionContainer}
+                collapsable={false}
+                onLayout={(e) => {
+                  captionBlockY.current = e.nativeEvent.layout.y;
+                }}
+              >
                 <ThemedText style={styles.inputLabel}>Add a caption</ThemedText>
                 <TextInput
                   style={styles.captionInput}
@@ -278,6 +316,7 @@ export function ChallengeDetailModal({
                   onChangeText={setCaption}
                   multiline
                   blurOnSubmit={true}
+                  onFocus={scrollCaptionIntoView}
                 />
               </View>
 
@@ -286,7 +325,7 @@ export function ChallengeDetailModal({
                 style={[
                   styles.postButton,
                   (!mediaUri || submitting) && styles.disabledButton,
-                ]} 
+                ]}
                 onPress={handlePost}
                 disabled={!mediaUri || submitting}
               >
@@ -300,48 +339,48 @@ export function ChallengeDetailModal({
                   Add a photo to submit
                 </ThemedText>
               )}
-            </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
 
-            {/* Action Sheet Overlay */}
-            {showActionSheet && (
-              <Pressable
-                style={styles.actionSheetOverlay}
-                onPress={() => setShowActionSheet(false)}
-              >
-                <View style={styles.actionSheet}>
-                  <TouchableOpacity
-                    style={styles.actionSheetButton}
-                    onPress={pickPhotoFromLibrary}
+          {/* Action Sheet Overlay */}
+          {showActionSheet && (
+            <Pressable
+              style={styles.actionSheetOverlay}
+              onPress={() => setShowActionSheet(false)}
+            >
+              <View style={styles.actionSheet}>
+                <TouchableOpacity
+                  style={styles.actionSheetButton}
+                  onPress={pickPhotoFromLibrary}
+                >
+                  <ThemedText style={styles.actionSheetText}>
+                    Photo from library
+                  </ThemedText>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity
+                  style={styles.actionSheetButton}
+                  onPress={takePhoto}
+                >
+                  <ThemedText style={styles.actionSheetText}>
+                    Take photo
+                  </ThemedText>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity
+                  style={[styles.actionSheetButton, styles.cancelButton]}
+                  onPress={() => setShowActionSheet(false)}
+                >
+                  <ThemedText
+                    style={[styles.actionSheetText, styles.cancelText]}
                   >
-                    <ThemedText style={styles.actionSheetText}>
-                      Photo from library
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={styles.actionSheetButton}
-                    onPress={takePhoto}
-                  >
-                    <ThemedText style={styles.actionSheetText}>
-                      Take photo
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={[styles.actionSheetButton, styles.cancelButton]}
-                    onPress={() => setShowActionSheet(false)}
-                  >
-                    <ThemedText
-                      style={[styles.actionSheetText, styles.cancelText]}
-                    >
-                      Cancel
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </Pressable>
-            )}
-          </SafeAreaView>
-        </TouchableWithoutFeedback>
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          )}
+        </SafeAreaView>
       }
     </Modal>
   );
@@ -409,7 +448,7 @@ const styles = StyleSheet.create({
   },
   guidelinesBlock: {
     marginBottom: 16,
-    paddingTop: 4,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: tailwindColors["aura-border"],
   },
@@ -469,9 +508,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: tailwindColors["aura-white"],
   },
-  postContainer: {
+  keyboardAvoiding: {
     flex: 1,
+  },
+  postScroll: {
+    flex: 1,
+  },
+  postScrollContent: {
+    flexGrow: 1,
     padding: 24,
+    paddingBottom: 32,
   },
   postHeader: {
     flexDirection: "row",
@@ -490,7 +536,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontFamily: tailwindFonts["semibold"],
-    color: "#FFB800", // Gold color for points
+    color: tailwindColors["aura-green"],
   },
   imagePlaceholder: {
     width: "100%",

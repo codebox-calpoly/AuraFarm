@@ -32,9 +32,9 @@ module.exports = {
         "aura-gray-600": "#57534E",
         "aura-gray-700": "#44403C",
         // Light tints for backgrounds
-        "aura-red-light": "#FFF5F5",
+        "aura-red-light": "#F5DCDC",
         "aura-red-tint": "#FFE4E6",
-        "aura-green-light": "#ECFDF5",
+        "aura-green-light": "#DCF5E9",
         "aura-green-tint": "#A7F3D0",
       },
       fontFamily: {

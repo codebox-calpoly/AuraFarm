@@ -32,7 +32,7 @@ export function AuraProgressBar({ points }: AuraProgressBarProps) {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.barContainer}>
-        <Ionicons name="diamond" size={22} color={currentTier.color} />
+        <Ionicons name="sparkles" size={22} color={currentTier.color} />
 
         <View style={styles.track}>
           <View
@@ -46,7 +46,7 @@ export function AuraProgressBar({ points }: AuraProgressBarProps) {
           />
         </View>
 
-        <Ionicons name="diamond" size={22} color={nextTierColor} />
+        <Ionicons name="sparkles-outline" size={22} color={nextTierColor} />
       </View>
 
       <ThemedText style={styles.pointsText}>
@@ -61,7 +61,7 @@ export function AuraProgressBar({ points }: AuraProgressBarProps) {
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.sm,
     marginBottom: spacing.lg,
     backgroundColor: "transparent",
   },

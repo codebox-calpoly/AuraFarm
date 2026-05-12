@@ -15,7 +15,7 @@ export const AURA_TIERS_DESC: AuraTierDef[] = [
   { label: "green", color: tailwindColors["aura-green"], bg: tailwindColors["aura-green-light"], minPoints: 75 },
   { label: "blue", color: tailwindColors["aura-blue"], bg: "#EEF2FF", minPoints: 25 },
   { label: "purple", color: tailwindColors["aura-purple"], bg: "#F5EEFF", minPoints: 1 },
-  { label: "gray", color: tailwindColors["aura-black"], bg: "#F5F5F5", minPoints: 0 },
+  { label: "gray", color: tailwindColors["aura-gray-600"], bg: "#F5F5F5", minPoints: 0 },
 ];
 
 export function getTierForPoints(points: number): AuraTierDef {
