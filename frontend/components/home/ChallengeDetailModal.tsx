@@ -61,25 +61,51 @@ export function ChallengeDetailModal({
   const [submitting, setSubmitting] = useState(false);
 
   const postScrollRef = useRef<ScrollView>(null);
-  const captionBlockY = useRef(0);
+  const captionContainerLayout = useRef({ y: 0, height: 0 });
+  const scrollOffsetY = useRef(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [scrollViewHeight, setScrollViewHeight] = useState(0);
+  const [captionFocused, setCaptionFocused] = useState(false);
 
-  /** Gap from top of scroll content to caption when scrolled into view */
-  const CAPTION_TOP_INSET = 48;
-  /** Nudge scroll offset down a bit so the field sits clearer above the keyboard */
-  const CAPTION_FOCUS_EXTRA_SCROLL = 40;
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const scrollCaptionIntoView = () => {
-    const scroll = () => {
-      const y = Math.max(
-        0,
-        captionBlockY.current - CAPTION_TOP_INSET + CAPTION_FOCUS_EXTRA_SCROLL,
-      );
-      postScrollRef.current?.scrollTo({ y, animated: true });
-    };
-    requestAnimationFrame(scroll);
-    // Retry after keyboard / KeyboardAvoidingView layout settles (esp. iOS)
-    setTimeout(scroll, Platform.OS === "ios" ? 280 : 140);
+    const { y, height } = captionContainerLayout.current;
+    if (!scrollViewHeight || !height) return;
+
+    const visibleBottom = scrollOffsetY.current + scrollViewHeight - keyboardHeight;
+    const captionBottom = y + height;
+
+    if (captionBottom <= visibleBottom) return;
+
+    const extraSpacing = 16;
+    const nextOffset = Math.max(
+      0,
+      scrollOffsetY.current + (captionBottom - visibleBottom) + extraSpacing,
+    );
+    postScrollRef.current?.scrollTo({ y: nextOffset, animated: true });
   };
+
+  useEffect(() => {
+    if (!captionFocused || keyboardHeight === 0 || !scrollViewHeight) return;
+    requestAnimationFrame(scrollCaptionIntoView);
+  }, [captionFocused, keyboardHeight, scrollViewHeight]);
 
   const handleClose = () => {
     setShowUploadOptions(false);
