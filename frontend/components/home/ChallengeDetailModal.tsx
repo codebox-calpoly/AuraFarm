@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -10,6 +10,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -230,8 +232,9 @@ export function ChallengeDetailModal({
             </ThemedView>
           </Pressable>
         </Pressable>
-      : <SafeAreaView style={styles.fullScreenContainer}>
-          <KeyboardAvoidingView
+      : <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <SafeAreaView style={styles.fullScreenContainer}>
+            <KeyboardAvoidingView
             style={styles.keyboardAvoiding}
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
@@ -304,7 +307,13 @@ export function ChallengeDetailModal({
                 style={styles.captionContainer}
                 collapsable={false}
                 onLayout={(e) => {
-                  captionBlockY.current = e.nativeEvent.layout.y;
+                  captionContainerLayout.current = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                  if (captionFocused && keyboardHeight > 0) {
+                    requestAnimationFrame(scrollCaptionIntoView);
+                  }
                 }}
               >
                 <ThemedText style={styles.inputLabel}>Add a caption</ThemedText>
@@ -316,7 +325,8 @@ export function ChallengeDetailModal({
                   onChangeText={setCaption}
                   multiline
                   blurOnSubmit={true}
-                  onFocus={scrollCaptionIntoView}
+                  onFocus={() => setCaptionFocused(true)}
+                  onBlur={() => setCaptionFocused(false)}
                 />
               </View>
 
@@ -340,7 +350,7 @@ export function ChallengeDetailModal({
                 </ThemedText>
               )}
             </ScrollView>
-          </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
 
           {/* Action Sheet Overlay */}
           {showActionSheet && (
@@ -380,7 +390,8 @@ export function ChallengeDetailModal({
               </View>
             </Pressable>
           )}
-        </SafeAreaView>
+          </SafeAreaView>
+        </TouchableWithoutFeedback>
       }
     </Modal>
   );
