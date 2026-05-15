@@ -272,6 +272,13 @@ export function ChallengeDetailModal({
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="none"
               showsVerticalScrollIndicator={false}
+              onLayout={(e) => {
+                setScrollViewHeight(e.nativeEvent.layout.height);
+              }}
+              onScroll={(e) => {
+                scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
             >
               {/* Header */}
               <View style={styles.postHeader}>
