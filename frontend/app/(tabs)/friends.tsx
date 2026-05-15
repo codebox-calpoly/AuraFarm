@@ -161,7 +161,7 @@ export default function FriendsScreen() {
       >
         <ThemedText style={styles.title}>Friends</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Search by name, manage requests, and see people you follow challenges with.
+          Search people by name and manage friend requests.
         </ThemedText>
 
         <View style={styles.segmentTrack}>
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: layout.screenPaddingX,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   title: {
     fontFamily: tailwindFonts["bold"],

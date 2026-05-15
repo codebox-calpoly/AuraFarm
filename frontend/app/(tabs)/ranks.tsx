@@ -10,6 +10,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -160,8 +161,8 @@ export default function RanksScreen() {
                   ]}
                 >
                   {isAll ?
-                    <Ionicons name="globe-outline" size={22} color={section.color} />
-                  : <Ionicons name="diamond" size={22} color={section.color} />}
+                    <Ionicons name={section.id == activeSectionId ? "globe" : "globe-outline"} size={22} color={section.color} />
+                  : <Ionicons name={section.id == activeSectionId ? "sparkles" : "sparkles-outline"} size={22} color={section.color} />}
                 </Pressable>
               );
             })}
@@ -281,12 +282,12 @@ const styles = StyleSheet.create({
   pageScrollContent: {
     paddingHorizontal: layout.screenPaddingX,
     paddingBottom: spacing.xl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   tierPickerCard: {
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: tailwindColors["aura-border"],

@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     paddingTop: spacing.sm,
-    paddingBottom: spacing.md,
+    paddingBottom: spacing.sm,
     backgroundColor: "transparent",
   },
   wordmark: {

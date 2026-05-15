@@ -8,7 +8,7 @@ const BASE_WIDTH = 414;
 const GLYPHS = {
   home: ["home", "home-outline"] as const,
   ranks: ["trophy", "trophy-outline"] as const,
-  aura: ["flash", "flash-outline"] as const,
+  aura: ["sparkles", "sparkles-outline"] as const,
   friends: ["people", "people-outline"] as const,
   settings: ["settings", "settings-outline"] as const,
 } as const;

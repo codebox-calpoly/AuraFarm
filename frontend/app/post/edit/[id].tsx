@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   pointsText: {
     fontSize: 14,
     fontFamily: tailwindFonts["semibold"],
-    color: tailwindColors["aura-orange"],
+    color: tailwindColors["aura-green"],
   },
   scrollView: {
     flex: 1,

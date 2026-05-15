@@ -37,6 +37,7 @@ import {
   type ChallengeFilterId,
 } from "@/constants/challengeCategories";
 import { CHALLENGE_TAGS_BY_TITLE } from "@/constants/challengeTagsByTitle";
+import { spacing } from "@/constants/design";
 
 /**
  * Tags for UI + client-side filtering.
@@ -555,21 +556,25 @@ export default function HomeScreen() {
               )}
 
               {/* Completed Section */}
-              <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
-              {completedChallenges.map((challenge) => (
-                <ChallengeCard
-                  key={challenge.id}
-                  type="completed"
-                  title={challenge.title}
-                  points={challenge.points}
-                  dateCompleted={challenge.date}
-                  onPress={() =>
-                    router.push(
-                      `/post/${challenge.id}?imageUri=${encodeURIComponent(challenge.postImage)}&caption=${encodeURIComponent(challenge.caption)}&likes=${challenge.likes}&title=${encodeURIComponent(challenge.title)}&points=${challenge.points}&isOwnPost=true`,
-                    )
-                  }
-                />
-              ))}
+              {completedChallenges.length > 0 && (
+                <>
+                  <ThemedText style={styles.sectionTitle}>Completed</ThemedText>
+                  {completedChallenges.map((challenge) => (
+                    <ChallengeCard
+                      key={challenge.id}
+                      type="completed"
+                      title={challenge.title}
+                      points={challenge.points}
+                      dateCompleted={challenge.date}
+                      onPress={() =>
+                        router.push(
+                          `/post/${challenge.id}?imageUri=${encodeURIComponent(challenge.postImage)}&caption=${encodeURIComponent(challenge.caption)}&likes=${challenge.likes}&title=${encodeURIComponent(challenge.title)}&points=${challenge.points}&isOwnPost=true`,
+                        )
+                      }
+                    />
+                  ))}
+                </>
+              )}
             </>
           ) : (
             <>
@@ -653,6 +658,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: spacing.md,
   },
   scrollView: {
     paddingBottom: 28,

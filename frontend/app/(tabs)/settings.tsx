@@ -335,7 +335,7 @@ export default function SettingsScreen() {
         >
           <ThemedText style={styles.pageTitle}>Settings</ThemedText>
           <ThemedText style={styles.pageSubtitle}>
-            Manage your profile and account security
+            Manage your profile and account privacy.
           </ThemedText>
 
           {/* Profile hero — soft disc behind icon so the glyph stays inside (no ring through shoulders) */}
@@ -741,7 +741,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: layout.screenPaddingX,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.md,
   },
   pageTitle: {
     fontFamily: tailwindFonts["bold"],
@@ -964,6 +964,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: tailwindColors["aura-border"],
+    marginBottom: spacing.lg,
   },
   logoutCardHidden: {
     opacity: 0,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -6,10 +6,12 @@ import {
   TouchableOpacity,
   Pressable,
   TextInput,
-  Keyboard,
-  TouchableWithoutFeedback,
   SafeAreaView,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -57,6 +59,53 @@ export function ChallengeDetailModal({
   const [caption, setCaption] = useState("");
   const [showActionSheet, setShowActionSheet] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  const postScrollRef = useRef<ScrollView>(null);
+  const captionContainerLayout = useRef({ y: 0, height: 0 });
+  const scrollOffsetY = useRef(0);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [scrollViewHeight, setScrollViewHeight] = useState(0);
+  const [captionFocused, setCaptionFocused] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollCaptionIntoView = () => {
+    const { y, height } = captionContainerLayout.current;
+    if (!scrollViewHeight || !height) return;
+
+    const visibleBottom = scrollOffsetY.current + scrollViewHeight - keyboardHeight;
+    const captionBottom = y + height;
+
+    if (captionBottom <= visibleBottom) return;
+
+    const extraSpacing = 16;
+    const nextOffset = Math.max(
+      0,
+      scrollOffsetY.current + (captionBottom - visibleBottom) + extraSpacing,
+    );
+    postScrollRef.current?.scrollTo({ y: nextOffset, animated: true });
+  };
+
+  useEffect(() => {
+    if (!captionFocused || keyboardHeight === 0 || !scrollViewHeight) return;
+    requestAnimationFrame(scrollCaptionIntoView);
+  }, [captionFocused, keyboardHeight, scrollViewHeight]);
 
   const handleClose = () => {
     setShowUploadOptions(false);
@@ -209,9 +258,28 @@ export function ChallengeDetailModal({
             </ThemedView>
           </Pressable>
         </Pressable>
-      : <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      : <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <SafeAreaView style={styles.fullScreenContainer}>
-            <View style={styles.postContainer}>
+            <KeyboardAvoidingView
+            style={styles.keyboardAvoiding}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+          >
+            <ScrollView
+              ref={postScrollRef}
+              style={styles.postScroll}
+              contentContainerStyle={styles.postScrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              showsVerticalScrollIndicator={false}
+              onLayout={(e) => {
+                setScrollViewHeight(e.nativeEvent.layout.height);
+              }}
+              onScroll={(e) => {
+                scrollOffsetY.current = e.nativeEvent.contentOffset.y;
+              }}
+              scrollEventThrottle={16}
+            >
               {/* Header */}
               <View style={styles.postHeader}>
                 <TouchableOpacity onPress={() => setShowUploadOptions(false)}>
@@ -268,7 +336,19 @@ export function ChallengeDetailModal({
               )}
 
               {/* Caption Input */}
-              <View style={styles.captionContainer}>
+              <View
+                style={styles.captionContainer}
+                collapsable={false}
+                onLayout={(e) => {
+                  captionContainerLayout.current = {
+                    y: e.nativeEvent.layout.y,
+                    height: e.nativeEvent.layout.height,
+                  };
+                  if (captionFocused && keyboardHeight > 0) {
+                    requestAnimationFrame(scrollCaptionIntoView);
+                  }
+                }}
+              >
                 <ThemedText style={styles.inputLabel}>Add a caption</ThemedText>
                 <TextInput
                   style={styles.captionInput}
@@ -278,6 +358,8 @@ export function ChallengeDetailModal({
                   onChangeText={setCaption}
                   multiline
                   blurOnSubmit={true}
+                  onFocus={() => setCaptionFocused(true)}
+                  onBlur={() => setCaptionFocused(false)}
                 />
               </View>
 
@@ -286,7 +368,7 @@ export function ChallengeDetailModal({
                 style={[
                   styles.postButton,
                   (!mediaUri || submitting) && styles.disabledButton,
-                ]} 
+                ]}
                 onPress={handlePost}
                 disabled={!mediaUri || submitting}
               >
@@ -300,46 +382,47 @@ export function ChallengeDetailModal({
                   Add a photo to submit
                 </ThemedText>
               )}
-            </View>
+            </ScrollView>
+            </KeyboardAvoidingView>
 
-            {/* Action Sheet Overlay */}
-            {showActionSheet && (
-              <Pressable
-                style={styles.actionSheetOverlay}
-                onPress={() => setShowActionSheet(false)}
-              >
-                <View style={styles.actionSheet}>
-                  <TouchableOpacity
-                    style={styles.actionSheetButton}
-                    onPress={pickPhotoFromLibrary}
+          {/* Action Sheet Overlay */}
+          {showActionSheet && (
+            <Pressable
+              style={styles.actionSheetOverlay}
+              onPress={() => setShowActionSheet(false)}
+            >
+              <View style={styles.actionSheet}>
+                <TouchableOpacity
+                  style={styles.actionSheetButton}
+                  onPress={pickPhotoFromLibrary}
+                >
+                  <ThemedText style={styles.actionSheetText}>
+                    Photo from library
+                  </ThemedText>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity
+                  style={styles.actionSheetButton}
+                  onPress={takePhoto}
+                >
+                  <ThemedText style={styles.actionSheetText}>
+                    Take photo
+                  </ThemedText>
+                </TouchableOpacity>
+                <View style={styles.separator} />
+                <TouchableOpacity
+                  style={[styles.actionSheetButton, styles.cancelButton]}
+                  onPress={() => setShowActionSheet(false)}
+                >
+                  <ThemedText
+                    style={[styles.actionSheetText, styles.cancelText]}
                   >
-                    <ThemedText style={styles.actionSheetText}>
-                      Photo from library
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={styles.actionSheetButton}
-                    onPress={takePhoto}
-                  >
-                    <ThemedText style={styles.actionSheetText}>
-                      Take photo
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <View style={styles.separator} />
-                  <TouchableOpacity
-                    style={[styles.actionSheetButton, styles.cancelButton]}
-                    onPress={() => setShowActionSheet(false)}
-                  >
-                    <ThemedText
-                      style={[styles.actionSheetText, styles.cancelText]}
-                    >
-                      Cancel
-                    </ThemedText>
-                  </TouchableOpacity>
-                </View>
-              </Pressable>
-            )}
+                    Cancel
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          )}
           </SafeAreaView>
         </TouchableWithoutFeedback>
       }
@@ -409,7 +492,7 @@ const styles = StyleSheet.create({
   },
   guidelinesBlock: {
     marginBottom: 16,
-    paddingTop: 4,
+    paddingTop: 24,
     borderTopWidth: 1,
     borderTopColor: tailwindColors["aura-border"],
   },
@@ -469,9 +552,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: tailwindColors["aura-white"],
   },
-  postContainer: {
+  keyboardAvoiding: {
     flex: 1,
+  },
+  postScroll: {
+    flex: 1,
+  },
+  postScrollContent: {
+    flexGrow: 1,
     padding: 24,
+    paddingBottom: 32,
   },
   postHeader: {
     flexDirection: "row",
@@ -490,7 +580,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     fontFamily: tailwindFonts["semibold"],
-    color: "#FFB800", // Gold color for points
+    color: tailwindColors["aura-green"],
   },
   imagePlaceholder: {
     width: "100%",
