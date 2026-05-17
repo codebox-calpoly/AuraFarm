@@ -1,4 +1,3 @@
-import ShareButton from "@/assets/ShareButton.svg";
 import { AuraDiamondIcon } from "@/components/AuraDiamondIcon";
 import { StyleSheet, View, Pressable, Alert, Share } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,6 +10,17 @@ import { ThemedText } from "@/components/themed-text";
 import { getValidSession } from "@/lib/auth";
 import { getUserProfileFromApi } from "@/lib/api";
 import { getTierForPoints } from "@/constants/auraTiers";
+import Ionicons from "@expo/vector-icons/build/Ionicons";
+import { radius, spacing, cardShadow } from "@/constants/design";
+
+function hexToRgba(hex: string, alpha: number) {
+  const cleaned = hex.replace("#", "");
+  const value = parseInt(cleaned, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 export default function AuraScreen() {
   const auraRef = useRef<ViewShot>(null);
@@ -47,12 +57,12 @@ export default function AuraScreen() {
       try {
         await Share.share(
           {
-            title: "My AuraFarm creation",
+            title: "My Aura",
             message: "Check out my Aura 🔥🔥",
             url: uri,
           },
           {
-            dialogTitle: "Share your AuraFarm creation",
+            dialogTitle: "Share your farmed Aura",
           },
         );
         return;
@@ -64,7 +74,7 @@ export default function AuraScreen() {
       if (canUseNativeShareSheet) {
         await Sharing.shareAsync(uri, {
           mimeType: "image/jpeg",
-          dialogTitle: "Share your AuraFarm creation",
+          dialogTitle: "Share your farmed Aura",
         });
         return;
       }
@@ -80,7 +90,10 @@ export default function AuraScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: hexToRgba(tier.color, 0.3) }]}
+      edges={["top"]}
+    >
       <Header />
 
       <View style={styles.container}>
@@ -89,9 +102,28 @@ export default function AuraScreen() {
           style={styles.captureContainer}
           options={{ format: "jpg", quality: 0.95, result: "tmpfile" }}
         >
-          <AuraDiamondIcon color={tier.color} points={auraPoints ?? 0} width={270} height={426} style={{ marginTop: 24 }} />
-          <ThemedText style={[styles.auraText, { color: tier.color }]}>
-            You have {tier.label} Aura
+          <AuraDiamondIcon
+            color={tier.color}
+            points={auraPoints ?? 0}
+            width={270}
+            height={426}
+            style={{ marginTop: 24 }}
+          />
+          <ThemedText
+            style={[
+              styles.auraSubtext,
+              { color: tailwindColors["aura-gray-700"] },
+            ]}
+          >
+            You have
+          </ThemedText>
+          <ThemedText
+            style={[
+              styles.auraText,
+              { color: tailwindColors["aura-gray-800"] },
+            ]}
+          >
+            {tier.label.charAt(0).toUpperCase() + tier.label.slice(1)} Aura
           </ThemedText>
           {rank !== null && (
             <ThemedText style={[styles.pointsText, { color: tier.color }]}>
@@ -101,12 +133,34 @@ export default function AuraScreen() {
         </ViewShot>
 
         <Pressable
+          style={[
+            styles.card,
+            cardShadow(2),
+            { backgroundColor: tailwindColors["aura-surface"] },
+          ]}
           onPress={handleShare}
-          hitSlop={12}
           accessibilityRole="button"
-          style={styles.shareButton}
         >
-          <ShareButton width={32} height={37} />
+          <View style={styles.securityLeft}>
+            <View
+              style={[
+                styles.securityIconBg,
+                { backgroundColor: hexToRgba(tier.color, 0.1) },
+              ]}
+            >
+              <Ionicons name="share-outline" size={24} color={tier.color} />
+            </View>
+            <View>
+              <ThemedText style={styles.securityTitle}>
+                Share your Aura
+              </ThemedText>
+            </View>
+          </View>
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={tailwindColors["aura-gray-400"]}
+          />
         </Pressable>
       </View>
     </SafeAreaView>
@@ -116,17 +170,21 @@ export default function AuraScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: tailwindColors["aura-page"],
   },
   container: {
     flex: 1,
     paddingHorizontal: 24,
     alignItems: "center",
   },
-  auraText: {
-    fontSize: 32,
+  auraSubtext: {
+    fontSize: 24,
     fontFamily: tailwindFonts["regular"],
     marginTop: 16,
+    textAlign: "center",
+  },
+  auraText: {
+    fontSize: 32,
+    fontFamily: tailwindFonts["semibold"],
     textAlign: "center",
   },
   pointsText: {
@@ -140,7 +198,40 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
   },
-  shareButton: {
-    marginTop: 24,
+
+  card: {
+    position: "absolute",
+    bottom: 24,
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    marginBottom: spacing.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: tailwindColors["aura-border"],
+    marginTop: 32,
+    width: "80%",
+    maxWidth: 400,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  securityLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    flex: 1,
+  },
+  securityIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  securityTitle: {
+    fontFamily: tailwindFonts["regular"],
+    fontSize: 16,
+    color: tailwindColors["aura-black"],
+    backgroundColor: "transparent",
   },
 });

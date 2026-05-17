@@ -568,7 +568,7 @@ export default function SettingsScreen() {
                   <View>
                     <ThemedText style={styles.securityTitle}>Password</ThemedText>
                     <ThemedText style={styles.securitySubtitle}>
-                      Update your sign-in password
+                      Change your password
                     </ThemedText>
                   </View>
                 </View>

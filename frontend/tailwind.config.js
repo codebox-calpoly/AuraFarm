@@ -20,7 +20,7 @@ module.exports = {
         "aura-surface": "#FFFFFF",
         "aura-surface-muted": "#FAFBFA",
         /** Hairline borders */
-        "aura-border": "#E7E5E4",
+        "aura-border": "rgba(0,0,0, 0.05)",
         "aura-border-strong": "#D6D3D1",
         // Standard grays for UI
         "aura-gray-50": "#FAFAF9",
@@ -36,6 +36,7 @@ module.exports = {
         "aura-red-tint": "#FFE4E6",
         "aura-green-light": "#DCF5E9",
         "aura-green-tint": "#A7F3D0",
+        "aura-blue-light": "#DCE4F5",
       },
       fontFamily: {
         "regular": "Poppins_400Regular",
