@@ -1,6 +1,16 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import Svg, { Path, Defs, Filter, FeFlood, FeColorMatrix, FeComposite, FeOffset, FeGaussianBlur, FeBlend } from "react-native-svg";
+import Svg, {
+  Path,
+  Defs,
+  Filter,
+  FeFlood,
+  FeColorMatrix,
+  FeComposite,
+  FeOffset,
+  FeGaussianBlur,
+  FeBlend,
+} from "react-native-svg";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
 
 import Animated, {
@@ -9,7 +19,8 @@ import Animated, {
   withRepeat,
   withTiming,
   Easing,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
+import { hexToRgba } from "@/constants/design";
 
 interface AuraDiamondIconProps {
   color: string;
@@ -21,13 +32,26 @@ interface AuraDiamondIconProps {
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
-const sparkleSizes = [15, 15, 15, 15, 15, 15, 15, 12, 12, 12, 12, 10, 10, 10, 8, 8, 8, 6, 6, 6, 3, 3, 3];
-
 /**
  * AuraDiamond rendered with a dynamic colour. The original SVG has the colour
  * hardcoded to red (#CC0A19); this component accepts any hex/rgb colour string.
  */
-export function AuraDiamondIcon({ color, points, width = 270, height = 426, style }: AuraDiamondIconProps) {
+export function AuraDiamondIcon({
+  color,
+  points,
+  width = 270,
+  height = 426,
+  style,
+}: AuraDiamondIconProps) {
+  const sparkleSizes = Array(Math.round((points || 0) / (3 * 10)))
+    .fill("20")
+    .concat(Array(Math.round((points || 0) / (25))).fill("15"))
+    .concat(Array(Math.round((points || 0) / (30))).fill("12"))
+    .concat(Array(Math.round((points || 0) / (40))).fill("10"))
+    .concat(Array(Math.round((points || 0) / (55))).fill("8"))
+    .concat(Array(Math.round((points || 0) / (75))).fill("6"))
+    .concat(Array(Math.round((points || 0) / (100))).fill("3"));
+
   const scale1 = useSharedValue(1);
   const scale2 = useSharedValue(1);
   const scale3 = useSharedValue(1);
@@ -36,59 +60,50 @@ export function AuraDiamondIcon({ color, points, width = 270, height = 426, styl
   useEffect(() => {
     // Loop the animation infinitely back and forth (equivalent to 10s ease-in-out infinite)
     scale1.value = withRepeat(
-      withTiming(1.15, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1.1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
     scale2.value = withRepeat(
-      withTiming(0.85, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(1.25, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
     scale3.value = withRepeat(
-      withTiming(1.15, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(0.75, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
     scale4.value = withRepeat(
-      withTiming(0.85, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      withTiming(0.5, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
       -1,
-      true
+      true,
     );
   }, []);
 
   const animatedStyle1 = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: scale1.value },
-      ],
+      transform: [{ scale: scale1.value }],
     };
   });
   const animatedStyle2 = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: scale2.value },
-      ],
+      transform: [{ scale: scale2.value }],
     };
   });
   const animatedStyle3 = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: scale3.value },
-      ],
+      transform: [{ scale: scale3.value }],
     };
   });
   const animatedStyle4 = useAnimatedStyle(() => {
     return {
-      transform: [
-        { scale: scale4.value },
-      ],
+      transform: [{ scale: scale4.value }],
     };
   });
 
   return (
     <View style={[{ width, height, position: "relative" }, style]}>
-
       {/* <Svg
         style={diamondStyles.smallSparkle1}
         width={width/4}
@@ -152,16 +167,26 @@ export function AuraDiamondIcon({ color, points, width = 270, height = 426, styl
 
       {sparkleSizes.map((size, i) => (
         <AnimatedSvg
-          style={[diamondStyles.smallSparkle, i % 4 === 0 ? animatedStyle1 : i % 4 === 1 ? animatedStyle2 : i % 4 === 2 ? animatedStyle3 : animatedStyle4, { left: Math.random() * (250 - (-50)) + (-50), top: Math.random() * (650 - (0)) + (0) }]}
-          width={width / size}
-          height={height / size}
+          style={[
+            diamondStyles.smallSparkle,
+            i % 4 === 0 ? animatedStyle1
+            : i % 4 === 1 ? animatedStyle2
+            : i % 4 === 2 ? animatedStyle3
+            : animatedStyle4,
+            {
+              left: Math.random() * (350 - -100) + -100,
+              top: Math.random() * (650 - 0) + 0,
+            },
+          ]}
+          width={width / Number(size)}
+          height={height / Number(size)}
           viewBox="0 0 312 464"
           key={i}
         >
           <Path
             d="M156 87.5393L161.245 129.099C167.479 178.497 205.782 217.944 255.371 226.035L267.414 228L255.371 229.965C205.782 238.056 167.479 277.503 161.245 326.901L156 368.461L150.755 326.901C144.521 277.503 106.218 238.056 56.6289 229.965L44.5864 228L56.6289 226.035C106.218 217.944 144.521 178.497 150.755 129.099L156 87.5393Z"
             fill="#fff"
-            fillOpacity={Math.random() * (0.5 - (0.1)) + (0.1)}
+            fillOpacity={Math.random() * (0.4 - 0.05) + 0.05}
           />
         </AnimatedSvg>
       ))}
@@ -173,15 +198,40 @@ export function AuraDiamondIcon({ color, points, width = 270, height = 426, styl
         style={animatedStyle1}
       >
         <Defs>
-          <Filter id="shadow" x="0" y="0" width="312" height="464" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+          <Filter
+            id="shadow"
+            x="0"
+            y="0"
+            width="312"
+            height="464"
+            filterUnits="userSpaceOnUse"
+            colorInterpolationFilters="sRGB"
+          >
             <FeFlood floodOpacity="0" result="BackgroundImageFix" />
-            <FeColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha" />
+            <FeColorMatrix
+              in="SourceAlpha"
+              type="matrix"
+              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
+              result="hardAlpha"
+            />
             <FeOffset dy="4" />
             <FeGaussianBlur stdDeviation="2" />
             <FeComposite in2="hardAlpha" operator="out" />
-            <FeColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
-            <FeBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow" />
-            <FeBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
+            <FeColorMatrix
+              type="matrix"
+              values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
+            />
+            <FeBlend
+              mode="normal"
+              in2="BackgroundImageFix"
+              result="effect1_dropShadow"
+            />
+            <FeBlend
+              mode="normal"
+              in="SourceGraphic"
+              in2="effect1_dropShadow"
+              result="shape"
+            />
           </Filter>
         </Defs>
 
@@ -203,8 +253,14 @@ export function AuraDiamondIcon({ color, points, width = 270, height = 426, styl
 
       {points != null && (
         <View style={diamondStyles.overlay}>
-          <Text style={[diamondStyles.pointsText, { color: tailwindColors["aura-gray-100"] }]}>{points}</Text>
-          <Text style={[diamondStyles.ptsLabel, { color: tailwindColors["aura-gray-300"] }]}>Aura</Text>
+          <Text
+            style={[
+              diamondStyles.pointsText,
+              { color: hexToRgba(tailwindColors["aura-gray-100"], 0.9) },
+            ]}
+          >
+            {points}
+          </Text>
         </View>
       )}
     </View>
@@ -218,13 +274,8 @@ const diamondStyles = StyleSheet.create({
     alignItems: "center",
   },
   pointsText: {
-    fontSize: 32,
+    fontSize: 38,
     fontFamily: tailwindFonts["bold"],
-  },
-  ptsLabel: {
-    fontSize: 14,
-    fontFamily: tailwindFonts["regular"],
-    marginTop: -6,
   },
   smallSparkle: {
     position: "absolute",

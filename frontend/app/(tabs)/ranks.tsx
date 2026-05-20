@@ -3,7 +3,7 @@ import { Header } from "@/components/home/Header";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { cardShadow, layout, radius, spacing } from "@/constants/design";
+import { cardShadow, hexToRgba, layout, radius, spacing } from "@/constants/design";
 import { getLeaderboardFromApi, type LeaderboardEntry } from "@/lib/api";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useState } from "react";
@@ -68,15 +68,6 @@ function sectionIdForAuraPoints(points: number): (typeof TIER_SECTIONS)[number][
 
 function colorForAuraPoints(points: number): string {
   return LEADERBOARD_TABS.find((section) => section.id === sectionIdForAuraPoints(points))?.color ?? tailwindColors["aura-black"];
-}
-
-function hexToRgba(hex: string, alpha: number) {
-  const cleaned = hex.replace("#", "");
-  const value = parseInt(cleaned, 16);
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 export default function RanksScreen() {

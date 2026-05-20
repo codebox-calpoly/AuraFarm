@@ -36,7 +36,6 @@ module.exports = {
         "aura-red-tint": "#FFE4E6",
         "aura-green-light": "#DCF5E9",
         "aura-green-tint": "#A7F3D0",
-        "aura-blue-light": "#DCE4F5",
       },
       fontFamily: {
         "regular": "Poppins_400Regular",
