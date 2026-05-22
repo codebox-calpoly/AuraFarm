@@ -20,32 +20,70 @@ export default function SplashScreen() {
     const checkAndNavigate = async () => {
       try {
         const startedAt = Date.now();
-        const [hasCompletedOnboarding, hasCompletedAuth, loggedIn] = await Promise.all([
+
+        // Run onboarding + explicit-auth checks immediately (local storage only).
+        // Give the token validation / refresh time to complete before falling back.
+        const [hasCompletedOnboarding, hasCompletedAuth] = await Promise.all([
           AsyncStorage.getItem("hasCompletedOnboarding"),
           hasCompletedExplicitAuth(),
-          Promise.race<boolean>([
-            isAuthenticated(),
-            new Promise((resolve) => setTimeout(() => resolve(false), 900)),
-          ]),
         ]);
 
-        if (cancelled) return;
+        // Fast-path: user hasn't finished onboarding or never explicitly logged in.
+        // No need to wait on the network for these cases.
+        if (hasCompletedOnboarding !== "true") {
+          if (!cancelled) router.replace("/onboarding");
+          return;
+        }
+        if (!hasCompletedAuth) {
+          await clearSession();
+          if (!cancelled) router.replace("/login");
+          return;
+        }
 
-        // Keep the branded splash visible briefly, but don't block on slow auth refresh.
-        const remainingDelay = Math.max(0, 250 - (Date.now() - startedAt));
-        timer = setTimeout(async () => {
-          if (cancelled) return;
-          if (hasCompletedOnboarding !== "true") {
-            router.replace("/onboarding");
-          } else if (!hasCompletedAuth) {
-            await clearSession();
-            if (!cancelled) router.replace("/login");
-          } else if (!loggedIn) {
-            router.replace("/login");
-          } else {
-            router.replace("/(tabs)");
+        let handledAuthResult = false;
+        let authNavTimer: ReturnType<typeof setTimeout> | null = null;
+        let pendingAuthTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const scheduleNavigation = (loggedIn: boolean) => {
+          if (cancelled || handledAuthResult) return;
+          handledAuthResult = true;
+          if (pendingAuthTimer) {
+            clearTimeout(pendingAuthTimer);
+            pendingAuthTimer = null;
           }
-        }, remainingDelay);
+
+          const remainingDelay = Math.max(0, 250 - (Date.now() - startedAt));
+          authNavTimer = setTimeout(() => {
+            if (cancelled) return;
+            router.replace(loggedIn ? "/(tabs)" : "/login");
+          }, remainingDelay);
+        };
+
+        void isAuthenticated()
+          .then(async (loggedIn) => {
+            if (!loggedIn) {
+              try {
+                await clearSession();
+              } catch (clearError) {
+                console.error("Error clearing session after auth failure:", clearError);
+              }
+            }
+            scheduleNavigation(loggedIn);
+          })
+          .catch(async (error) => {
+            console.error("Error checking auth state:", error);
+            try {
+              await clearSession();
+            } catch (clearError) {
+              console.error("Error clearing session after auth check error:", clearError);
+            }
+            scheduleNavigation(false);
+          });
+
+        pendingAuthTimer = setTimeout(() => {
+          if (cancelled || handledAuthResult) return;
+          console.warn("Auth check still pending after 5 seconds");
+        }, 5000);
       } catch (error) {
         console.error("Error checking auth state:", error);
         if (!cancelled) router.replace("/onboarding");
