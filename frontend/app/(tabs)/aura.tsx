@@ -21,7 +21,7 @@ export default function AuraScreen() {
   const auraRef = useRef<ViewShot>(null);
   const [auraPoints, setAuraPoints] = useState<number | null>(null);
   const [rank, setRank] = useState<number | null>(null);
-  const [percentile, setPercentile] = useState<number | null>(null);
+  const [topPercent, setTopPercent] = useState<number | null>(null);
 
   useEffect(() => {
     // Use cached session data first so the screen renders instantly
@@ -68,12 +68,15 @@ export default function AuraScreen() {
       leaderboard.filter((user) => user.auraPoints > (auraPoints || 0)).length +
         1,
     );
-    setPercentile(
-      Math.round(
-        (leaderboard.filter((user) => user.auraPoints < (auraPoints || 0))
-          .length /
-          leaderboard.length) *
-          100,
+    setTopPercent(
+      Number(
+        (
+          100 -
+          (leaderboard.filter((user) => user.auraPoints < (auraPoints || 0))
+            .length /
+            leaderboard.length) *
+            100
+        ).toFixed(2),
       ),
     );
   }, [leaderboard, auraPoints]);
@@ -157,19 +160,21 @@ export default function AuraScreen() {
 
         <View style={styles.bigInfoContainer}>
           <View style={styles.infoContainer}>
-            <View style={styles.infoBox}>
-              <ThemedText style={[styles.auraText, { color: tier.color }]}>
-                #{rank}
-              </ThemedText>
-              <ThemedText
-                style={[
-                  styles.auraSubtext,
-                  { color: tailwindColors["aura-gray-700"] },
-                ]}
-              >
-                rank
-              </ThemedText>
-            </View>
+            {auraPoints != 0 && (
+              <View style={styles.infoBox}>
+                <ThemedText style={[styles.auraText, { color: tier.color }]}>
+                  #{rank}
+                </ThemedText>
+                <ThemedText
+                  style={[
+                    styles.auraSubtext,
+                    { color: tailwindColors["aura-gray-700"] },
+                  ]}
+                >
+                  rank
+                </ThemedText>
+              </View>
+            )}
 
             <View style={styles.infoBox}>
               <ThemedText style={[styles.auraText, { color: tier.color }]}>
@@ -185,28 +190,33 @@ export default function AuraScreen() {
               </ThemedText>
             </View>
 
-            {!loadingLeaderboard && !fetchError && (
-              <View style={styles.infoBox}>
-                <ThemedText style={[styles.auraText, { color: tier.color }]}>
-                  {percentile}
-                  {String(percentile).endsWith("1") ?
-                    "st"
-                  : String(percentile).endsWith("2") ?
-                    "nd"
-                  : String(percentile).endsWith("3") ?
-                    "rd"
-                  : "th"}
-                </ThemedText>
-                <ThemedText
-                  style={[
-                    styles.auraSubtext,
-                    { color: tailwindColors["aura-gray-700"] },
-                  ]}
-                >
-                  percentile
-                </ThemedText>
-              </View>
-            )}
+            {!loadingLeaderboard &&
+              !fetchError &&
+              topPercent !== null &&
+              auraPoints != 0 && (
+                <View style={styles.infoBox}>
+                  <ThemedText style={[styles.auraText, { color: tier.color }]}>
+                    {topPercent < 0.01 ?
+                      "0.01"
+                    : topPercent < 0.1 ?
+                      topPercent.toFixed(2)
+                    : topPercent < 1 ?
+                      topPercent.toFixed(1)
+                    : topPercent < 10 ?
+                      topPercent.toFixed(0)
+                    : Math.round(topPercent / 10) * 10}
+                    %
+                  </ThemedText>
+                  <ThemedText
+                    style={[
+                      styles.auraSubtext,
+                      { color: tailwindColors["aura-gray-700"] },
+                    ]}
+                  >
+                    top %
+                  </ThemedText>
+                </View>
+              )}
           </View>
 
           <Pressable
