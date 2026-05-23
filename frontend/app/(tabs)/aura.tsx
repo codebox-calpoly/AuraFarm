@@ -76,7 +76,7 @@ export default function AuraScreen() {
           100,
       ),
     );
-  }, [leaderboard]);
+  }, [leaderboard, auraPoints]);
 
   const handleShare = async () => {
     try {

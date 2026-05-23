@@ -45,12 +45,12 @@ export function AuraDiamondIcon({
 }: AuraDiamondIconProps) {
   const sparkleSizes = Array(Math.round((points || 0) / (3 * 10)))
     .fill("20")
-    .concat(Array(Math.round((points || 0) / (25))).fill("15"))
-    .concat(Array(Math.round((points || 0) / (30))).fill("12"))
-    .concat(Array(Math.round((points || 0) / (40))).fill("10"))
-    .concat(Array(Math.round((points || 0) / (55))).fill("8"))
-    .concat(Array(Math.round((points || 0) / (75))).fill("6"))
-    .concat(Array(Math.round((points || 0) / (100))).fill("3"));
+    .concat(Array(Math.round(((points || 0) / 3) ** 0.65)).fill("15"))
+    .concat(Array(Math.round(((points || 0) / 6) ** 0.65)).fill("12"))
+    .concat(Array(Math.round(((points || 0) / 8) ** 0.65)).fill("10"))
+    .concat(Array(Math.round(((points || 0) / 10) ** 0.65)).fill("8"))
+    .concat(Array(Math.round(((points || 0) / 12) ** 0.65)).fill("6"))
+    .concat(Array(Math.round(((points || 0) / 15) ** 0.65)).fill("3"));
 
   const scale1 = useSharedValue(1);
   const scale2 = useSharedValue(1);
