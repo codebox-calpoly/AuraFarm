@@ -5,26 +5,28 @@ import { useRouter } from "expo-router";
 import Animated, { FadeInRight, FadeOutLeft } from "react-native-reanimated";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { tailwindColors, tailwindFonts } from "@/constants/tailwind-colors";
-import { Header } from "@/components/home/Header";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 
 const onboardingData = [
   {
     id: 1,
-    title: "Welcome to Aura Farm",
-    description:
-      "Discover challenges, earn Aura, and grow your sustainable journey on campus.",
+    title: "Touch Grass",
+    description: "Leave your dorm and explore campus with new people.",
+    image: require("../assets/images/onboarding/waldo-planking.png"),
   },
   {
     id: 2,
-    title: "Complete Challenges",
+    title: "Earn Aura",
     description:
-      "Complete challenges near you and earn Aura to climb the leaderboard.",
+      "Complete challenges to earn Aura and climb the leaderboard.",
+    image: require("../assets/images/onboarding/mountain-looking-out.png"),
   },
   {
     id: 3,
-    title: "Get Started",
-    description:
-      "Create an account to start your journey and track your progress.",
+    title: "Start Farming",
+    description: "Create an account to start farming Aura.",
+    image: require("../assets/images/onboarding/sitting-near-the-p.png"),
   },
 ];
 
@@ -48,24 +50,11 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleLogIn = async () => {
-    try {
-      await AsyncStorage.setItem("hasCompletedOnboarding", "true");
-      router.replace("/login");
-    } catch (error) {
-      console.error("Error saving onboarding status:", error);
-      router.replace("/login");
-    }
-  };
-
   const isLastScreen = currentIndex === onboardingData.length - 1;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Header */}
-        <Header />
-
         {/* Content Area */}
         <Animated.View
           key={currentIndex}
@@ -73,8 +62,16 @@ export default function OnboardingScreen() {
           exiting={FadeOutLeft.duration(400)}
           style={styles.contentContainer}
         >
-          {/* Image Placeholder */}
-          <View style={styles.imagePlaceholder} />
+          <View style={styles.imageContainer}>
+            {/* Image Placeholder */}
+            <Image
+              style={styles.image}
+              source={onboardingData[currentIndex].image}
+              contentFit="cover"
+              transition={1000}
+              autoplay
+            />
+          </View>
 
           {/* Text Content */}
           <View style={styles.textContainer}>
@@ -109,7 +106,12 @@ export default function OnboardingScreen() {
                 onPress={handleSignUp}
                 style={[styles.button, styles.buttonPrimary]}
               >
-                <Text style={styles.buttonTextPrimary}>Start</Text>
+                <Ionicons
+                  name="sparkles"
+                  size={24}
+                  color={tailwindColors["aura-white"]}
+                />
+                <Text style={styles.buttonTextPrimary}>Sign up</Text>
               </TouchableOpacity>
             </View>
           : <TouchableOpacity
@@ -117,6 +119,11 @@ export default function OnboardingScreen() {
               style={[styles.button, styles.buttonSecondary]}
             >
               <Text style={styles.buttonTextSecondary}>Continue</Text>
+              <Ionicons
+                name="arrow-forward"
+                size={24}
+                color={tailwindColors["aura-gray-700"]}
+              />
             </TouchableOpacity>
           }
         </View>
@@ -132,8 +139,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingBottom: 32,
   },
   header: {
     width: "100%",
@@ -149,48 +155,55 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   contentContainer: {
+    width: "100%",
     flex: 1,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 48,
   },
-  imagePlaceholder: {
+  imageContainer: {
+    height: "100%",
     width: "100%",
-    aspectRatio: 1,
-    backgroundColor: tailwindColors["aura-gray-100"],
-    borderRadius: 20,
-    maxWidth: 384,
-    borderWidth: 1,
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-start",
     borderColor: tailwindColors["aura-border"],
+    borderBottomWidth: 2,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
   },
   textContainer: {
     width: "100%",
     alignItems: "center",
-    paddingHorizontal: 16,
     marginTop: 32,
+    paddingHorizontal: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontFamily: tailwindFonts["semibold"],
     color: "#1F2937",
     textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   description: {
-    fontSize: 16,
+    fontSize: 17,
+    fontFamily: tailwindFonts["regular"],
     color: "#6B7280",
     textAlign: "center",
   },
   bottomSection: {
     width: "100%",
     alignItems: "center",
+    paddingHorizontal: 24,
   },
   pagination: {
     display: "flex",
     justifyContent: "center",
     flexDirection: "row",
-    marginBottom: 32,
+    marginBottom: 24,
     gap: 8,
+    paddingHorizontal: 24,
   },
   lastScreenButtons: {
     width: "100%",
@@ -202,11 +215,11 @@ const styles = StyleSheet.create({
   },
   dotActive: {
     width: 32,
-    backgroundColor: tailwindColors["aura-green"],
+    backgroundColor: tailwindColors["aura-red"],
   },
   dotInactive: {
     width: 8,
-    backgroundColor: "#D1D5DB",
+    backgroundColor: tailwindColors["aura-gray-300"],
   },
   button: {
     width: "100%",
@@ -214,13 +227,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 2,
     borderColor: "transparent",
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   buttonSecondary: {
-    backgroundColor: "#ffffff",
-    borderColor: "#030303",
+    backgroundColor: tailwindColors["aura-white"],
+    borderColor: tailwindColors["aura-gray-200"],
   },
   buttonPrimary: {
-    backgroundColor: tailwindColors["aura-green"],
+    backgroundColor: tailwindColors["aura-red"],
   },
   buttonTextSecondary: {
     textAlign: "center",
