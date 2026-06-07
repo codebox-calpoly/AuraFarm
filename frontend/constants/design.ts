@@ -42,3 +42,12 @@ export const layout = {
   screenPaddingX: 20,
   maxContentWidth: 560,
 } as const;
+
+export function hexToRgba(hex: string, alpha: number) {
+  const cleaned = hex.replace("#", "");
+  const value = parseInt(cleaned, 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}

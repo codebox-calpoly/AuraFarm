@@ -20,7 +20,7 @@ module.exports = {
         "aura-surface": "#FFFFFF",
         "aura-surface-muted": "#FAFBFA",
         /** Hairline borders */
-        "aura-border": "#E7E5E4",
+        "aura-border": "rgba(0,0,0, 0.05)",
         "aura-border-strong": "#D6D3D1",
         // Standard grays for UI
         "aura-gray-50": "#FAFAF9",
